@@ -1,118 +1,150 @@
 import numpy as np
 import cvxpy as cp
-
-from cvxpy.constraints.zero import Zero
-from cvxpy.constraints.nonpos import NonNeg
-from cvxpy.constraints.second_order import SOC
-from cvxpy.constraints.psd import PSD
-from cvxpy.constraints.exponential import ExpCone
-from cvxpy.constraints.power import PowCone3D
+from numbers import Number
 
 
-def to_cone_program(cost, constraints):
+def sym2num(cost, constraints):
     
-    # Translates the problem of minimizing the cost subject to the constraints
-    # into a cone program.
+    # Apply reductions to auxiliary program.
     prob = cp.Problem(cp.Minimize(cost), constraints)
-    opts = {'use_quad_obj': False}
-    chain = prob._construct_chain(solver_opts=opts)
+    chain = prob._construct_chain()
     chain.reductions = chain.reductions[:-1]
     cone_prob = chain.apply(prob)[0]
-    # data, _, invdata = prob.get_problem_data(cp.SCS, solver_opts=opts) #
-
-    # Extracts the offsets in the cost and the constraints.
-    cone_data = {}
-    cd = cone_prob.c.toarray().flatten()
-    Ab = cone_prob.A.toarray().reshape((-1, len(cd)), order='F')
-    cone_data['c'] = cd[:-1]
-    cone_data['d'] = cd[-1]
-    cone_data['A'] = Ab[:, :-1]
-    cone_data['b'] = Ab[:, -1]
-    # cone_data['A'] = - data['A'] #
-    # cone_data['b'] = data['b'] #
-    # cone_data['c'] = data['c'] #
-    # cone_data['d'] = invdata[-1]['offset'] #
-
-    # Extracts the type and the size of each cone constraint.
-    # Still not correct, might get a sym variable and break.
-    cone_data['cones'] = [(type(c), c.size) for c in cone_prob.constraints]
-    # cone_data['cones'] = [(type(c), c.size) for c in data['param_prob'].constraints] #
-
-    # Maps the id of each variable in the cone program to the
-    cone_data['windows'] = {}
+    
+    # Map variable ids to range in the columns of A.
+    var_range = {}
     for x in cone_prob.variables:
         start = cone_prob.var_id_to_col[x.id]
-    # for x in data['param_prob'].variables: #
-    #     start = data['param_prob'].var_id_to_col[x.id] #
-        cone_data['windows'][x] = range(start, start + x.size)
+        var_range[x.id] = range(start, start + x.size)
+        
+    return cone_prob, var_range
+
+
+def sym2num_cost(cost):
     
-    return cone_data
+    # Apply reductions with no constraints.
+    cone_prob, var_range = sym2num(cost, [])
+    
+    # Extract cost matrices.
+    cd = cone_prob.c.toarray().flatten()
+    c = {x_id: cd[x_range] for x_id, x_range in var_range.items()}
+    d = cd[-1]
+    
+    return c, d
 
 
-def constrain_in_cone(Axb, cone):
+def sym2num_constraint(const):
+    
+    # Apply reductions with zero cost.
+    cone_prob, var_range = sym2num(0, [const])
 
-    if cone == Zero:
-         return Zero(Axb)
+    # Extract constraint matrices.
+    m = cone_prob.c.shape[0]
+    Ab = cone_prob.A.toarray().reshape((-1, m), order='F')
+    A = {x_id: Ab[:, x_range] for x_id, x_range in var_range.items()}
+    b = Ab[:, -1]
 
-    elif cone == NonNeg:
-         return NonNeg(Axb)
+    # Extract cone.
+    assert len(cone_prob.constraints) == 1
+    K = type(cone_prob.constraints[0])
+    
+    return A, b, K
 
-    elif cone == SOC:
-        return SOC(Axb[0], Axb[1:])
 
-    elif cone == ExpCone: # not sure about this
+def dcp2cone(cost, constraints):
+    
+    # Auxiliary dcp.
+    prob = cp.Problem(cp.Minimize(cost), constraints)
+    assert prob.is_dcp()
+    
+    # Translate to cone program.
+    reduction = cp.reductions.Dcp2Cone(prob)
+    cone_prob = reduction.reduce()
+    cone_cost = cone_prob.objective.expr
+    cone_constraints = cone_prob.constraints
+    
+    # Extract matrices.
+    matrices = {}
+    if isinstance(cost, Number):
+        matrices['c'] = {}
+        matrices['d'] = cost
+    else:
+        matrices['c'], matrices['d'] = sym2num_cost(cone_cost)
+    num_constraints = [sym2num_constraint(c) for c in cone_constraints]
+    matrices['A'] = [c[0] for c in num_constraints]
+    matrices['b'] = [c[1] for c in num_constraints]
+    matrices['K'] = [c[2] for c in num_constraints]
+
+    # Store data.
+    var_ids = [x.id for x in prob.variables()]
+    aux_variables = [x for x in cone_prob.variables() if x.id not in var_ids]
+    data = {'matrices': matrices,
+            'variables': prob.variables(),
+            'aux_variables': aux_variables}
+    
+    return data
+
+
+def constrain_in_cone(Axb, K):
+
+    if K == cp.constraints.Zero:
+         return cp.constraints.Zero(Axb)
+
+    elif K == cp.constraints.NonNeg:
+         return cp.constraints.NonNeg(Axb)
+
+    elif K == cp.constraints.SOC:
+        return cp.constraints.SOC(Axb[0], Axb[1:])
+
+    elif K == cp.constraints.ExpCone: # not sure about this
         assert len(Axb.shape) == 1
         step = Axb.size // 3
-        return ExpCone(Axb[:step], Axb[step:-step], Axb[-step:])
+        return cp.constraints.ExpCone(Axb[:step], Axb[step:-step], Axb[-step:])
 
-    elif cone == PSD: # not sure about this
+    elif K == cp.constraints.PSD:
         assert len(Axb.shape) == 1
         n = int(Axb.size ** .5)
         Axb_mat = cp.reshape(Axb, (n, n))
-        return PSD(Axb_mat)
+        return cp.constraints.PSD(Axb_mat)
 
-    elif cone == PowCone3D:
+    elif K == cp.constraints.PowCone3D:
         raise NotImplementedError
 
     else:
         raise NotImplementedError
 
 
-def flatten(x_old, x_new):
-
+def vec_as(x_new, x_old):
+    
     if x_old.attributes['diag']:
-        return diag(x_new)
+        return cp.diag(x_new)
 
-    elif x_old.is_symmetric() and x_old.size > 1:
+    elif x_old.attributes['symmetric']:
         return x_new[np.tril_indices(x_old.shape[0])[::-1]]
 
-    elif len(x_old.shape) > 1:
+    else:
         return cp.vec(x_new)
 
-    else:
-        return x_new
 
+def cone_perspective(cone_data, substitution, t):
 
-def cone_perspective(cone_data, variable_map, t):
+    # Unpack cone data.
+    matrices = cone_data['matrices']
+    variables = cone_data['variables'] + cone_data['aux_variables']
 
-    # Loop through the variables.
-    cost = cone_data['d'] * t
-    Axbt = cone_data['b'] * t
-    auxiliary_variables = []
-    for x_old, window in cone_data['windows'].items():
-        if x_old in variable_map:
-            x_new = flatten(x_old, variable_map[x_old])
-        else:
-            x_new = cp.Variable(len(window))
-            auxiliary_variables.append(x_new)
-        cost = cost + cone_data['c'][window] @ x_new
-        Axbt = Axbt + cone_data['A'][:, window] @ x_new
+    # Dictionary from variable id to vectorized evaluation point.
+    evaluation = {x.id: vec_as(x, x) for x in variables}
+    for x, x_new in substitution.items():
+        evaluation[x.id] = vec_as(x_new, x)
 
-    # Loop through the constraints.
-    constraints = [t >= 0]
-    row = 0
-    for cone, size in cone_data['cones']:
-        constraints.append(constrain_in_cone(Axbt[row : row + size], cone))
-        row += size
+    # Cost.
+    multiply = lambda a, b: sum(a[x.id] @ b[x.id] for x in variables if x.id in a)
+    cost = matrices['d'] * t + multiply(matrices['c'], evaluation)
 
-    return cost, constraints, auxiliary_variables
+    # Constraints.
+    constraints = []
+    for A, b, K in zip(matrices['A'], matrices['b'], matrices['K']):
+        Axb = b * t + multiply(A, evaluation)
+        constraints.append(constrain_in_cone(Axb, K))
+
+    return cost, constraints

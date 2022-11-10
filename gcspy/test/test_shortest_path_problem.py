@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import cvxpy as cp
 
-from gcspy.graph_of_convex_set import GraphOfConvexSets
+from gcspy.graph_of_convex_sets import GraphOfConvexSets
 from gcspy.shortest_path_problem import ShortestPathProblem
 
 

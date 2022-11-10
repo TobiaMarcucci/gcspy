@@ -2,10 +2,23 @@ import unittest
 import numpy as np
 import cvxpy as cp
 
-from gcspy.utils import to_cone_program, cone_program_perspective
+from gcspy.utils import dcp2cone, cone_perspective
 
 
 class TestConePerspective(unittest.TestCase):
+
+    def test_constant_cost(self):
+
+        # Zero cost.
+        x = cp.Variable(2)
+        cost = 0
+        constraints = [x == 0]
+        variables = [x]
+        self._compare_solves(cost, constraints, variables)
+
+        # Constant cost.
+        cost = 3
+        self._compare_solves(cost, constraints, variables)
 
     def test_lp(self):
 
@@ -108,14 +121,14 @@ class TestConePerspective(unittest.TestCase):
         minimizer = [x.value for x in variables]
 
         # Solve as cone program.
-        cone_data = to_cone_program(cost, constraints)
-        new_variables = {x.id: cp.Variable(x.shape, **x.attributes) for x in variables}
+        cone_data = dcp2cone(cost, constraints)
+        substitution = {}
         t = 1
-        cone_cost, cone_constraints, _ = cone_program_perspective(cone_data, new_variables, t)
+        cone_cost, cone_constraints = cone_perspective(cone_data, substitution, t)
         cone_prob = cp.Problem(cp.Minimize(cone_cost), cone_constraints)
         cone_prob.solve()
         cone_minimum = cone_prob.value
-        cone_minimizer = [y.value for y in new_variables.values()]
+        cone_minimizer = [x.value for x in variables]
 
         # Compare solutions.
         self.assertAlmostEqual(minimum, cone_minimum, places=4)

@@ -1,7 +1,7 @@
 import numpy as np
 import cvxpy as cp
 
-from gcspy.utils import to_cone_program, cone_perspective
+from gcspy.utils import dcp2cone, cone_perspective
 
 
 class SpatialVariables(dict):
@@ -75,7 +75,7 @@ class ShortestPathProblem():
         for v in self.gcs.vertices:
 
             # Nonnegativity.
-            cone_data = to_cone_program(0, v.constraints)
+            cone_data = dcp2cone(0, v.constraints)
             for e in outgoing[v]:
                 constraints.extend(cone_perspective(cone_data, z[e], y[e])[1])
             for e in incoming[v]:
@@ -101,7 +101,7 @@ class ShortestPathProblem():
 
         # Edge lenghts and constraints.
         for e in self.gcs.edges:
-            cone_data = to_cone_program(e.length, e.constraints)
+            cone_data = dcp2cone(e.length, e.constraints)
             ze = z[e] | z1[e]
             cost_e, constraint_e = cone_perspective(cone_data, ze, y[e])[:2]
             cost += cost_e
