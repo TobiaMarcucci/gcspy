@@ -82,7 +82,7 @@ class ShortestPathProblem():
                 constraints.extend(cone_perspective(cone_data, z1[e], y[e])[1])
 
             # Conservation of flow.
-            if v not in [s, t]:
+            if (v not in [s, t]) and (len(incoming[v]) + len(outgoing[v]) > 0):
                 constraints.append(outflow[v] == inflow[v])
                 constraints.extend(spatial_inflow[v] == spatial_outflow[v])
 
@@ -112,31 +112,37 @@ class ShortestPathProblem():
         prob.solve()
 
         # Get optimal solution.
-        y_opt = {e: float(y[e].value) for e in E}
+        y_opt = {e: y[e].value for e in E}
         z_opt = {e: list(z[e].value.values()) for e in E}
         z1_opt = {e: list(z1[e].value.values()) for e in E}
 
         # Reconstruct optimal values of x.
         x_opt = {}
         for v in self.gcs.vertices:
-            if v == t:
-                den = inflow[v].value
-                num = spatial_inflow[v].value
+            if prob.status == 'optimal':
+                if v == t:
+                    den = sum(y[e].value for e in incoming[v])
+                    num = sum(z1[e].value for e in incoming[v])
+                else:
+                    den = sum(y[e].value for e in outgoing[v])
+                    num = sum(z[e].value for e in outgoing[v])
+                if den < tol:
+                    x_opt[v] = v.get_feasible_point()
+                else:
+                    x_opt[v] = list((num / den).values())
             else:
-                den = outflow[v].value
-                num = spatial_outflow[v].value
-            if den < tol:
-                x_opt[v] = v.get_feasible_point()
-            else:
-                x_opt[v] = list((num / den).values())
+                x_opt[v] = None
 
-        return ShortestPathSolution(y_opt, z_opt, z1_opt, x_opt)
+        return ShortestPathSolution(prob, y_opt, z_opt, z1_opt, x_opt, prob.value)
 
 
 class ShortestPathSolution():
 
-    def __init__(self, y, z, z1, x):
+    def __init__(self, prob, y, z, z1, x, length):
 
+        self.status = prob.status
+        self.length = prob.value
+        self.solve_time = prob.solver_stats.solve_time
         self.y = y
         self.z = z
         self.z1 = z1

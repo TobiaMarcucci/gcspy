@@ -113,6 +113,11 @@ class GraphOfConvexSets:
 
         return v
 
+    def get_vertex(self, name):
+        for v in self.vertices:
+            if v.name == name:
+                return v
+
     def add_edge(self, u, v):
 
         e = Edge(u, v)
