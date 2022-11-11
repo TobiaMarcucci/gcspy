@@ -97,8 +97,9 @@ def optimize_path(path, inters):
 
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve()
+    traj = np.array([x.value for x in variables.values()])
 
-    return np.array([x.value for x in variables.values()])
+    return traj, prob.value, prob.solver_stats.solve_time
 
 def plot(boxes, label=False, gap=.2, **kwargs):
 
