@@ -43,7 +43,7 @@ class ShortestPathProblem():
         self.gcs = gcs
         self.cyclic = gcs.has_cycles()
 
-    def solve(self, s, t, relaxation=False, tol=1e-4):
+    def solve(self, s, t, relaxation=False):
 
         # Problem setup.
         cost = 0
@@ -111,39 +111,49 @@ class ShortestPathProblem():
         prob = cp.Problem(cp.Minimize(cost), constraints)
         prob.solve()
 
-        # Get optimal solution.
-        y_opt = {e: y[e].value for e in E}
-        z_opt = {e: list(z[e].value.values()) for e in E}
-        z1_opt = {e: list(z1[e].value.values()) for e in E}
-
-        # Reconstruct optimal values of x.
-        x_opt = {}
-        for v in self.gcs.vertices:
-            if prob.status == 'optimal':
-                if v == t:
-                    den = sum(y[e].value for e in incoming[v])
-                    num = sum(z1[e].value for e in incoming[v])
-                else:
-                    den = sum(y[e].value for e in outgoing[v])
-                    num = sum(z[e].value for e in outgoing[v])
-                if den < tol:
-                    x_opt[v] = v.get_feasible_point()
-                else:
-                    x_opt[v] = list((num / den).values())
-            else:
-                x_opt[v] = None
-
-        return ShortestPathSolution(prob, y_opt, z_opt, z1_opt, x_opt, prob.value)
+        return ShortestPathSolution(prob, y, z, z1, self.gcs, s, relaxation)
 
 
 class ShortestPathSolution():
 
-    def __init__(self, prob, y, z, z1, x, length):
+    def __init__(self, prob, y, z, z1, gcs, s, relaxation, tol=1e-4):
 
+        # Problem stats.
         self.status = prob.status
         self.length = prob.value
         self.solve_time = prob.solver_stats.solve_time
-        self.y = y
-        self.z = z
-        self.z1 = z1
-        self.x = x
+
+        # Minimizers.
+        self.y = {e: y[e].value for e in gcs.edges}
+        self.z = {e: list(z[e].value.values()) for e in gcs.edges}
+        self.z1 = {e: list(z1[e].value.values()) for e in gcs.edges}
+
+        # Reconstruct path.
+        if not relaxation:
+            path_edges = [e for e in gcs.edges if self.y[e] > 1 - tol]
+            self.path = [s]
+            for e in path_edges:
+                if e.u == self.path[-1]:
+                    self.path.append(e.v)
+                    continue
+        else:
+            self.path = None
+
+        # Reconstruct vertex positions.
+        self.x = {}
+        for v in gcs.vertices:
+            if self.status != 'optimal':
+                self.x[v] = [None] * len(v.variables)
+                continue
+            den = sum(y[e].value for e in gcs.out_edges(v))
+            if den > tol:
+                num = sum(z[e].value for e in gcs.out_edges(v))
+                self.x[v] = list((num / den).values())
+                continue
+            den = sum(y[e].value for e in gcs.in_edges(v))
+            if den > tol:
+                num = sum(z1[e].value for e in gcs.in_edges(v))
+                self.x[v] = list((num / den).values())
+                continue
+            self.x[v] = [None] * len(v.variables)
+                    

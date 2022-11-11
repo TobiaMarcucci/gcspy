@@ -43,15 +43,15 @@ class TestShortestPathProblem(unittest.TestCase):
 
         # Solve spp.
         spp = ShortestPathProblem(gcs)
-        flows, vertex_positions = spp.solve(u, w, relaxation=0)
+        sol = spp.solve(u, w, relaxation=0)
 
         # Check that solver takes two steps.
-        self.assertAlmostEqual(flows[e], 1)
-        self.assertAlmostEqual(flows[f], 0)
-        self.assertAlmostEqual(flows[g], 1)
-        self.assertAlmostEqual(flows[h], 0)
+        self.assertAlmostEqual(sol.y[e], 1, places=4)
+        self.assertAlmostEqual(sol.y[f], 0, places=4)
+        self.assertAlmostEqual(sol.y[g], 1, places=4)
+        self.assertAlmostEqual(sol.y[h], 0, places=4)
 
         # Check that the two steps have equal length.
-        self.assertTrue(np.allclose(vertex_positions[u], [0, 0]))
-        self.assertTrue(np.allclose(vertex_positions[v], [.5, .5]))
-        self.assertTrue(np.allclose(vertex_positions[w], [1, 1]))
+        self.assertTrue(np.allclose(sol.x[u], [0, 0]))
+        self.assertTrue(np.allclose(sol.x[v], [.5, .5]))
+        self.assertTrue(np.allclose(sol.x[w], [1, 1]))
