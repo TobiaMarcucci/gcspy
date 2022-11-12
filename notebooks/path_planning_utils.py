@@ -113,3 +113,23 @@ def plot(boxes, label=False, gap=.2, **kwargs):
             plt.text(*box.center, str(k), ha='center', va='center')
     plt.xlim([bot[0] - gap, top[0] + gap])
     plt.ylim([bot[1] - gap, top[1] + gap])
+
+def plot_line_graph(G, inters, n, s, t):
+    s_pos = [-1, -1]
+    t_pos = [n, n]
+    for v in G.nodes:
+        if v not in [s, t]:
+            plt.scatter(*inters[v].center, fc='w', ec='k', zorder=3)
+    plt.scatter(*s_pos, fc='w', ec='k', zorder=3)
+    plt.scatter(*t_pos, fc='w', ec='k', zorder=3)
+    for e in G.edges:
+        if e[0] in [s, t]:
+            start = s_pos
+        else:
+            start = inters[e[0]].center
+        if e[1] in [s, t]:
+            stop = t_pos
+        else:
+            stop = inters[e[1]].center
+        P = np.array([start, stop])
+        plt.plot(*P.T, c='k')
