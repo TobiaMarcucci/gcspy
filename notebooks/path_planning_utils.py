@@ -68,15 +68,18 @@ def line_graph(boxes, inters, s, t):
         cv = inters[e[1]].center
         G_line.edges[e]['weight'] = np.linalg.norm(cv - cu)
 
-    G = G_line.to_directed()
+    # G = G_line.to_directed()
+    G = G_line
     G.add_node(s)
     G.add_node(t)
     n = int(len(boxes) ** .5)
     for v in G.nodes:
         if v not in [s, t]:
-            if v[0] == (0, 0):
+            # if v[0] == (0, 0):
+            if (0, 0) in v:
                 G.add_edge(s, v)
-            if v[1] == (n -1, n - 1):
+            # if v[1] == (n -1, n - 1):
+            if (n -1, n - 1) in v:
                 G.add_edge(v, t)
 
     return G
@@ -96,7 +99,7 @@ def optimize_path(path, inters):
         x_prev = variables[v]
 
     prob = cp.Problem(cp.Minimize(cost), constraints)
-    prob.solve()
+    prob.solve(solver='ECOS')
     traj = np.array([x.value for x in variables.values()])
 
     return traj, prob.value, prob.solver_stats.solve_time
@@ -123,11 +126,15 @@ def plot_line_graph(G, inters, n, s, t):
     plt.scatter(*s_pos, fc='w', ec='k', zorder=3)
     plt.scatter(*t_pos, fc='w', ec='k', zorder=3)
     for e in G.edges:
-        if e[0] in [s, t]:
+        if e[0] == s:
             start = s_pos
+        elif e[0] == t:
+            start = t_pos
         else:
             start = inters[e[0]].center
-        if e[1] in [s, t]:
+        if e[1] == s:
+            stop = s_pos
+        elif e[1] == t:
             stop = t_pos
         else:
             stop = inters[e[1]].center
