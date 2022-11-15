@@ -142,13 +142,30 @@ class GraphOfConvexSets:
 
         return [e for e in self.edges if e.u == u]
 
-    def has_cycles(self):
+    def has_cycles(self, s):
 
-        graph = nx.DiGraph()
-        graph.add_nodes_from(self.vertices)
-        graph.add_edges_from([(e.u, e.v) for e in self.edges])
+        def depth_first(v, visited, cyclic):
+            if not cyclic:
+                visited.add(v)
+                out_edges = self.out_edges(v)
+                for e in out_edges:
+                    if e.v in visited:
+                        cyclic = True
+                        return
+                for e in out_edges:
+                    depth_first(e.v, visited, cyclic)
 
-        return not nx.is_directed_acyclic_graph(graph)
+        visited = set()
+        cyclic = False
+        depth_first(s, visited, cyclic)
+
+        return cyclic
+
+        # graph = nx.DiGraph()
+        # graph.add_nodes_from(self.vertices)
+        # graph.add_edges_from([(e.u, e.v) for e in self.edges])
+
+        # return not nx.is_directed_acyclic_graph(graph)
 
     def graphviz(self, vertex_labels=None, edge_labels=None):
 

@@ -41,7 +41,6 @@ class ShortestPathProblem():
     def __init__(self, gcs):
 
         self.gcs = gcs
-        self.cyclic = gcs.has_cycles()
 
     def solve(self, s, t, relaxation=False):
 
@@ -86,7 +85,7 @@ class ShortestPathProblem():
                 constraints.append(outflow[v] == inflow[v])
                 constraints.extend(spatial_inflow[v] == spatial_outflow[v])
 
-                if self.cyclic:
+                if self.gcs.has_cycles(s):
 
                     # Degree constraints.
                     constraints.append(outflow[v] <= 1)
