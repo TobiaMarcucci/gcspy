@@ -1,41 +1,15 @@
 import cvxpy as cp
-import graphviz as gv
-
-
-class ConvexProgram:
-
-    var_attributes = ["nonneg", "nonpos", "symmetric", "diag", "PSD", "NSD"]
-
-    def __init__(self):
-        self.variables = []
-        self.constraints = []
-        self.cost = 0
-
-    def add_variable(self, shape, **kwargs):
-        for attribute in kwargs:
-            if not attribute in self.var_attributes:
-                raise ValueError(f"Variable attribute {attribute} is not allowed.")
-        variable = cp.Variable(shape, **kwargs)
-        self.variables.append(variable)
-        return variable
-
-    def add_constraint(self, constraint):
-        self._verify_variables(constraint.variables())
-        self.constraints.append(constraint)
-
-    def add_cost(self, cost):
-        self._verify_variables(cost.variables())
-        self.cost += cost
-
-    def _verify_variables(self, variables):
-        raise NotImplementedError
+import numpy as np
+from gcspy.programs import ConvexProgram, ConicProgram
+from gcspy.problems.shortest_path import shortest_path
 
 
 class Vertex(ConvexProgram):
 
     def __init__(self, name=""):
-        self.name = name
         super().__init__()
+        self.name = name
+        self.value = None
 
     def _verify_variables(self, variables):
         ids0 = {variable.id for variable in self.variables}
@@ -43,13 +17,25 @@ class Vertex(ConvexProgram):
         if not ids0 >= ids1:
             raise ValueError("A variable does not belong to this vertex.")
 
+    def get_feasible_point(self):
+        values = [variable.value for variable in self.variables]
+        prob = cp.Problem(cp.Minimize(0), self.constraints)
+        prob.solve()
+        feasible_point = [variable.value for variable in self.variables]
+        for variable, value in zip(self.variables, values):
+            variable.value = value
+        return feasible_point
+
 
 class Edge(ConvexProgram):
 
     def __init__(self, tail, head):
+        super().__init__()
         self.tail = tail
         self.head = head
-        super().__init__()
+        self.conic_program = None
+        self.name = (self.tail.name, self.head.name)
+        self.value = None
 
     def _verify_variables(self, variables):
         edge_variables = self.variables + self.tail.variables + self.head.variables
@@ -90,40 +76,35 @@ class GraphOfConvexSets:
             if edge.tail.name == tail_name and edge.head.name == head_name:
                 return edge
 
-    def inc_edges(self, vertex):
+    def incoming_edges(self, vertex):
         return [edge for edge in self.edges if edge.head == vertex]
 
-    def out_edges(self, vertex):
+    def incoming_indices(self, vertex):
+        return [k for k, edge in enumerate(self.edges) if edge.head == vertex]
+
+    def outgoing_edges(self, vertex):
         return [edge for edge in self.edges if edge.tail == vertex]
+
+    def outgoing_indices(self, vertex):
+        return [k for k, edge in enumerate(self.edges) if edge.tail == vertex]
 
     def incident_edges(self, vertex):
         return self.incoming_edges(vertex) + self.outgoing_edges(vertex)
 
-    def inc_vertices(self, vertex):
-        return [edge.tail for edge in self.edges if edge.head == vertex]
+    def incident_indices(self, vertex):
+        return self.incoming_indices(vertex) + self.outgoing_indices(vertex)
 
-    def out_vertices(self, vertex):
-        return [edge.head for edge in self.edges if edge.tail == vertex]
-
-    def neighbor_vertices(self, vertex):
-        return self.inneighbours(vertex) + self.outneighbours(vertex)
-    
     def num_vertices(self):
         return len(self.vertices)
 
     def num_edges(self):
         return len(self.edges)
 
-    def graphviz(self, vertex_labels=None, edge_labels=None):
-        if vertex_labels is None:
-            vertex_labels = [vertex.name for vertex in self.vertices]
-        if edge_labels is None:
-            edge_labels = [''] * self.num_edges()
-        digraph = gv.Digraph()
-        for label in vertex_labels:
-            digraph.node(str(label))
-        for edge, label in zip(self.edges, edge_labels):
-            tail = vertex_labels[self.vertices.index(edge.tail)]
-            head = vertex_labels[self.vertices.index(edge.head)]
-            digraph.edge(str(tail), str(head), str(label))
-        return digraph
+    def to_conic(self):
+        for vertex in self.vertices:
+            vertex.to_conic()
+        for edge in self.edges:
+            edge.to_conic()
+
+    def shortest_path(self, s, t, **kwargs):
+        return shortest_path(self, s, t, **kwargs)
