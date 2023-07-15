@@ -44,7 +44,7 @@ def plot_edge_2d(edge, **kwargs):
     for variables in [edge.tail.variables, edge.head.variables]:
         if len(variables) != 1 or variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
-    arrowstyle = '->, head_width=3, head_length=8'
+    arrowstyle = "->, head_width=3, head_length=8"
     options = dict(color='k', zorder=2, arrowstyle=arrowstyle)
     options.update(kwargs)
     tail = edge.tail.variables[0].value
@@ -55,9 +55,9 @@ def plot_edge_2d(edge, **kwargs):
         head = edge.head.get_feasible_point()[0]
     arrow = patches.FancyArrowPatch(tail, head, **options)
     if edge.value is not None:
-        center = (tail + head) / 2
+        center = tail + (head - tail) * .65
         bbox = dict(facecolor='w', edgecolor='r', boxstyle='round')
-        plt.text(*center, str(edge.value),
+        plt.text(*center, round(abs(edge.value), 3),
                  color='r', ha='center', va='center', bbox=bbox)
     plt.gca().add_patch(arrow)
 

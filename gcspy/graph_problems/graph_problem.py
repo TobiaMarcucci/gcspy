@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 
 
-def shortest_path(gcs, s, t, tol=1e-4):
+def graph_problem(gcs, problem, *args, **kwargs):
 
     # compute conic programs on edges and vertices
     gcs.to_conic()
@@ -17,8 +17,8 @@ def shortest_path(gcs, s, t, tol=1e-4):
     ze_out = np.array([cp.Variable(e.tail.conic.num_variables) for e in gcs.edges])
     ze_inc = np.array([cp.Variable(e.head.conic.num_variables) for e in gcs.edges])
 
-    constraints = []
     cost = 0
+    constraints = []
 
     for i, v in enumerate(gcs.vertices):
         
@@ -26,31 +26,6 @@ def shortest_path(gcs, s, t, tol=1e-4):
         cost += v.conic.eval_cost(zv[i], yv[i])
         constraints += v.conic.eval_constraints(zv[i], yv[i])
         
-        inc_edges = gcs.incoming_indices(v)
-        out_edges = gcs.outgoing_indices(v)
-        
-        # constraints on source variables
-        if v == s:
-            constraints.append(cp.sum(ye[inc_edges]) == 0)
-            constraints.append(cp.sum(ye[out_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            
-        # constraints on target variables
-        elif v == t:
-            constraints.append(cp.sum(ye[out_edges]) == 0)
-            constraints.append(cp.sum(ye[inc_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            
-        # constraints on variables of remaining vertices
-        else:
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(yv[i] <= 1)
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            
     for k, e in enumerate(gcs.edges):
         
         # cost on the edges including domain constraint
@@ -64,17 +39,20 @@ def shortest_path(gcs, s, t, tol=1e-4):
             ze_var = e.conic.select_variable(variable, ze[k])
             ze_out_var = e.tail.conic.select_variable(variable, ze_out[k])
             constraints.append(ze_var == ze_out_var)
-            
         for variable in e.head.variables:
             ze_var = e.conic.select_variable(variable, ze[k])
             ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k])
             constraints.append(ze_var == ze_inc_var)
 
-    # solve shortest path
+    probelm_specific_constraints = problem(gcs, yv, ye, zv, ze_out, ze_inc, *args, **kwargs)
+    constraints += probelm_specific_constraints
+
+    # solve problem
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve()
 
     if prob.status == 'optimal':
+        tol = 1e-4
 
         # set values for vertices
         for i, v in enumerate(gcs.vertices):
@@ -84,7 +62,7 @@ def shortest_path(gcs, s, t, tol=1e-4):
                     zv_var = v.conic.select_variable(variable, zv[i].value)
                     variable.value = zv_var / v.value
                 else:
-                    variable.value = np.full(variable.shape, np.nan)
+                    variable.value = None
 
         # set values for edges
         for k, e in enumerate(gcs.edges):
@@ -94,6 +72,6 @@ def shortest_path(gcs, s, t, tol=1e-4):
                     ze_var = e.conic.select_variable(variable, ze[k].value)
                     variable.value = ze_var / e.value
                 else:
-                    variable.value = np.full(variable.shape, np.nan)
+                    variable.value = None
 
     return prob
