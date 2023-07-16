@@ -25,6 +25,10 @@ class ConvexProgram:
         self._verify_variables(constraint.variables())
         self.constraints.append(constraint)
 
+    def add_constraints(self, constraints):
+        for constraint in constraints:
+            self.add_constraint(constraint)
+
     def add_cost(self, cost):
         self._verify_variables(cost.variables())
         self.cost += cost
