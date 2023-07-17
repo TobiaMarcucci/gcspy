@@ -34,9 +34,7 @@ def plot_vertex_2d(vertex, n=30, tol=1e-4, **kwargs):
     else:
         plt.fill(*vertices.T, **options, zorder=0)
     value = vertex.variables[0].value
-    # if value is not None:
-    #     plt.scatter(*value, fc='w', ec='k', zorder=3)
-
+    
 
 def plot_edge_2d(edge, endpoints=None, **kwargs):
     import matplotlib.pyplot as plt
@@ -47,20 +45,9 @@ def plot_edge_2d(edge, endpoints=None, **kwargs):
     arrowstyle = "->, head_width=3, head_length=8"
     options = dict(zorder=2, arrowstyle=arrowstyle)
     options.update(kwargs)
-    # tail = edge.tail.variables[0].value
-    # head = edge.head.variables[0].value
-    # if tail is None:
-    #     tail = edge.tail.get_feasible_point()[0]
-    # if head is None:
-    #     head = edge.head.get_feasible_point()[0]
     if endpoints is None:
         endpoints = closest_points(edge.tail, edge.head)
     arrow = patches.FancyArrowPatch(*endpoints, **options)
-    # if edge.value is not None:
-    #     center = tail + (head - tail) * .65
-    #     bbox = dict(facecolor='w', edgecolor='r', boxstyle='round')
-    #     plt.text(*center, round(abs(edge.value), 3),
-    #              color='r', ha='center', va='center', bbox=bbox)
     plt.gca().add_patch(arrow)
 
 
