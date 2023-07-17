@@ -124,3 +124,15 @@ class GraphOfConvexSets:
 
     def traveling_salesman(self):
         return graph_problem(self, traveling_salesman)
+
+    def graphviz(self):
+        from gcspy.plot_utils import graphviz_gcs
+        return graphviz_gcs(self)
+
+    def plot_2d(self, **kwargs):
+        from gcspy.plot_utils import plot_gcs_2d
+        return plot_gcs_2d(self, **kwargs)
+
+    def plot_subgraph_2d(self):
+        from gcspy.plot_utils import plot_subgraph_2d
+        return plot_subgraph_2d(self) 

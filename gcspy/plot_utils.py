@@ -3,10 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import graphviz as gv
 
-
-def discretize_vertex_2d(vertex, n=30):
-    if len(vertex.variables) != 1 or vertex.variables[0].size != 2:
-        raise ValueError("Can only discretize 2D sets.")
+def discretize_vertex_2d(vertex, n=50):
     variable = vertex.variables[0]
     value = variable.value
     cost = cp.Parameter(2)
@@ -20,12 +17,10 @@ def discretize_vertex_2d(vertex, n=30):
     return vertices
 
 
-def plot_vertex_2d(vertex, n=30, tol=1e-4, **kwargs):
-    if len(vertex.variables) != 1 or vertex.variables[0].size != 2:
-        raise ValueError("Can only plot 2D sets.")
+def plot_vertex_2d(vertex, n=50, tol=1e-4, **kwargs):
+    vertices = discretize_vertex_2d(vertex, n)
     options = {'fc': 'mintcream', 'ec': 'black'}
     options.update(kwargs)
-    vertices = discretize_vertex_2d(vertex, n)
     vertex_min = np.min(vertices, axis=0)
     vertex_max = np.max(vertices, axis=0)
     vertex_dist = np.linalg.norm(vertex_max - vertex_min)
@@ -66,14 +61,18 @@ def closest_points(vertex1, vertex2):
     return points
 
 
-def plot_gcs_2d(gcs, n=30):
+def plot_gcs_2d(gcs, n=50):
     for vertex in gcs.vertices:
+        if len(vertex.variables) != 1:
+            raise ValueError("Can only plot sets with one variable.")
+        if vertex.variables[0].size != 2:
+            raise ValueError("Can only plot 2D sets.")
         plot_vertex_2d(vertex, n)
     for edge in gcs.edges:
         plot_edge_2d(edge, color='grey')
 
 
-def plot_solution_2d(gcs, tol=1e-4):
+def plot_subgraph_2d(gcs, tol=1e-4):
     for vertex in gcs.vertices:
         if vertex.value > tol:
             variable = vertex.variables[0]
