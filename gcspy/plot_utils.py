@@ -84,6 +84,7 @@ def plot_subgraph_2d(gcs, tol=1e-4):
             endpoints = (tail, head)
             plot_edge_2d(edge, endpoints, color='blue')
 
+
 def graphviz_gcs(gcs, vertex_labels=None, edge_labels=None):
     if vertex_labels is None:
         vertex_labels = [vertex.name for vertex in gcs.vertices]

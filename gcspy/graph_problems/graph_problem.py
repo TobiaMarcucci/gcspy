@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 
 
-def graph_problem(gcs, problem, *args, **kwargs):
+def graph_problem(gcs, problem):
 
     # compute conic programs on edges and vertices
     gcs.to_conic()
@@ -44,7 +44,7 @@ def graph_problem(gcs, problem, *args, **kwargs):
             ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k])
             constraints.append(ze_var == ze_inc_var)
 
-    probelm_specific_constraints = problem(gcs, yv, ye, zv, ze_out, ze_inc, *args, **kwargs)
+    probelm_specific_constraints = problem(gcs, yv, ye, zv, ze_out, ze_inc)
     constraints += probelm_specific_constraints
 
     # solve problem

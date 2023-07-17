@@ -2,7 +2,8 @@ import cvxpy as cp
 import numpy as np
 from collections.abc import Iterable
 from gcspy.programs import ConvexProgram, ConicProgram
-from gcspy.graph_problems import graph_problem, shortest_path, traveling_salesman
+from gcspy.graph_problems import (graph_problem, shortest_path, traveling_salesman,
+                                  facility_location)
 
 
 class Vertex(ConvexProgram):
@@ -77,6 +78,12 @@ class GraphOfConvexSets:
             if edge.tail.name == tail_name and edge.head.name == head_name:
                 return edge
 
+    def vertex_index(self, vertex):
+        return self.vertices.index(vertex)
+
+    def edge_index(self, edge):
+        return self.edges.index(edge)
+
     def incoming_edges(self, v):
         if isinstance(v, Vertex):
             return [e for e in self.edges if e.head == v]
@@ -120,10 +127,15 @@ class GraphOfConvexSets:
             edge.to_conic()
 
     def shortest_path(self, s, t):
-        return graph_problem(self, shortest_path, s, t)
+        problem = lambda *args: shortest_path(*args, s=s, t=t)
+        return graph_problem(self, problem)
 
     def traveling_salesman(self):
         return graph_problem(self, traveling_salesman)
+
+    def facility_location(self, costumers, facilities):
+        problem = lambda *args: facility_location(*args, costumers=costumers, facilities=facilities)
+        return graph_problem(self, problem)
 
     def graphviz(self):
         from gcspy.plot_utils import graphviz_gcs
