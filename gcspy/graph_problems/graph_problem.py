@@ -8,10 +8,11 @@ def graph_problem(gcs, problem):
     gcs.to_conic()
 
     # binary variables
-    yv = cp.Variable(gcs.num_vertices(), boolean=True)
-    ye = cp.Variable(gcs.num_edges(), boolean=True)
+    yv = np.array([vertex.y for vertex in gcs.vertices])
+    ye = np.array([edge.y for edge in gcs.edges])
 
     # continuous variables
+    xv = np.array([cp.Variable(v.conic.num_variables) for v in gcs.vertices])
     zv = np.array([cp.Variable(v.conic.num_variables) for v in gcs.vertices])
     ze = np.array([cp.Variable(e.conic.num_variables) for e in gcs.edges])
     ze_out = np.array([cp.Variable(e.tail.conic.num_variables) for e in gcs.edges])
@@ -44,7 +45,7 @@ def graph_problem(gcs, problem):
             ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k])
             constraints.append(ze_var == ze_inc_var)
 
-    probelm_specific_constraints = problem(gcs, yv, ye, zv, ze_out, ze_inc)
+    probelm_specific_constraints = problem(gcs, xv, zv, ze_out, ze_inc)
     constraints += probelm_specific_constraints
 
     # solve problem
@@ -55,22 +56,19 @@ def graph_problem(gcs, problem):
         tol = 1e-4
 
         # set values for vertices
-        for i, v in enumerate(gcs.vertices):
-            v.value = yv[i].value
-            for variable in v.variables:
-                if prob.status == "optimal" and v.value > tol:
-                    zv_var = v.conic.select_variable(variable, zv[i].value)
-                    variable.value = zv_var / v.value
+        for i, vertex in enumerate(gcs.vertices):
+            for variable in vertex.variables:
+                if prob.status == "optimal" and vertex.y.value > tol:
+                    variable.value = vertex.conic.select_variable(variable, xv[i].value)
                 else:
                     variable.value = None
 
         # set values for edges
-        for k, e in enumerate(gcs.edges):
-            e.value = ye[k].value
-            for variable in e.variables:
-                if prob.status == "optimal" and e.value > tol:
-                    ze_var = e.conic.select_variable(variable, ze[k].value)
-                    variable.value = ze_var / e.value
+        for k, edge in enumerate(gcs.edges):
+            for variable in edge.variables:
+                if prob.status == "optimal" and edge.y.value > tol:
+                    ze_var = edge.conic.select_variable(variable, ze[k].value)
+                    variable.value = ze_var / edge.y.value
                 else:
                     variable.value = None
 

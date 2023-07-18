@@ -74,11 +74,11 @@ def plot_gcs_2d(gcs, n=50):
 
 def plot_subgraph_2d(gcs, tol=1e-4):
     for vertex in gcs.vertices:
-        if vertex.value > tol:
+        if vertex.y.value > tol:
             variable = vertex.variables[0]
             plt.scatter(*variable.value, fc='w', ec='k', zorder=3)
     for edge in gcs.edges:
-        if edge.value > tol:
+        if edge.y.value > tol:
             tail = edge.tail.variables[0].value
             head = edge.head.variables[0].value
             endpoints = (tail, head)

@@ -3,7 +3,7 @@ import numpy as np
 from collections.abc import Iterable
 from gcspy.programs import ConvexProgram, ConicProgram
 from gcspy.graph_problems import (graph_problem, shortest_path, traveling_salesman,
-                                  facility_location)
+                                  facility_location, ilp_translator)
 
 
 class Vertex(ConvexProgram):
@@ -11,7 +11,6 @@ class Vertex(ConvexProgram):
     def __init__(self, name=""):
         super().__init__()
         self.name = name
-        self.value = None
 
     def _verify_variables(self, variables):
         ids0 = {variable.id for variable in self.variables}
@@ -37,7 +36,6 @@ class Edge(ConvexProgram):
         self.head = head
         self.conic_program = None
         self.name = (self.tail.name, self.head.name)
-        self.value = None
 
     def _verify_variables(self, variables):
         edge_variables = self.variables + self.tail.variables + self.head.variables
@@ -120,21 +118,31 @@ class GraphOfConvexSets:
     def num_edges(self):
         return len(self.edges)
 
+    def vertex_binaries(self):
+        return np.array([vertex.y for vertex in self.vertices])
+
+    def edge_binaries(self):
+        return np.array([edge.y for edge in self.edges])
+
     def to_conic(self):
         for vertex in self.vertices:
             vertex.to_conic()
         for edge in self.edges:
             edge.to_conic()
 
-    def shortest_path(self, s, t):
+    def solve_shortest_path(self, s, t):
         problem = lambda *args: shortest_path(*args, s=s, t=t)
         return graph_problem(self, problem)
 
-    def traveling_salesman(self):
+    def solve_traveling_salesman(self):
         return graph_problem(self, traveling_salesman)
 
-    def facility_location(self, costumers, facilities):
+    def solve_facility_location(self, costumers, facilities):
         problem = lambda *args: facility_location(*args, costumers=costumers, facilities=facilities)
+        return graph_problem(self, problem)
+
+    def solve_from_ilp(self, ilp_constraints):
+        problem = lambda *args: ilp_translator(*args, ilp_constraints=ilp_constraints)
         return graph_problem(self, problem)
 
     def graphviz(self):

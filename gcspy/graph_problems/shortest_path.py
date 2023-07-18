@@ -1,21 +1,26 @@
-def shortest_path(gcs, yv, ye, zv, ze_out, ze_inc, s, t):
+def shortest_path(gcs, xv, zv, ze_out, ze_inc, s, t):
+
+    yv = gcs.vertex_binaries()
+    ye = gcs.edge_binaries()
 
     constraints = []
-    for i, v in enumerate(gcs.vertices):
-        inc_edges = gcs.incoming_indices(v)
-        out_edges = gcs.outgoing_indices(v)
+    for i, vertex in enumerate(gcs.vertices):
+        inc_edges = gcs.incoming_indices(vertex)
+        out_edges = gcs.outgoing_indices(vertex)
         
-        if v == s:
+        if vertex == s:
             constraints.append(sum(ye[inc_edges]) == 0)
             constraints.append(sum(ye[out_edges]) == 1)
             constraints.append(yv[i] == sum(ye[out_edges]))
             constraints.append(zv[i] == sum(ze_out[out_edges]))
+            constraints.append(zv[i] == xv[i])
             
-        elif v == t:
+        elif vertex == t:
             constraints.append(sum(ye[out_edges]) == 0)
             constraints.append(sum(ye[inc_edges]) == 1)
             constraints.append(yv[i] == sum(ye[inc_edges]))
             constraints.append(zv[i] == sum(ze_inc[inc_edges]))
+            constraints.append(zv[i] == xv[i])
             
         else:
             constraints.append(yv[i] == sum(ye[out_edges]))
@@ -23,5 +28,6 @@ def shortest_path(gcs, yv, ye, zv, ze_out, ze_inc, s, t):
             constraints.append(yv[i] <= 1)
             constraints.append(zv[i] == sum(ze_out[out_edges]))
             constraints.append(zv[i] == sum(ze_inc[inc_edges]))
+            constraints += vertex.conic.eval_constraints(xv[i] - zv[i], 1 - yv[i])
             
     return constraints
