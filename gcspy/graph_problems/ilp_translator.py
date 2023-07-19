@@ -25,6 +25,11 @@ def find_common_vertices(gcs, a_v, a_e):
         
 def ilp_translator(gcs, xv, zv, ze_out, ze_inc, ilp_constraints):
 
+    # add upper bounds to all the variables
+    upper_bounds = [vertex.y <= 1 for vertex in gcs.vertices]
+    upper_bounds += [edge.y <= 1 for edge in gcs.edges]
+    ilp_constraints = ilp_constraints + upper_bounds
+
     # put given constraints in conic form
     ilp = ConicProgram(ilp_constraints, 0)
 
