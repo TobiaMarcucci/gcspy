@@ -2,8 +2,8 @@ import cvxpy as cp
 import numpy as np
 from collections.abc import Iterable
 from gcspy.programs import ConvexProgram, ConicProgram
-from gcspy.graph_problems import (graph_problem, shortest_path, traveling_salesman,
-                                  facility_location, ilp_translator)
+from gcspy.graph_problems import (graph_problem, ilp_translator, shortest_path,
+    traveling_salesman, spanning_tree, facility_location)
 
 
 class Vertex(ConvexProgram):
@@ -130,12 +130,16 @@ class GraphOfConvexSets:
         for edge in self.edges:
             edge.to_conic()
 
-    def solve_shortest_path(self, s, t):
-        problem = lambda *args: shortest_path(*args, s=s, t=t)
+    def solve_shortest_path(self, source, target):
+        problem = lambda *args: shortest_path(*args, s=source, t=target)
         return graph_problem(self, problem)
 
     def solve_traveling_salesman(self):
         return graph_problem(self, traveling_salesman)
+
+    def solve_spanning_tree(self, root):
+        problem = lambda *args: spanning_tree(*args, root=root)
+        return graph_problem(self, problem)
 
     def solve_facility_location(self, costumers, facilities):
         problem = lambda *args: facility_location(*args, costumers=costumers, facilities=facilities)
