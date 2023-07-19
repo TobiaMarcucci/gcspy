@@ -141,8 +141,8 @@ class GraphOfConvexSets:
         problem = lambda *args: spanning_tree(*args, root=root)
         return graph_problem(self, problem)
 
-    def solve_facility_location(self, costumers, facilities):
-        problem = lambda *args: facility_location(*args, costumers=costumers, facilities=facilities)
+    def solve_facility_location(self, facilities):
+        problem = lambda *args: facility_location(*args, facilities=facilities)
         return graph_problem(self, problem)
 
     def solve_from_ilp(self, ilp_constraints):
