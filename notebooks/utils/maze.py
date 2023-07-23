@@ -7,7 +7,7 @@ class Cell:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.walls = {'N': True, 'S': True, 'E': True, 'W': True}
+        self.walls = {"N": True, "S": True, "E": True, "W": True}
 
     def has_all_walls(self):
         return all(self.walls.values())
@@ -17,7 +17,6 @@ class Cell:
 
 
 class Maze:
-
     directions = {"W": (-1, 0), "E": (1, 0), "S": (0, -1), "N": (0, 1)}
 
     def __init__(self, nx, ny):
@@ -28,25 +27,16 @@ class Maze:
     def get_cell(self, x, y):
         return self.cells[x][y]
     
-    def plot(self, **kwargs):
+    def plot(self):
         plt.gca().axis('off')
-        
-        # Pad the maze all around by this amount.
-        width = self.nx
-        height = self.ny
-        
-        # Draw the South and West maze borders.
+        plt.plot([0, self.nx - 1], [self.ny, self.ny], c='k')
+        plt.plot([self.nx, self.nx], [0, self.ny], c='k')
         for x in range(self.nx):
             for y in range(self.ny):
                 if self.get_cell(x, y).walls['S'] and (x != 0 or y != 0):
-                    plt.plot([x, x + 1], [y, y], c='k', **kwargs)
+                    plt.plot([x, x + 1], [y, y], c='k')
                 if self.get_cell(x, y).walls['W']:
-                    plt.plot([x, x], [y, y + 1], c='k', **kwargs)
-                    
-        # Draw the North and East maze border, which won't have been drawn
-        # by the procedure above.
-        plt.plot([0, width - 1], [height, height], c='k', **kwargs)
-        plt.plot([width, width], [0, height], c='k', **kwargs)
+                    plt.plot([x, x], [y, y + 1], c='k')
         
     def unexplored_neighbors(self, cell):
         neighbours = []
@@ -61,28 +51,16 @@ class Maze:
 
     def make_maze(self, seed=0):
         rd.seed(seed)
-
-        # Total number of cells.
         n = self.nx * self.ny
-        cell_stack = []
-        current_cell = self.get_cell(0, 0)
-        # Total number of visited cells during maze construction.
-        nv = 1
-
-        while nv < n:
-            neighbours = self.unexplored_neighbors(current_cell)
-
+        cell_stack = [self.get_cell(0, 0)]
+        while len(cell_stack) > 0:
+            neighbours = self.unexplored_neighbors(cell_stack[-1])
             if not neighbours:
-                # We've reached a dead end: backtrack.
-                current_cell = cell_stack.pop()
-                continue
-
-            # Choose a random neighbouring cell and move to it.
-            direction, next_cell = rd.choice(neighbours)
-            self.knock_down_wall(current_cell, direction)
-            cell_stack.append(current_cell)
-            current_cell = next_cell
-            nv += 1
+                cell_stack.pop()
+            else:
+                direction, next_cell = rd.choice(neighbours)
+                self.knock_down_wall(cell_stack[-1], direction)
+                cell_stack.append(next_cell)
             
     def knock_down_wall(self, cell, wall):
         cell.knock_down_wall(wall)
@@ -93,7 +71,6 @@ class Maze:
 
     def knock_down_walls(self, n, seed=0):
         rd.seed(seed)
-
         knock_downs = 0
         while knock_downs < n:
             x = rd.randint(1, self.nx - 2)
