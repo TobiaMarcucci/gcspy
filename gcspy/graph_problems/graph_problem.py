@@ -8,8 +8,8 @@ def graph_problem(gcs, problem):
     gcs.to_conic()
 
     # binary variables
-    yv = np.array([vertex.y for vertex in gcs.vertices])
-    ye = np.array([edge.y for edge in gcs.edges])
+    yv = gcs.vertex_binaries()
+    ye = gcs.edge_binaries()
 
     # continuous variables
     xv = np.array([cp.Variable(v.conic.num_variables) for v in gcs.vertices])
@@ -39,11 +39,13 @@ def graph_problem(gcs, problem):
         for variable in e.tail.variables:
             ze_var = e.conic.select_variable(variable, ze[k])
             ze_out_var = e.tail.conic.select_variable(variable, ze_out[k])
-            constraints.append(ze_var == ze_out_var)
+            if ze_var is not None and ze_out_var is not None:
+                constraints.append(ze_var == ze_out_var)
         for variable in e.head.variables:
             ze_var = e.conic.select_variable(variable, ze[k])
             ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k])
-            constraints.append(ze_var == ze_inc_var)
+            if ze_var is not None and ze_inc_var is not None:
+                constraints.append(ze_var == ze_inc_var)
 
     probelm_specific_constraints = problem(gcs, xv, zv, ze_out, ze_inc)
     constraints += probelm_specific_constraints

@@ -70,11 +70,13 @@ class GraphOfConvexSets:
         for vertex in self.vertices:
             if vertex.name == name:
                 return vertex
+        raise ValueError(f"There is no vertex named {name}.")
 
     def get_edge_by_name(self, tail_name, head_name):
         for edge in self.edges:
             if edge.tail.name == tail_name and edge.head.name == head_name:
                 return edge
+        raise ValueError(f"There is no edge with tail named {tail_name} and head named {head_name}.")
 
     def vertex_index(self, vertex):
         return self.vertices.index(vertex)

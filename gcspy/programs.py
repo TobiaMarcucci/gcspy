@@ -104,6 +104,8 @@ class ConicProgram:
         return constraints
 
     def select_variable(self, variable, x):
+        if not variable.id in self.columns:
+            return None
         value = x[self.columns[variable.id]]
         if variable.is_matrix():
             if variable.is_symmetric():
