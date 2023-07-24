@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 
 
-def graph_problem(gcs, problem):
+def graph_problem(gcs, problem, callback=None):
 
     # compute conic programs on edges and vertices
     gcs.to_conic()
@@ -53,6 +53,14 @@ def graph_problem(gcs, problem):
     # solve problem
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve()
+    if callback is not None:
+        while True:
+            new_constraints = callback(yv, ye)
+            if len(new_constraints) == 0:
+                break
+            constraints += new_constraints
+            prob = cp.Problem(cp.Minimize(cost), constraints)
+            prob.solve()
 
     if prob.status == 'optimal':
         tol = 1e-4

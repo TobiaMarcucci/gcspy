@@ -147,9 +147,9 @@ class GraphOfConvexSets:
         problem = lambda *args: facility_location(*args, facilities=facilities)
         return graph_problem(self, problem)
 
-    def solve_from_ilp(self, ilp_constraints):
+    def solve_from_ilp(self, ilp_constraints, callback=None):
         problem = lambda *args: ilp_translator(*args, ilp_constraints=ilp_constraints)
-        return graph_problem(self, problem)
+        return graph_problem(self, problem, callback=callback)
 
     def graphviz(self):
         from gcspy.plot_utils import graphviz_gcs
