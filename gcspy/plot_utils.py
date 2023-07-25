@@ -35,7 +35,7 @@ def plot_edge_2d(edge, endpoints=None, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
     for variables in [edge.tail.variables, edge.head.variables]:
-        if len(variables) != 1 or variables[0].size != 2:
+        if variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
     arrowstyle = "->, head_width=3, head_length=8"
     options = dict(zorder=2, arrowstyle=arrowstyle)
@@ -63,8 +63,6 @@ def closest_points(vertex1, vertex2):
 
 def plot_gcs_2d(gcs, n=50):
     for vertex in gcs.vertices:
-        if len(vertex.variables) != 1:
-            raise ValueError("Can only plot sets with one variable.")
         if vertex.variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
         plot_vertex_2d(vertex, n)

@@ -136,11 +136,12 @@ class GraphOfConvexSets:
         problem = lambda *args: shortest_path(*args, s=source, t=target)
         return graph_problem(self, problem)
 
-    def solve_traveling_salesman(self):
-        return graph_problem(self, traveling_salesman)
+    def solve_traveling_salesman(self, subtour_elimination=True):
+        problem = lambda *args: traveling_salesman(*args, subtour_elimination=subtour_elimination)
+        return graph_problem(self, problem)
 
-    def solve_spanning_tree(self, root):
-        problem = lambda *args: spanning_tree(*args, root=root)
+    def solve_spanning_tree(self, root, subtour_elimination=True):
+        problem = lambda *args: spanning_tree(*args, root=root, subtour_elimination=subtour_elimination)
         return graph_problem(self, problem)
 
     def solve_facility_location(self, facilities):
