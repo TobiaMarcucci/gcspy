@@ -61,6 +61,10 @@ class GraphOfConvexSets:
         self.edges.append(edge)
         return edge
 
+    def add_subgraph(self, gcs):
+        self.vertices += gcs.vertices
+        self.edges += gcs.edges
+
     def get_edge(self, tail, head):
         for edge in self.edges:
             if edge.tail == tail and edge.head == head:
@@ -90,26 +94,26 @@ class GraphOfConvexSets:
         if isinstance(v, Iterable):
             return [e for e in self.edges if e.head in v and e.tail not in v]
 
-    def incoming_indices(self, v):
-        if isinstance(v, Vertex):
-            return [k for k, e in enumerate(self.edges) if e.head == v]
-        if isinstance(v, Iterable):
-            return [k for k, e in enumerate(self.edges) if e.head in v and e.tail not in v]
-
     def outgoing_edges(self, v):
         if isinstance(v, Vertex):
             return [e for e in self.edges if e.tail == v]
         if isinstance(v, Iterable):
             return [e for e in self.edges if e.tail in v and e.head not in v]
 
+    def incident_edges(self, v):
+        return self.incoming_edges(v) + self.outgoing_edges(v)
+
+    def incoming_indices(self, v):
+        if isinstance(v, Vertex):
+            return [k for k, e in enumerate(self.edges) if e.head == v]
+        if isinstance(v, Iterable):
+            return [k for k, e in enumerate(self.edges) if e.head in v and e.tail not in v]
+
     def outgoing_indices(self, v):
         if isinstance(v, Vertex):
             return [k for k, e in enumerate(self.edges) if e.tail == v]
         if isinstance(v, Iterable):
             return [k for k, e in enumerate(self.edges) if e.tail in v and e.head not in v]
-
-    def incident_edges(self, v):
-        return self.incoming_edges(v) + self.outgoing_edges(v)
 
     def incident_indices(self, v):
         return self.incoming_indices(v) + self.outgoing_indices(v)
