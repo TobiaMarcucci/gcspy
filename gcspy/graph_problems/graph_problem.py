@@ -37,13 +37,13 @@ def graph_problem(gcs, problem, callback=None):
         
         # euqate auxiliary variables on the egdes
         for variable in e.tail.variables:
-            ze_var = e.conic.select_variable(variable, ze[k])
-            ze_out_var = e.tail.conic.select_variable(variable, ze_out[k])
+            ze_var = e.conic.select_variable(variable, ze[k], reshape=False)
+            ze_out_var = e.tail.conic.select_variable(variable, ze_out[k], reshape=False)
             if ze_var is not None and ze_out_var is not None:
                 constraints.append(ze_var == ze_out_var)
         for variable in e.head.variables:
-            ze_var = e.conic.select_variable(variable, ze[k])
-            ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k])
+            ze_var = e.conic.select_variable(variable, ze[k], reshape=False)
+            ze_inc_var = e.head.conic.select_variable(variable, ze_inc[k], reshape=False)
             if ze_var is not None and ze_inc_var is not None:
                 constraints.append(ze_var == ze_inc_var)
 
@@ -67,19 +67,23 @@ def graph_problem(gcs, problem, callback=None):
 
         # set values for vertices
         for i, vertex in enumerate(gcs.vertices):
-            for variable in vertex.variables:
-                if prob.status == "optimal" and vertex.y.value > tol:
+            if prob.status == "optimal" and vertex.y.value > tol:
+                for variable in vertex.variables:
                     variable.value = vertex.conic.select_variable(variable, xv[i].value)
-                else:
+            else:
+                vertex.y.value = None
+                for variable in vertex.variables:
                     variable.value = None
 
         # set values for edges
         for k, edge in enumerate(gcs.edges):
-            for variable in edge.variables:
-                if prob.status == "optimal" and edge.y.value > tol:
+            if prob.status == "optimal" and edge.y.value > tol:
+                for variable in edge.variables:
                     ze_var = edge.conic.select_variable(variable, ze[k].value)
                     variable.value = ze_var / edge.y.value
-                else:
+            else:
+                edge.y.value = None
+                for variable in edge.variables:
                     variable.value = None
 
     return prob

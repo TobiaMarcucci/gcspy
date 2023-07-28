@@ -3,9 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import graphviz as gv
 
+
 def discretize_vertex_2d(vertex, n=50):
+    values = get_values(vertex)
     variable = vertex.variables[0]
-    value = variable.value
     cost = cp.Parameter(2)
     prob = cp.Problem(cp.Maximize(cost @ variable), vertex.constraints)
     vertices = np.zeros((n, 2))
@@ -13,8 +14,17 @@ def discretize_vertex_2d(vertex, n=50):
         cost.value = np.array([np.cos(angle), np.sin(angle)])            
         prob.solve(warm_start=True)
         vertices[i] = variable.value
-    variable.value = value
+    set_value(vertex, values)
     return vertices
+
+
+def get_values(vertex):
+    return [variable.value for variable in vertex.variables]
+
+
+def set_value(vertex, values):
+    for variable, value in zip(vertex.variables, values):
+        variable.value = value
 
 
 def plot_vertex_2d(vertex, n=50, tol=1e-4, **kwargs):
@@ -47,17 +57,17 @@ def plot_edge_2d(edge, endpoints=None, **kwargs):
 
 
 def closest_points(vertex1, vertex2):
+    values1 = get_values(vertex1)
+    values2 = get_values(vertex2)
     variable1 = vertex1.variables[0]
     variable2 = vertex2.variables[0]
-    value1 = variable1.value
-    value2 = variable2.value
     cost = cp.sum_squares(variable2 - variable1)
     constraints = vertex1.constraints + vertex2.constraints
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve()
     points = [variable1.value, variable2.value]
-    variable1.value = value1
-    variable2.value = value2
+    set_value(vertex1, values1)
+    set_value(vertex2, values2)
     return points
 
 
@@ -72,11 +82,11 @@ def plot_gcs_2d(gcs, n=50):
 
 def plot_subgraph_2d(gcs, tol=1e-4):
     for vertex in gcs.vertices:
-        if vertex.y.value > tol:
+        if vertex.y.value is not None and vertex.y.value > tol:
             variable = vertex.variables[0]
             plt.scatter(*variable.value, fc='w', ec='k', zorder=3)
     for edge in gcs.edges:
-        if edge.y.value > tol:
+        if edge.y.value is not None and edge.y.value > tol:
             tail = edge.tail.variables[0].value
             head = edge.head.variables[0].value
             endpoints = (tail, head)

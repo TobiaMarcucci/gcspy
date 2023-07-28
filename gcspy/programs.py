@@ -103,19 +103,20 @@ class ConicProgram:
             constraints.append(self.constrain_in_cone(Axbt, Ki))
         return constraints
 
-    def select_variable(self, variable, x):
+    def select_variable(self, variable, x, reshape=True):
         if not variable.id in self.columns:
             return None
         value = x[self.columns[variable.id]]
-        if variable.is_matrix():
-            if variable.is_symmetric():
-                n = variable.shape[0]
-                full = np.zeros((n, n))
-                full[np.triu_indices(n)] = value
-                value = full + full.T
-                value[np.diag_indices(n)] /= 2
-            else:
-                value = value.reshape(variable.shape)
+        if reshape:
+            if variable.is_matrix():
+                if variable.is_symmetric():
+                    n = variable.shape[0]
+                    full = np.zeros((n, n))
+                    full[np.triu_indices(n)] = value
+                    value = full + full.T
+                    value[np.diag_indices(n)] /= 2
+                else:
+                    value = value.reshape(variable.shape)
         return value
 
     @staticmethod
