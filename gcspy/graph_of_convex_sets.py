@@ -156,6 +156,31 @@ class GraphOfConvexSets:
         problem = lambda *args: ilp_translator(*args, ilp_constraints=ilp_constraints)
         return graph_problem(self, problem, callback=callback)
 
+    def solve_convex_restriction(self, vertex_indices, edge_indices):
+        for k in edge_indices:
+            edge = self.edges[k]
+            i = self.vertex_index(edge.tail)
+            j = self.vertex_index(edge.head)
+            if i not in vertex_indices or j not in vertex_indices:
+                raise ValueError('Given indices do not form a subgraph.')
+        cost = 0
+        constraints = []
+        for i in vertex_indices:
+            vertex = self.vertices[i]
+            cost += vertex.cost
+            constraints.extend(vertex.constraints)
+        for k in edge_indices:
+            edge = self.edges[k]
+            cost += edge.cost
+            constraints.extend(edge.constraints)
+        prob = cp.Problem(cp.Minimize(cost), constraints)
+        prob.solve()
+        for i, vertex in enumerate(self.vertices):
+            vertex.y.value = 1 if i in vertex_indices else None
+        for k, edge in enumerate(self.edges):
+            edge.y.value = 1 if k in edge_indices else None
+        return prob
+
     def graphviz(self):
         from gcspy.plot_utils import graphviz_gcs
         return graphviz_gcs(self)
