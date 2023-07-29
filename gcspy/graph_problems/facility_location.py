@@ -1,17 +1,19 @@
-def facility_location(gcs, xv, zv, ze_out, ze_inc, facilities):
+def facility_location(gcs, xv, zv, ze_out, ze_inc):
 
     yv = gcs.vertex_binaries()
     ye = gcs.edge_binaries()
 
-    customers = [i for i in range(gcs.num_vertices()) if i not in facilities]
     constraints = []
     for i, vertex in enumerate(gcs.vertices):
-        if i in facilities:
+        inc_edges = gcs.incoming_indices(vertex)
+        if len(inc_edges) == 0: # facility
             constraints.append(yv[i] <= 1)
             constraints += vertex.conic.eval_constraints(xv[i] - zv[i], 1 - yv[i])
-        elif i in customers:
+        else: # user
+            out_edges = gcs.outgoing_indices(vertex)
+            if len(out_edges) > 0:
+                raise ValueError("Graph does not have facility-location topology.")
             constraints.append(yv[i] == 1)
-            inc_edges = gcs.incoming_indices(vertex)
             constraints.append(sum(ye[inc_edges]) == 1)
             constraints.append(zv[i] == sum(ze_inc[inc_edges]))
             constraints.append(zv[i] == xv[i])
