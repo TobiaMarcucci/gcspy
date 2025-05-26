@@ -1,1 +1,2 @@
-cvxpy
+numpy
+cvxpy >= 1.5
