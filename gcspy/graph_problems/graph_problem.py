@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 
 
-def graph_problem(gcs, problem, callback=None):
+def graph_problem(gcs, problem, callback=None, **kwargs):
 
     # compute conic programs on edges and vertices
     gcs.to_conic()
@@ -52,7 +52,7 @@ def graph_problem(gcs, problem, callback=None):
 
     # solve problem
     prob = cp.Problem(cp.Minimize(cost), constraints)
-    prob.solve()
+    prob.solve(**kwargs)
     if callback is not None:
         while True:
             new_constraints = callback(yv, ye)

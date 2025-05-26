@@ -136,24 +136,24 @@ class GraphOfConvexSets:
         for edge in self.edges:
             edge.to_conic()
 
-    def solve_shortest_path(self, source, target):
+    def solve_shortest_path(self, source, target, **kwargs):
         problem = lambda *args: shortest_path(*args, s=source, t=target)
-        return graph_problem(self, problem)
+        return graph_problem(self, problem, **kwargs)
 
-    def solve_traveling_salesman(self, subtour_elimination=True):
+    def solve_traveling_salesman(self, subtour_elimination=True, **kwargs):
         problem = lambda *args: traveling_salesman(*args, subtour_elimination=subtour_elimination)
-        return graph_problem(self, problem)
+        return graph_problem(self, problem, **kwargs)
 
-    def solve_spanning_tree(self, root, subtour_elimination=True):
+    def solve_spanning_tree(self, root, subtour_elimination=True, **kwargs):
         problem = lambda *args: spanning_tree(*args, root=root, subtour_elimination=subtour_elimination)
-        return graph_problem(self, problem)
+        return graph_problem(self, problem, **kwargs)
 
-    def solve_facility_location(self):
-        return graph_problem(self, facility_location)
+    def solve_facility_location(self, **kwargs):
+        return graph_problem(self, facility_location, **kwargs)
 
-    def solve_from_ilp(self, ilp_constraints, callback=None):
+    def solve_from_ilp(self, ilp_constraints, callback=None, **kwargs):
         problem = lambda *args: ilp_translator(*args, ilp_constraints=ilp_constraints)
-        return graph_problem(self, problem, callback=callback)
+        return graph_problem(self, problem, callback=callback, **kwargs)
 
     def solve_convex_restriction(self, vertex_indices, edge_indices):
         for k in edge_indices:
