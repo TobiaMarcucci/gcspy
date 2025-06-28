@@ -68,9 +68,10 @@ class ConicProgram:
             A = []
             b = []
             K = []
+            conic_program = ConicProgram(c, d, A, b, K)
             def select_variable(variable, x, reshape=True):
                 return None
-            return ConicProgram(c, d, A, b, K), select_variable
+            return conic_program, select_variable
 
         # construct conic program from given convex program
         prob = cp.Problem(cp.Minimize(cost), constraints)
@@ -101,6 +102,7 @@ class ConicProgram:
             b.append(Ab[first_row:last_row, -1])
             K.append(type(cone))
             first_row = last_row
+        conic_program = ConicProgram(c, d, A, b, K)
 
         # dictionary that maps the id of a variable in the cost
         # and constraints to the corresponding columns in the
@@ -129,4 +131,4 @@ class ConicProgram:
                         value = value.reshape(variable.shape, order='F')
             return value
         
-        return ConicProgram(c, d, A, b, K), select_variable
+        return conic_program, select_variable

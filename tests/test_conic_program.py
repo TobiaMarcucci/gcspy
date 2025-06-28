@@ -120,31 +120,47 @@ class TestConicProgram(unittest.TestCase):
         x = cp.Variable(4)
         obj = x[0] + 2 * x[1] + 3 * x[2] + 4 * x[3] + 1
         constraints = [x >= 1, cp.sum(x) <= 6, x[3] == 2]
-        prog = ConicProgram.from_symbolic(obj, constraints)[0]
+        prog, select_variable = ConicProgram.from_symbolic(obj, constraints)
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 15)
-        np.testing.assert_array_almost_equal(x_opt, [1, 1, 1, 2])
+        real_x_opt = [1, 1, 1, 2]
+        np.testing.assert_array_almost_equal(x_opt, real_x_opt)
+        np.testing.assert_array_almost_equal(select_variable(x, x_opt), real_x_opt)
 
         # second order cone program
         # relies on the fact that the translation in conic
         # form does not require auxiliary variables
         x = cp.Variable(3)
         obj = np.sqrt(2) * x[0] + 2
-        constraints = [cp.SOC(x[0], x[1:]), x[0] >= x[1], x[1] >= x[2], x[2] >= 1]
-        prog = ConicProgram.from_symbolic(obj, constraints)[0]
+        constraints = [x[0] >= x[1], x[1] >= x[2], x[2] >= 1, cp.SOC(x[0], x[1:])]
+        prog, select_variable = ConicProgram.from_symbolic(obj, constraints)
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 4)
-        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
+        real_x_opt = [np.sqrt(2), 1, 1]
+        np.testing.assert_array_almost_equal(x_opt, real_x_opt)
+        np.testing.assert_array_almost_equal(select_variable(x, x_opt), real_x_opt)
 
         # semidefinite program
         # relies on the fact that the translation in conic
         # form does not require auxiliary variables
-        M = cp.bmat([[x[0], x[1], x[2]], [x[1], x[0], 0], [x[2], 0, x[0]]])
-        constraints[0] = M >> 0
-        prog = ConicProgram.from_symbolic(obj, constraints)[0]
-        cost, x_opt = prog._solve()
+        M = cp.Variable((3, 3), PSD=True)
+        constraints.pop()
+        constraints.extend([M[i, i] == x[0] for i in range(3)])
+        constraints.append(M[1,0] == x[1])
+        constraints.append(M[2,0] == x[2])
+        constraints.append(M[2,1] == 0)
+        prog, select_variable = ConicProgram.from_symbolic(obj, constraints)
+        cost, sol = prog._solve()
         self.assertAlmostEqual(cost, 4)
-        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
+        real_x_opt = [np.sqrt(2), 1, 1]
+        real_M_opt = [[np.sqrt(2), 1, 1],
+                      [1, np.sqrt(2), 0],
+                      [1, 0, np.sqrt(2)]]
+        np.testing.assert_array_almost_equal(select_variable(x, sol), real_x_opt)
+        np.testing.assert_array_almost_equal(select_variable(M, sol), real_M_opt)
+        # below is first x then the upper triangular part of M
+        real_sol = [np.sqrt(2), 1, 1, np.sqrt(2), 1, 1, np.sqrt(2), 0, np.sqrt(2)]
+        np.testing.assert_array_almost_equal(sol, real_sol)
 
         # constant cost
         x = cp.Variable(4)
