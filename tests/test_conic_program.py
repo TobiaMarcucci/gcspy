@@ -112,7 +112,7 @@ class TestConicProgram(unittest.TestCase):
         self.assertAlmostEqual(cost, 4)
         np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
 
-    def test_from_convex_program(self):
+    def test_from_symbolic(self):
 
         # linear program
         # relies on the fact that the translation in conic
@@ -120,7 +120,7 @@ class TestConicProgram(unittest.TestCase):
         x = cp.Variable(4)
         obj = x[0] + 2 * x[1] + 3 * x[2] + 4 * x[3] + 1
         constraints = [x >= 1, cp.sum(x) <= 6, x[3] == 2]
-        prog = ConicProgram.from_symbolic(obj, constraints)
+        prog = ConicProgram.from_symbolic(obj, constraints)[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 15)
         np.testing.assert_array_almost_equal(x_opt, [1, 1, 1, 2])
@@ -131,7 +131,7 @@ class TestConicProgram(unittest.TestCase):
         x = cp.Variable(3)
         obj = np.sqrt(2) * x[0] + 2
         constraints = [cp.SOC(x[0], x[1:]), x[0] >= x[1], x[1] >= x[2], x[2] >= 1]
-        prog = ConicProgram.from_symbolic(obj, constraints)
+        prog = ConicProgram.from_symbolic(obj, constraints)[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 4)
         np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
@@ -141,29 +141,47 @@ class TestConicProgram(unittest.TestCase):
         # form does not require auxiliary variables
         M = cp.bmat([[x[0], x[1], x[2]], [x[1], x[0], 0], [x[2], 0, x[0]]])
         constraints[0] = M >> 0
-        prog = ConicProgram.from_symbolic(obj, constraints)
+        prog = ConicProgram.from_symbolic(obj, constraints)[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 4)
         np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
 
         # constant cost
         x = cp.Variable(4)
-        prog = ConicProgram.from_symbolic(1, [x >= 0])
+        prog = ConicProgram.from_symbolic(1, [x >= 0])[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 1)
 
         # no constraints
         x = cp.Variable(3)
-        prog = ConicProgram.from_symbolic(cp.norm_inf(x), [])
+        prog = ConicProgram.from_symbolic(cp.norm_inf(x), [])[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 0)
 
         # constant cost and no constraints
-        prog = ConicProgram.from_symbolic(1, [])
+        prog = ConicProgram.from_symbolic(1, [])[0]
         cost, x_opt = prog._solve()
         self.assertAlmostEqual(cost, 1)
 
-        
+        # linear program with matrix variable
+        #   minimize x11 + 2 * x12 + x13 + 3 * x21 + 4 * x22 + 5 * x23 + 1
+        # subject to xij >= i,  i = 1, 2, j = 1, 2, 3
+        #            x11 + x12 + x21 + x22 <= 6
+        #            x22 = 2
+        X = cp.Variable((2, 3))
+        obj = X[0,0] + 2 * X[0,1] + X[0,2] + 3 * X[1,0] + 4 * X[1,1] + 5 * X[1,2] + 1
+        constraints = [
+            X[0,0] >= 1, X[0,1] >= 1, X[0,2] >= 1,
+            X[1,0] >= 2, X[1,1] >= 2, X[1,2] >= 2,
+            X[0,0] + X[0,1] + X[1,0] + X[1,1] <= 6,
+            X[1,1] == 2
+            ]
+        prog, select_variable = ConicProgram.from_symbolic(obj, constraints)
+        cost, x_opt = prog._solve()
+        self.assertAlmostEqual(cost, 29)
+        np.testing.assert_array_almost_equal(x_opt, [1, 2, 1, 2, 1, 2])
+        X_opt = np.array([[1, 1, 1], [2, 2, 2]])
+        np.testing.assert_array_almost_equal(select_variable(X, x_opt), X_opt)
 
 if __name__ == '__main__':
     unittest.main()

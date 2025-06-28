@@ -6,9 +6,8 @@ class ConicProgram:
 
     def __init__(self, c, d, A, b, K):
         if len(set([len(A), len(b), len(K)])) != 1:
-            raise ValueError('A, b, and K must have the same length.')
+            raise ValueError('A, b, and K must have equal length.')
         for Ai, bi in zip(A, b):
-            print(Ai.shape[0], bi.size)
             if Ai.shape[0] != bi.size:
                 raise ValueError('A and b must have coherent sizes.')
             if Ai.shape[1] != c.size:
@@ -64,14 +63,14 @@ class ConicProgram:
 
         # corner case with constant cost and no constraints
         if isinstance(cost, Number) and len(constraints) == 0:
-            aux_variables = []
             c = []
             d = cost
             A = []
             b = []
             K = []
-            program = ConicProgram(c, d, A, b, K)
-            return program
+            def select_variable(variable, x, reshape=True):
+                return None
+            return ConicProgram(c, d, A, b, K), select_variable
 
         # construct conic program from given convex program
         prob = cp.Problem(cp.Minimize(cost), constraints)
@@ -103,4 +102,31 @@ class ConicProgram:
             K.append(type(cone))
             first_row = last_row
 
-        return ConicProgram(c, d, A, b, K)
+        # dictionary that maps the id of a variable in the cost
+        # and constraints to the corresponding columns in the
+        # in the conic program
+        var_id_to_cols = {}
+        for v in conic_prob.variables:
+            start = conic_prob.var_id_to_col[v.id]
+            stop = start + v.size
+            var_id_to_cols[v.id] = range(start, stop)
+
+        # function that selects the entries of x that correspond
+        # to a given variable in the cost and constraints
+        def select_variable(variable, x, reshape=True):
+            if not variable.id in var_id_to_cols:
+                return None
+            value = x[var_id_to_cols[variable.id]]
+            if reshape:
+                if variable.is_matrix():
+                    if variable.is_symmetric():
+                        n = variable.shape[0]
+                        full = np.zeros((n, n))
+                        full[np.triu_indices(n)] = value
+                        value = full + full.T
+                        value[np.diag_indices(n)] /= 2
+                    else:
+                        value = value.reshape(variable.shape, order='F')
+            return value
+        
+        return ConicProgram(c, d, A, b, K), select_variable
