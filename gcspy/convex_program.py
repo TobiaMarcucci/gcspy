@@ -15,7 +15,18 @@ class ConvexProgram:
     @property
     def _variable_ids(self):
         return [variable.id for variable in self.variables]
-
+    
+    @property
+    def _cost_variable_ids(self):
+        if isinstance(self.cost, Number):
+            return []
+        else:
+            return [variable.id for variable in self.cost.variables()]
+    
+    @property
+    def _constraint_variable_ids(self):
+        return [variable.id for constraint in self.constraints for variable in constraint.variables()]
+    
     def _solve(self):
         prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
         prob.solve()
@@ -48,6 +59,11 @@ class ConvexProgram:
             self.add_constraint(constraint)
 
     def to_conic_program(self):
+
+        # check that problem has no free variables
+        for variable in self.variables:
+            if not variable.id in self._cost_variable_ids + self._constraint_variable_ids:
+                    raise ValueError(f"Convex program has free variable {variable}.")
 
         # corner case with constant cost and no constraints
         if isinstance(self.cost, Number) and len(self.constraints) == 0:

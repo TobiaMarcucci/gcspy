@@ -94,8 +94,6 @@ class TestConicProgram(unittest.TestCase):
                 np.testing.assert_array_almost_equal(convex_var_value, conic_var_value)
 
         # constant cost
-        # TODO: this test fails if I pass nonneg=True in add_variable
-        # instead of enforcing the nonnegativity as an explicit constraint
         convex_prog = ConvexProgram()
         x = convex_prog.add_variable(4)
         convex_prog.add_cost(1)
@@ -105,6 +103,12 @@ class TestConicProgram(unittest.TestCase):
         self.assertAlmostEqual(conic_value, 1)
         x_opt = get_var_value(x, conic_var_values)
         self.assertTrue(np.all(x_opt >= 0))
+
+        # program with free variable
+        convex_prog = ConvexProgram()
+        x = convex_prog.add_variable(4, nonneg=True)
+        convex_prog.add_cost(1)
+        self.assertRaises(ValueError, convex_prog.to_conic_program)
 
         # no constraints
         convex_prog = ConvexProgram()
