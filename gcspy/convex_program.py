@@ -120,8 +120,16 @@ class ConvexProgram:
         # function that selects the entries of x that correspond
         # to a given variable in the cost and constraints
         def get_variable_value(variable, x, reshape=True):
+
+            # external variable
             if not variable.id in var_id_to_cols:
                 return None
+            
+            # infeasible program
+            if x is None:
+                return None
+            
+            # feasible program
             value = x[var_id_to_cols[variable.id]]
             if reshape:
                 if variable.is_matrix():

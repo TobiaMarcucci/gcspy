@@ -93,15 +93,24 @@ class TestConicProgram(unittest.TestCase):
         misc.add_cost(cp.sum(cp.diag(X)) + X[0, 2] + cp.max(Y[0]))
         misc.add_constraints([x >= -3, y <= 3, X[0, 1] == 1, Y == np.ones(Y.shape)])
 
+        # infeasible program
+        infeas = ConvexProgram()
+        x = infeas.add_variable(4, nonneg=True)
+        infeas.add_cost(cp.sum(x))
+        infeas.add_constraint(x <= -1)
+
         # checks that solving as a convex program is equal to solving as a conic program
-        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc]:
+        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc, infeas]:
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
             self.assertAlmostEqual(convex_value, conic_value, places=6)
             for var, convex_var_value in zip(convex_prog.variables, convex_var_values):
                 conic_var_value = get_var_value(var, conic_var_values)
-                np.testing.assert_array_almost_equal(convex_var_value, conic_var_value)
+                if convex_var_value is None:
+                    self.assertIsNone(conic_var_value)
+                else:
+                    np.testing.assert_array_almost_equal(convex_var_value, conic_var_value)
 
         # constant cost
         convex_prog = ConvexProgram()
