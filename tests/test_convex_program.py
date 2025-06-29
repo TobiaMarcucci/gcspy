@@ -99,8 +99,21 @@ class TestConicProgram(unittest.TestCase):
         infeas.add_cost(cp.sum(x))
         infeas.add_constraint(x <= -1)
 
+        # infeasible program with two variables
+        infeas2 = ConvexProgram()
+        x = infeas2.add_variable(4, nonneg=True)
+        y = infeas2.add_variable(2)
+        infeas2.add_cost(cp.sum(x) + cp.sum(y))
+        infeas2.add_constraint(x <= -1)
+
+        # unbounded program
+        unbounded = ConvexProgram()
+        x = unbounded.add_variable(4)
+        unbounded.add_cost(cp.sum(x))
+        unbounded.add_constraint(x <= -1)
+
         # checks that solving as a convex program is equal to solving as a conic program
-        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc, infeas]:
+        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc, infeas, infeas2, unbounded]:
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
