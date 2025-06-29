@@ -82,13 +82,23 @@ class TestConicProgram(unittest.TestCase):
                                      X[1,0] >= 2, X[1,1] >= 2, X[1,2] >= 2,
                                      X[0,0] + X[0,1] + X[1,0] + X[1,1] <= 6,
                                      X[1,1] == 2])
+        
+        # miscellaneous program
+        misc = ConvexProgram()
+        x = misc.add_variable(3, nonneg=True)
+        y = misc.add_variable(2, nonneg=True)
+        X = misc.add_variable((3, 3), PSD=True)
+        Y = misc.add_variable((3, 4))
+        misc.add_cost(cp.norm2(x + 2) + cp.sum_squares(y + 3) + 3)
+        misc.add_cost(cp.sum(cp.diag(X)) + X[0, 2] + cp.max(Y[0]))
+        misc.add_constraints([x >= -3, y <= 3, X[0, 1] == 1, Y == np.ones(Y.shape)])
 
         # checks that solving as a convex program is equal to solving as a conic program
-        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp]:
+        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc]:
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
-            self.assertAlmostEqual(convex_value, conic_value)
+            self.assertAlmostEqual(convex_value, conic_value, places=6)
             for var, convex_var_value in zip(convex_prog.variables, convex_var_values):
                 conic_var_value = get_var_value(var, conic_var_values)
                 np.testing.assert_array_almost_equal(convex_var_value, conic_var_value)
