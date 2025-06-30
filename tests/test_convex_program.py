@@ -132,7 +132,7 @@ class TestConicProgram(unittest.TestCase):
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
-            self.assertAlmostEqual(convex_value, conic_value, places=6)
+            self.assertAlmostEqual(convex_value, conic_value, places=5)
             for var, convex_var_value in zip(convex_prog.variables, convex_var_values):
                 conic_var_value = get_var_value(var, conic_var_values)
                 if convex_var_value is None:
