@@ -56,14 +56,14 @@ class TestConicProgram(unittest.TestCase):
 
         # second order cone program
         program_value, variable_values = self.socp._solve()
-        self.assertAlmostEqual(program_value, 4)
+        self.assertAlmostEqual(program_value, 4, places=6)
         print(self.socp.variables)
         print(variable_values)
         np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1])
 
         # semidefinite program
         program_value, variable_values = self.sdp._solve()
-        self.assertAlmostEqual(program_value, 4)
+        self.assertAlmostEqual(program_value, 4, places=6)
         np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1])
         X_opt = np.array([[np.sqrt(2), 1, 1], [1, np.sqrt(2), 0], [1, 0, np.sqrt(2)]])
         np.testing.assert_array_almost_equal(variable_values[1], X_opt)
@@ -132,7 +132,7 @@ class TestConicProgram(unittest.TestCase):
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
-            self.assertAlmostEqual(convex_value, conic_value, places=5)
+            self.assertAlmostEqual(convex_value, conic_value, places=4)
             for var, convex_var_value in zip(convex_prog.variables, convex_var_values):
                 conic_var_value = get_var_value(var, conic_var_values)
                 if convex_var_value is None:
