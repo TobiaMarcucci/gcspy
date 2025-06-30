@@ -41,7 +41,7 @@ class ConicProgram:
             return cp.constraints.SOC(z[0], z[1:])
         elif K == cp.constraints.PSD:
             n = round(np.sqrt(z.size))
-            z_mat = cp.reshape(z, (n, n))
+            z_mat = cp.reshape(z, (n, n), order='F')
             return cp.constraints.PSD(z_mat)
         elif K == cp.constraints.ExpCone:
             z_mat = z.reshape((3, -1), order='C')
