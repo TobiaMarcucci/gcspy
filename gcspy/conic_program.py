@@ -49,7 +49,8 @@ class ConicProgram:
         else:
             raise NotImplementedError
         
-    def _solve(self, x=None, t=1):
+    def _solve(self, x=None, t=1, **kwargs):
+        # this method is only used for testing, it is not used in the library
         if self.n == 0: # corner case with no variables
             return self.d, np.array([])
         if x is None:
@@ -57,6 +58,6 @@ class ConicProgram:
         cost = self.evaluate_cost(x, t)
         constraints = self.get_symbolic_constraints(x, t)
         prob = cp.Problem(cp.Minimize(cost), constraints)
-        prob.solve()
+        prob.solve(**kwargs)
         
         return prob.value, x.value

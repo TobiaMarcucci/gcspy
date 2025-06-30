@@ -27,9 +27,10 @@ class ConvexProgram:
     def _constraint_variable_ids(self):
         return [variable.id for constraint in self.constraints for variable in constraint.variables()]
     
-    def _solve(self):
+    def _solve(self, **kwargs):
+        # this method is only used for testing, it is not used in the library
         prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
-        prob.solve()
+        prob.solve(**kwargs)
         variable_values = [variable.value for variable in self.variables]
         return prob.value, variable_values
 
@@ -43,16 +44,17 @@ class ConvexProgram:
     
     def add_cost(self, cost):
         if not isinstance(cost, Number):
-            for variable in cost.variables():
-                if not variable.id in self._variable_ids:
-                    raise ValueError(f"Variable {variable} does not belong to this convex program.")
+            self._check_no_external_variables(cost.variables())
         self.cost += cost
 
     def add_constraint(self, constraint):
-        for variable in constraint.variables():
+        self._check_no_external_variables(constraint.variables())
+        self.constraints.append(constraint)
+
+    def _check_no_external_variables(self, variables):
+        for variable in variables:
             if not variable.id in self._variable_ids:
                 raise ValueError(f"Variable {variable} does not belong to this convex program.")
-        self.constraints.append(constraint)
 
     def add_constraints(self, constraints):
         for constraint in constraints:
