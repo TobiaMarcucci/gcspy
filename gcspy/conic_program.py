@@ -43,9 +43,12 @@ class ConicProgram:
             n = round(np.sqrt(z.size))
             z_mat = cp.reshape(z, (n, n))
             return cp.constraints.PSD(z_mat)
+        elif K == cp.constraints.ExpCone:
+            z_mat = z.reshape((3, -1), order='C')
+            return cp.constraints.ExpCone(*z_mat)
         else:
             raise NotImplementedError
-
+        
     def _solve(self, x=None, t=1):
         if self.n == 0: # corner case with no variables
             return self.d, np.array([])

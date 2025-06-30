@@ -99,13 +99,13 @@ class ConvexProgram:
         A = []
         b = []
         K = []
-        first_row = 0
-        for cone in conic_prob.constraints:
-            last_row = first_row + cone.size
-            A.append(Ab[first_row:last_row, :-1])
-            b.append(Ab[first_row:last_row, -1])
-            K.append(type(cone))
-            first_row = last_row
+        start = 0
+        for constraint in conic_prob.constraints:
+            stop = start + constraint.size
+            A.append(Ab[start:stop, :-1])
+            b.append(Ab[start:stop, -1])
+            K.append(type(constraint))
+            start = stop
         conic_program = ConicProgram(c, d, A, b, K)
 
         # dictionary that maps the id of a variable in the cost

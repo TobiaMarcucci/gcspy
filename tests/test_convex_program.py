@@ -90,7 +90,7 @@ class TestConicProgram(unittest.TestCase):
         X = misc.add_variable((3, 3), PSD=True)
         Y = misc.add_variable((3, 4))
         misc.add_cost(cp.norm2(x + 2) + cp.sum_squares(y + 3) + 3)
-        misc.add_cost(cp.sum(cp.diag(X)) + X[0, 2] + cp.max(Y[0]))
+        misc.add_cost(- cp.log_det(X) + X[0, 2] + cp.max(Y[0]))
         misc.add_constraints([x >= -3, y <= 3, X[0, 1] == 1, Y == np.ones(Y.shape)])
 
         # infeasible program
@@ -112,8 +112,23 @@ class TestConicProgram(unittest.TestCase):
         unbounded.add_cost(cp.sum(x))
         unbounded.add_constraint(x <= -1)
 
+        # minimum volume ellipsoid
+        ellipsoid_programs = []
+        for d in range(2, 6):
+            points = np.vstack((np.zeros((1, d)), np.eye(d)))
+            convex_prog = ConvexProgram()
+            A = convex_prog.add_variable((d, d), PSD=True)
+            b = convex_prog.add_variable(d)
+            convex_prog.add_cost(- cp.log_det(A))
+            for point in points:
+                convex_prog.add_constraint(cp.norm2(A @ point + b) <= 1)
+            ellipsoid_programs.append(convex_prog)
+
         # checks that solving as a convex program is equal to solving as a conic program
-        for convex_prog in [self.lp, self.socp, self.sdp, matrix_lp, misc, infeas, infeas2, unbounded]:
+        problems = [self.lp, self.socp, self.sdp]
+        problems += [matrix_lp, misc, infeas, infeas2, unbounded]
+        problems += ellipsoid_programs
+        for convex_prog in problems:
             convex_value, convex_var_values = convex_prog._solve()
             conic_prog, get_var_value = convex_prog.to_conic_program()
             conic_value, conic_var_values = conic_prog._solve()
