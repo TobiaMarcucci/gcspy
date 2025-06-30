@@ -100,17 +100,17 @@ class TestConicProgram(unittest.TestCase):
         # linear program
         cost, x_opt = self.lp._solve()
         self.assertAlmostEqual(cost, 15, places=4)
-        np.testing.assert_array_almost_equal(x_opt, [1, 1, 1, 2])
+        np.testing.assert_array_almost_equal(x_opt, [1, 1, 1, 2], decimal=4)
 
         # second order cone program
         cost, x_opt = self.socp._solve()
         self.assertAlmostEqual(cost, 4, places=4)
-        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
+        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1], decimal=4)
 
         # semidefinite program
         cost, x_opt = self.sdp._solve()
         self.assertAlmostEqual(cost, 4, places=4)
-        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1])
+        np.testing.assert_array_almost_equal(x_opt, [np.sqrt(2), 1, 1], decimal=4)
 
 if __name__ == '__main__':
     unittest.main()

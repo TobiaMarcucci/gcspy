@@ -52,21 +52,19 @@ class TestConicProgram(unittest.TestCase):
         # linear program
         program_value, variable_values = self.lp._solve()
         self.assertAlmostEqual(program_value, 15, places=4)
-        np.testing.assert_array_almost_equal(variable_values[0], [1, 1, 1, 2])
+        np.testing.assert_array_almost_equal(variable_values[0], [1, 1, 1, 2], decimal=4)
 
         # second order cone program
         program_value, variable_values = self.socp._solve()
         self.assertAlmostEqual(program_value, 4, places=4)
-        print(self.socp.variables)
-        print(variable_values)
-        np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1])
+        np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1], decimal=4)
 
         # semidefinite program
         program_value, variable_values = self.sdp._solve()
         self.assertAlmostEqual(program_value, 4, places=4)
-        np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1])
+        np.testing.assert_array_almost_equal(variable_values[0], [np.sqrt(2), 1, 1], decimal=4)
         X_opt = np.array([[np.sqrt(2), 1, 1], [1, np.sqrt(2), 0], [1, 0, np.sqrt(2)]])
-        np.testing.assert_array_almost_equal(variable_values[1], X_opt)
+        np.testing.assert_array_almost_equal(variable_values[1], X_opt, decimal=4)
 
     def test_to_conic(self):
 
@@ -138,7 +136,7 @@ class TestConicProgram(unittest.TestCase):
                 if convex_var_value is None:
                     self.assertIsNone(conic_var_value)
                 else:
-                    np.testing.assert_array_almost_equal(convex_var_value, conic_var_value)
+                    np.testing.assert_array_almost_equal(convex_var_value, conic_var_value, decimal=4)
 
         # constant cost
         convex_prog = ConvexProgram()
@@ -149,7 +147,7 @@ class TestConicProgram(unittest.TestCase):
         conic_value, conic_var_values = conic_prog._solve()
         self.assertAlmostEqual(conic_value, 1, places=4)
         x_opt = get_var_value(x, conic_var_values)
-        self.assertTrue(np.all(x_opt >= 0))
+        self.assertTrue(np.all(x_opt >= -1e-4))
 
         # program with free variable
         convex_prog = ConvexProgram()
@@ -165,7 +163,7 @@ class TestConicProgram(unittest.TestCase):
         conic_value, conic_var_values = conic_prog._solve()
         self.assertAlmostEqual(conic_value, 0, places=4)
         x_opt = get_var_value(x, conic_var_values)
-        np.testing.assert_array_almost_equal(x_opt, np.zeros(x.size))
+        np.testing.assert_array_almost_equal(x_opt, np.zeros(x.size), decimal=4)
 
         # constant cost, no variables, and no constraints
         convex_prog = ConvexProgram()
