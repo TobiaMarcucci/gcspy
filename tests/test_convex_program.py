@@ -47,6 +47,62 @@ class TestConicProgram(unittest.TestCase):
         self.sdp.add_constraints([X[i, i] == x[0] for i in range(3)])
         self.sdp.add_constraints([X[1,0] == x[1], X[2,0] == x[2], X[2,1] == 0])
 
+    def test_add_variable(self):
+
+        # define some variables
+        prog = ConvexProgram()
+        prog.add_variable(3, nonneg=True)
+        prog.add_variable(3, nonpos=True)
+        prog.add_variable((3, 3), symmetric=True)
+        prog.add_variable((3, 3), PSD=True)
+        prog.add_variable((3, 3), NSD=True)
+        self.assertEqual(len(prog.variables), 5)
+
+        # check shape of each variable
+        
+        self.assertEqual(prog.variables[0].shape, (3,))
+        self.assertEqual(prog.variables[1].shape, (3,))
+        self.assertEqual(prog.variables[2].shape, (3, 3))
+        self.assertEqual(prog.variables[3].shape, (3, 3))
+        self.assertEqual(prog.variables[4].shape, (3, 3))
+
+        # check that attributes are passed correctly
+        self.assertTrue(prog.variables[0].is_nonneg())
+        self.assertTrue(prog.variables[1].is_nonpos())
+        self.assertTrue(prog.variables[2].is_symmetric())
+        self.assertTrue(prog.variables[3].is_psd())
+        self.assertTrue(prog.variables[4].is_nsd())
+
+    def test_add_cost(self):
+        
+        # some basic costs
+        prog = ConvexProgram()
+        x = prog.add_variable(3)
+        X = prog.add_variable((3, 3), PSD=True)
+        prog.add_cost(3)
+        prog.add_cost(cp.norm2(x) - cp.log_det(X))
+
+        # external variable
+        y = cp.Variable(3)
+        with self.assertRaises(ValueError):
+            prog.add_cost(cp.norm2(y))
+
+    def test_add_constraint(self):
+
+        # some basic constraints
+        prog = ConvexProgram()
+        x = prog.add_variable(3)
+        X = prog.add_variable((3, 3), PSD=True)
+        prog.add_constraint(x >= 0)
+        prog.add_constraint(np.ones(3) @ x == 0)
+        prog.add_constraint(cp.log_det(X) >= 3)
+        prog.add_constraints([x >= 3, x <= 11])
+
+        # external variable
+        y = cp.Variable(3)
+        with self.assertRaises(ValueError):
+            prog.add_constraint(y >= 0)
+
     def test_solve(self):
 
         # linear program
