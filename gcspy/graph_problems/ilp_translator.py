@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcspy.programs import ConicProgram
+from gcspy.conic_program import ConicProgram
 
 
 def find_common_vertices(gcs, a_v, a_e):

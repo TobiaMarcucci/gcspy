@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 from collections.abc import Iterable
-from gcspy.programs import ConvexProgram, ConicProgram
+from gcspy.convex_program import ConvexProgram
 from gcspy.graph_problems import (graph_problem, ilp_translator, shortest_path,
     traveling_salesman, spanning_tree, facility_location)
 
