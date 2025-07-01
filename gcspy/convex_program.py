@@ -56,6 +56,11 @@ class ConvexProgram:
             if not variable.id in self._variable_ids:
                 raise ValueError(f"Variable {variable} does not belong to this convex program.")
 
+    def _check_no_free_variables(self):
+        for variable in self.variables:
+            if not variable.id in self._cost_variable_ids + self._constraint_variable_ids:
+                raise ValueError(f"Convex program has free variable {variable}.")
+            
     def add_constraints(self, constraints):
         for constraint in constraints:
             self.add_constraint(constraint)
@@ -63,10 +68,8 @@ class ConvexProgram:
     def to_conic_program(self):
 
         # check that problem has no free variables
-        for variable in self.variables:
-            if not variable.id in self._cost_variable_ids + self._constraint_variable_ids:
-                    raise ValueError(f"Convex program has free variable {variable}.")
-
+        self._check_no_free_variables()
+        
         # corner case with constant cost and no constraints
         if isinstance(self.cost, Number) and len(self.constraints) == 0:
             c = []
