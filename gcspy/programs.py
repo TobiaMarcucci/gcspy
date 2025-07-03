@@ -1,6 +1,4 @@
-import numpy as np
 import cvxpy as cp
-from gcspy.conic_program import ConicProgram
 from numbers import Number
 
 class ConicProgram:
