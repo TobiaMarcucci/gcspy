@@ -81,26 +81,6 @@ class ConvexProgram:
         self.cost = 0
         self.constraints = []
 
-    @property
-    def variable_ids(self):
-        return [variable.id for variable in self.variables]
-    
-    @property
-    def used_variable_ids(self):
-        ids = []
-        for constraint in self.constraints:
-            ids.extend([variable.id for variable in constraint.variables()])
-        if not isinstance(self.cost, Number):
-            ids.extend([variable.id for variable in self.cost.variables()])
-        return ids
-    
-    def _solve(self, **kwargs):
-        # this method is only used for testing, it is not used in the library
-        prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
-        prob.solve(**kwargs)
-        variable_values = [variable.value for variable in self.variables]
-        return prob.value, variable_values
-
     def add_variable(self, shape, **kwargs):
         for attribute in kwargs:
             if not attribute in self.variable_attributes:
@@ -111,26 +91,24 @@ class ConvexProgram:
     
     def add_cost(self, cost):
         if not isinstance(cost, Number):
-            self._check_no_external_variables(cost.variables())
+            self.check_variables_are_defined(cost.variables())
         self.cost += cost
 
     def add_constraint(self, constraint):
-        self._check_no_external_variables(constraint.variables())
+        self.check_variables_are_defined(constraint.variables())
         self.constraints.append(constraint)
 
     def add_constraints(self, constraints):
         for constraint in constraints:
             self.add_constraint(constraint)
 
-    def _check_no_external_variables(self, variables):
-        for variable in variables:
-            if not variable.id in self.variable_ids:
-                raise ValueError(f"Variable with id {variable.id} does not belong to this convex program.")
-
-    def _check_no_free_variables(self):
-        for id in self.variable_ids:
-            if not id in self.used_variable_ids:
-                raise ValueError(f"Convex program has free variable with id {id}.")
+    def check_variables_are_defined(self, variables, defined_variables=None):
+        if defined_variables is None:
+            defined_variables = self.variables
+        ids = {variable.id for variable in variables}
+        defined_ids = {variable.id for variable in defined_variables}
+        if not ids <= defined_ids:
+            raise ValueError("A variable does not belong to this convex program.")
 
     def to_conic(self):
         """
@@ -138,10 +116,15 @@ class ConvexProgram:
         Also returns a function that maps a solution x to values for the original variables.
         """
 
-        # checks that each variable appears in the cost
-        # or one of the constraints, otherwise these variables
-        # will be lost in the translation to conic by cvxpy
-        self._check_no_free_variables()
+        # trick that ensures that all the variables are included in the conic program
+        used_variable_ids = []
+        for constraint in self.constraints:
+            used_variable_ids.extend([variable.id for variable in constraint.variables()])
+        if not isinstance(self.cost, Number):
+            used_variable_ids.extend([variable.id for variable in self.cost.variables()])
+        for variable in self.variables:
+            if not variable.id in used_variable_ids:
+                self.add_cost(0 * cp.sum(variable))
         
         # corner case with constant cost and no constraints
         id_to_cols = {}
@@ -201,30 +184,13 @@ class ConvexProgram:
             id_to_cols[variable.id] = range(start, stop)
             start = stop
 
-        # # function that selects the entries of x that correspond
-        # # to a given variable in the cost and constraints
-        # def get_variable_value(variable, x, reshape=True):
-
-        #     # external variable
-        #     if not variable.id in id_to_cols:
-        #         return None
-            
-        #     # infeasible program
-        #     if x is None:
-        #         return None
-            
-        #     # feasible program
-        #     value = x[id_to_cols[variable.id]]
-        #     if reshape:
-        #         if variable.is_matrix():
-        #             if variable.is_symmetric():
-        #                 n = variable.shape[0]
-        #                 full = np.zeros((n, n))
-        #                 full[np.triu_indices(n)] = value
-        #                 value = full + full.T
-        #                 value[np.diag_indices(n)] /= 2
-        #             else:
-        #                 value = value.reshape(variable.shape, order='F')
-        #     return value
-        
         return conic_program, id_to_cols
+
+    def _solve(self, **kwargs):
+        """
+        This method is only used for testing, it is not used in the library.
+        """
+        prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
+        prob.solve(**kwargs)
+        variable_values = [variable.value for variable in self.variables]
+        return prob.value, variable_values
