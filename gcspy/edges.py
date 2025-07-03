@@ -8,7 +8,8 @@ class ConicEdge(ConicProgram):
 
         # check inputs
         super.__init__(c, d, A, b, K, id_to_cols)
-        if self.size < tail.size + head.size:
+        self.additional_size = self.size - self.tail.size - self.head.size
+        if self.additional_size < 0:
             raise ValueError(
                 f"Size mismatch: edge.size = {self.size}, tail.size = {tail.size}, head.size = {head.size}. "
                 "Size of the edge must be larger than the sum of tail and head sizes."
@@ -20,20 +21,24 @@ class ConicEdge(ConicProgram):
         self.name = (tail.name, head.name)
         self.binary = binary
         self.y = cp.Variable(boolean=binary)
-        
-    def evaluate_constraints(self, xv, xw, xe, t=1):
 
-        # check inputs
+    def check_vector_sizes(self, xv, xw, xe):
         xs = [xv, xw, xe]
-        expected_sizes = [self.tail.size, self.head.size, self.size]
+        expected_sizes = [self.tail.size, self.head.size, self.additional_size]
         for x, expected_size in zip(xs, expected_sizes):
             if x.size != expected_size:
                 ValueError(
                     f"Size mismatch: x.size = {x.size}. "
                     f"Expected size is {expected_size}."
                     )
-                
-        # stack vectors and evaluate constraint
+
+    def evaluate_cost(self, xv, xw, xe, t=1):
+        self.check_vector_sizes(xv, xw, xe)
+        x = cp.hstack((xv, xw, xe))
+        return super().evaluate_cost(x, t)
+        
+    def evaluate_constraints(self, xv, xw, xe, t=1):
+        self.check_vector_sizes(xv, xw, xe)
         x = cp.hstack((xv, xw, xe))
         return super().evaluate_constraints(x, t)
     
