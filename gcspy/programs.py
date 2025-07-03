@@ -3,24 +3,25 @@ from numbers import Number
 
 class ConicProgram:
 
-    def __init__(self, c, d, A, b, K):
+    def __init__(self, c, d, A, b, K, id_to_cols=None):
 
         # check that number of conic constraints is coherent
         lengths = [len(A), len(b), len(K)]
         if len(set(lengths)) != 1:
-            raise ValueError("Length mismatch: "
-                                f"len(A) = {len(A)}, len(b) = {len(b)}, len(K) = {len(K)}. "
-                                "A, b, and K must be lists of equal length.")
+            raise ValueError(
+                f"Length mismatch: len(A) = {len(A)}, len(b) = {len(b)}, len(K) = {len(K)}. "
+                "A, b, and K must be lists of equal length."
+                )
         
         # check that matrices have coherent size
         for Ai, bi in zip(A, b):
             if Ai.shape != (bi.size, c.size):
-                raise ValueError("Shape mismatch: "
-                                    f"Ai.shape = {Ai.shape}, bi.size = {bi.size}, , c.size = {c.size}. "
-                                    "The ith matrix in A must have shape (bi.size, c.size), "
-                                    "where bi is the ith vector in b.")
+                raise ValueError(
+                    f"Shape mismatch: Ai.shape = {Ai.shape}, bi.size = {bi.size}, c.size = {c.size}. "
+                    "The ith matrix in A must have shape (bi.size, c.size), where bi is the ith vector in b."
+                    )
         if not isinstance(d, Number):
-            raise TypeError("d must be a scalar number.")
+            raise ValueError("d must be a scalar number.")
         
         # store data
         self.c = c
@@ -29,6 +30,10 @@ class ConicProgram:
         self.b = b
         self.K = K
         self.size = c.size
+
+        # this dictionary is used to store the mapping between the variables
+        # in the conic program and the convex program that generated it
+        self.id_to_cols = id_to_cols
 
     def evaluate_cost(self, x, t=1):
         return self.c @ x + self.d * t
@@ -125,17 +130,17 @@ class ConvexProgram:
                 self.add_cost(0 * cp.sum(variable))
         
         # corner case with constant cost and no constraints
-        id_to_cols = {}
         if isinstance(self.cost, Number) and len(self.constraints) == 0:
             c = []
             d = self.cost
             A = []
             b = []
             K = []
-            conic_program = ConicProgram(c, d, A, b, K)
+            id_to_cols = {}
+            conic_program = ConicProgram(c, d, A, b, K, id_to_cols)
             # def get_variable_value(variable, x, reshape=True):
             #     return None
-            return conic_program, id_to_cols
+            return conic_program
 
         # construct conic program from given convex program
         prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
@@ -166,7 +171,6 @@ class ConvexProgram:
             b.append(Ab[start:stop, -1])
             K.append(type(constraint))
             start = stop
-        conic_program = ConicProgram(c, d, A, b, K)
 
         # double check that variables are ordered
         ids = [variable.id for variable in conic_prob.variables]
@@ -176,13 +180,14 @@ class ConvexProgram:
         # dictionary that maps the id of a variable in the cost
         # and constraints to the corresponding columns in the
         # in the conic program
+        id_to_cols = {}
         start = 0
         for variable in conic_prob.variables:
             stop = start + variable.size
             id_to_cols[variable.id] = range(start, stop)
             start = stop
 
-        return conic_program, id_to_cols
+        return ConicProgram(c, d, A, b, K, id_to_cols)
 
     def _solve(self, **kwargs):
         """
