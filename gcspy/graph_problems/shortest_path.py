@@ -1,7 +1,7 @@
 import cvxpy as cp
 from gcspy.graph_problems.graph_problem import graph_problem
 
-def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
+def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, source, target):
 
     # binary variables
     yv = graph.vertex_binaries()
@@ -14,7 +14,7 @@ def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
         out = graph.outgoing_indices(vertex)
 
         # source constraints
-        if vertex == s:
+        if vertex.name == source.name:
             constraints += [
                 yv[i] == 1,
                 sum(ye[inc]) == 0,
@@ -24,7 +24,7 @@ def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
             ]
 
         # target constraints
-        elif vertex == t:
+        elif vertex.name == target.name:
             constraints += [
                 yv[i] == 1,
                 sum(ye[inc]) == 1,
@@ -44,6 +44,6 @@ def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
             
     return constraints
 
-def solve_shortest_path(convex_graph, s, t, binary=True, **kwargs):
-    additional_constraints = lambda *args: shortest_path_constraints(*args, s, t)
+def solve_shortest_path(convex_graph, source, target, binary=True, **kwargs):
+    additional_constraints = lambda *args: shortest_path_constraints(*args, source, target)
     return graph_problem(convex_graph, additional_constraints, binary, callback=None, **kwargs)

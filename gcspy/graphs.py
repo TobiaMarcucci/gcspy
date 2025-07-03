@@ -166,8 +166,8 @@ class GraphOfConvexPrograms(Graph):
             conic_graph.edges.append(conic_edge)
         return conic_graph
     
-    def solve_shortest_path(self, s, t, binary=True, **kwargs):
-        return solve_shortest_path(self, s, t, binary, **kwargs)
+    def solve_shortest_path(self, source, target, binary=True, **kwargs):
+        return solve_shortest_path(self, source, target, binary, **kwargs)
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_gcs_2d
