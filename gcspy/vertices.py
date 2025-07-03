@@ -3,19 +3,17 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicVertex(ConicProgram):
 
-    def __init__(self, name, c, d, A, b, K, id_to_cols=None, binary=True):
+    def __init__(self, name, c, d, A, b, K, id_to_cols=None):
         super.__init__(c, d, A, b, K, id_to_cols)
         self.name = name
-        self.binary = binary
-        self.y = cp.Variable(boolean=binary)
+        self.y = cp.Variable()
 
 class ConvexVertex(ConvexProgram):
 
-    def __init__(self, name, binary=True):
+    def __init__(self, name):
         super().__init__()
         self.name = name
-        self.binary = binary
-        self.y = cp.Variable(boolean=binary)
+        self.y = cp.Variable()
 
     def to_conic(self):
         conic_program = super().to_conic()
@@ -27,6 +25,5 @@ class ConvexVertex(ConvexProgram):
             conic_program.b,
             conic_program.K,
             conic_program.id_to_cols,
-            self.binary,
         )
         return conic_vertex

@@ -1,33 +1,49 @@
-def shortest_path(gcs, xv, zv, ze_out, ze_inc, s, t):
+import cvxpy as cp
+from gcspy.graph_problems import graph_problem
 
-    yv = gcs.vertex_binaries()
-    ye = gcs.edge_binaries()
+def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
 
+    # binary variables
+    yv = graph.vertex_binaries()
+    ye = graph.edge_binaries()
+
+    # add all constraints one vertex at the time
     constraints = []
-    for i, vertex in enumerate(gcs.vertices):
-        inc_edges = gcs.incoming_indices(vertex)
-        out_edges = gcs.outgoing_indices(vertex)
-        
+    for i, vertex in enumerate(graph.vertices):
+        inc = graph.incoming_indices(vertex)
+        out = graph.outgoing_indices(vertex)
+
+        # source constraints
         if vertex == s:
-            constraints.append(sum(ye[inc_edges]) == 0)
-            constraints.append(sum(ye[out_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            constraints.append(zv[i] == xv[i])
-            
+            constraints += [
+                yv[i] == 1,
+                cp.sum(ye[inc]) == 0,
+                cp.sum(ye[out]) == 1,
+                zv[i] == xv[i],
+                zv[i] == cp.sum(ze_tail[out]),
+            ]
+
+        # target constraints
         elif vertex == t:
-            constraints.append(sum(ye[out_edges]) == 0)
-            constraints.append(sum(ye[inc_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            constraints.append(zv[i] == xv[i])
-            
+            constraints += [
+                yv[i] == 1,
+                cp.sum(ye[inc]) == 1,
+                cp.sum(ye[out]) == 0,
+                zv[i] == xv[i],
+                zv[i] == cp.sum(ze_head[inc]),
+            ]
+
+        # all other vertices constraints
         else:
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(yv[i] <= 1)
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            constraints += vertex.conic.eval_constraints(xv[i] - zv[i], 1 - yv[i])
+            constraints += [
+                yv[i] == cp.sum(ye[inc]),
+                yv[i] == cp.sum(ye[out]),
+                zv[i] == cp.sum(ze_tail[out]),
+                zv[i] == cp.sum(ze_head[inc]),
+            ]
             
     return constraints
+
+def solve_shortest_path(convex_graph, s, t, binary=True, **kwargs):
+    additional_constraints = lambda *args: shortest_path_constraints(*args, s, t)
+    return graph_problem(convex_graph, additional_constraints, binary, callback=None, **kwargs)

@@ -1,6 +1,8 @@
+import cvxpy as cp
 from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
+from gcspy.graph_problems.shortest_path import solve_shortest_path
 
 # TODO: add support for undirected graphs.
 
@@ -25,7 +27,7 @@ class Graph:
             raise ValueError(f"Vertex with name {name} is aleady defined.")
         self._add_vertex(self, name)
 
-    def _add_edge(self, tail, head):
+    def add_edge(self, tail, head):
         if not self.has_vertex(tail.name):
             raise ValueError(f"Vertex with name {tail.name} is not defined.")
         if not self.has_vertex(head.name):
@@ -102,6 +104,12 @@ class Graph:
     def num_edges(self):
         return len(self.edges)
     
+    def vertex_binaries(self):
+        return cp.hstack([vertex.y for vertex in self.vertices])
+
+    def edge_binaries(self):
+        return cp.arhstackray([edge.y for edge in self.edges])
+    
     def add_disjoint_subgraph(self, graph):
         if type(graph) != type(self):
             raise ValueError(
@@ -153,6 +161,9 @@ class GraphOfConvexPrograms(Graph):
         for edge in self.edges:
             conic_graph.edges.append(edge.to_conic())
         return conic_graph
+    
+    def solve_shortest_path(self, s, t, binary=True, **kwargs):
+        return solve_shortest_path(self, s, t, binary, **kwargs)
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_gcs_2d
