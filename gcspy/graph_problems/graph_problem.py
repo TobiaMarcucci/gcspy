@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 
-def conic_graph_problem(conic_graph, problem, binary=True, callback=None, **kwargs):
+def conic_graph_problem(conic_graph, additional_constraints, binary=True, callback=None, **kwargs):
 
     # if binary set all the y variables to boolean
     if binary:
@@ -52,7 +52,7 @@ def conic_graph_problem(conic_graph, problem, binary=True, callback=None, **kwar
         constraints += edge.evaluate_constraints(x_tail - ze_tail[k], x_head - ze_head[k], xe[k] - ze[k], 1 - ye[k])
 
     # add the problem specific constraints
-    constraints += problem(conic_graph, xv, zv, ze_tail, ze_head)
+    constraints += additional_constraints(conic_graph, xv, zv, ze_tail, ze_head)
 
     # solve problem
     prob = cp.Problem(cp.Minimize(cost), constraints)

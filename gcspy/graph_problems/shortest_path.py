@@ -45,4 +45,4 @@ def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, tar
 
 def solve_shortest_path(convex_graph, source, target, binary=True, **kwargs):
     additional_constraints = lambda *args: shortest_path_constraints(*args, source, target)
-    return convex_graph_problem(convex_graph, additional_constraints, binary, callback=None, **kwargs)
+    return convex_graph_problem(convex_graph, additional_constraints, binary, **kwargs)

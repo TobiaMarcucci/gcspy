@@ -3,6 +3,7 @@ from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.shortest_path import solve_shortest_path
+from gcspy.graph_problems.traveling_salesman import solve_traveling_salesman
 
 # TODO: add support for undirected graphs.
 
@@ -120,8 +121,8 @@ class Graph:
         self.edges += graph.edges
     
     def graphviz(self):
-        from gcspy.plot_utils import graphviz_gcs
-        return graphviz_gcs(self)
+        from gcspy.plot_utils import graphviz_graph
+        return graphviz_graph(self)
 
 class GraphOfConicPrograms(Graph):
 
@@ -166,8 +167,11 @@ class GraphOfConvexPrograms(Graph):
             conic_graph.edges.append(conic_edge)
         return conic_graph
     
-    def solve_shortest_path(self, source, target, binary=True, **kwargs):
-        return solve_shortest_path(self, source, target, binary, **kwargs)
+    def solve_shortest_path(self, *args, **kwargs):
+        return solve_shortest_path(self, *args, **kwargs)
+    
+    def solve_traveling_salesman(self, *args, **kwargs):
+        return solve_traveling_salesman(self, *args, **kwargs)
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_2d_graph
