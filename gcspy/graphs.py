@@ -170,9 +170,9 @@ class GraphOfConvexPrograms(Graph):
         return solve_shortest_path(self, source, target, binary, **kwargs)
 
     def plot_2d(self, **kwargs):
-        from gcspy.plot_utils import plot_gcs_2d
-        return plot_gcs_2d(self, **kwargs)
+        from gcspy.plot_utils import plot_2d_graph
+        return plot_2d_graph(self, **kwargs)
 
-    def plot_subgraph_2d(self):
-        from gcspy.plot_utils import plot_subgraph_2d
-        return plot_subgraph_2d(self)
+    def plot_2d_subgraph(self):
+        from gcspy.plot_utils import plot_2d_subgraph
+        return plot_2d_subgraph(self)

@@ -1,10 +1,10 @@
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import graphviz as gv
 
-
-def discretize_vertex_2d(vertex, n=50):
+def discretize_2d_vertex(vertex, n=50):
     values = get_values(vertex)
     variable = vertex.variables[0]
     cost = cp.Parameter(2)
@@ -17,18 +17,15 @@ def discretize_vertex_2d(vertex, n=50):
     set_value(vertex, values)
     return vertices
 
-
 def get_values(vertex):
     return [variable.value for variable in vertex.variables]
-
 
 def set_value(vertex, values):
     for variable, value in zip(vertex.variables, values):
         variable.value = value
 
-
-def plot_vertex_2d(vertex, n=50, tol=1e-4, **kwargs):
-    vertices = discretize_vertex_2d(vertex, n)
+def plot_2d_vertex(vertex, n=50, tol=1e-4, **kwargs):
+    vertices = discretize_2d_vertex(vertex, n)
     options = {'fc': 'mintcream', 'ec': 'black'}
     options.update(kwargs)
     vertex_min = np.min(vertices, axis=0)
@@ -40,10 +37,7 @@ def plot_vertex_2d(vertex, n=50, tol=1e-4, **kwargs):
         plt.fill(*vertices.T, **options, zorder=0)
     value = vertex.variables[0].value
     
-
-def plot_edge_2d(edge, endpoints=None, **kwargs):
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
+def plot_2d_edge(edge, endpoints=None, **kwargs):
     for variables in [edge.tail.variables, edge.head.variables]:
         if variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
@@ -54,7 +48,6 @@ def plot_edge_2d(edge, endpoints=None, **kwargs):
         endpoints = closest_points(edge.tail, edge.head)
     arrow = patches.FancyArrowPatch(*endpoints, **options)
     plt.gca().add_patch(arrow)
-
 
 def closest_points(vertex1, vertex2):
     values1 = get_values(vertex1)
@@ -70,39 +63,36 @@ def closest_points(vertex1, vertex2):
     set_value(vertex2, values2)
     return points
 
-
-def plot_gcs_2d(gcs, n=50):
-    for vertex in gcs.vertices:
+def plot_2d_graph(graph, n=50):
+    for vertex in graph.vertices:
         if vertex.variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
-        plot_vertex_2d(vertex, n)
-    for edge in gcs.edges:
-        plot_edge_2d(edge, color='grey')
+        plot_2d_vertex(vertex, n)
+    for edge in graph.edges:
+        plot_2d_edge(edge, color='grey')
 
-
-def plot_subgraph_2d(gcs, tol=1e-4):
-    for vertex in gcs.vertices:
+def plot_2d_subgraph(graph, tol=1e-4):
+    for vertex in graph.vertices:
         if vertex.y.value is not None and vertex.y.value > tol:
             variable = vertex.variables[0]
             plt.scatter(*variable.value, fc='w', ec='k', zorder=3)
-    for edge in gcs.edges:
+    for edge in graph.edges:
         if edge.y.value is not None and edge.y.value > tol:
             tail = edge.tail.variables[0].value
             head = edge.head.variables[0].value
             endpoints = (tail, head)
-            plot_edge_2d(edge, endpoints, color='blue')
+            plot_2d_edge(edge, endpoints, color='blue')
 
-
-def graphviz_gcs(gcs, vertex_labels=None, edge_labels=None):
+def graphviz_graph(graph, vertex_labels=None, edge_labels=None):
     if vertex_labels is None:
-        vertex_labels = [vertex.name for vertex in gcs.vertices]
+        vertex_labels = [vertex.name for vertex in graph.vertices]
     if edge_labels is None:
-        edge_labels = [''] * gcs.num_edges()
+        edge_labels = [''] * graph.num_edges()
     digraph = gv.Digraph()
     for label in vertex_labels:
         digraph.node(str(label))
-    for edge, label in zip(gcs.edges, edge_labels):
-        tail = vertex_labels[gcs.vertices.index(edge.tail)]
-        head = vertex_labels[gcs.vertices.index(edge.head)]
+    for edge, label in zip(graph.edges, edge_labels):
+        tail = vertex_labels[graph.vertices.index(edge.tail)]
+        head = vertex_labels[graph.vertices.index(edge.head)]
         digraph.edge(str(tail), str(head), str(label))
     return digraph
