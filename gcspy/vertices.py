@@ -4,7 +4,7 @@ from gcspy.programs import ConicProgram, ConvexProgram
 class ConicVertex(ConicProgram):
 
     def __init__(self, name, c, d, A, b, K, id_to_cols=None):
-        super.__init__(c, d, A, b, K, id_to_cols)
+        super().__init__(c, d, A, b, K, id_to_cols)
         self.name = name
         self.y = cp.Variable()
 
@@ -17,7 +17,7 @@ class ConvexVertex(ConvexProgram):
 
     def to_conic(self):
         conic_program = super().to_conic()
-        conic_vertex = ConicVertex(
+        return ConicVertex(
             self.name,
             conic_program.c,
             conic_program.d,
@@ -26,4 +26,3 @@ class ConvexVertex(ConvexProgram):
             conic_program.K,
             conic_program.id_to_cols,
         )
-        return conic_vertex

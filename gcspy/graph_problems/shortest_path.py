@@ -1,5 +1,5 @@
 import cvxpy as cp
-from gcspy.graph_problems import graph_problem
+from gcspy.graph_problems.graph_problem import graph_problem
 
 def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
 
@@ -17,29 +17,29 @@ def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, s, t):
         if vertex == s:
             constraints += [
                 yv[i] == 1,
-                cp.sum(ye[inc]) == 0,
-                cp.sum(ye[out]) == 1,
+                sum(ye[inc]) == 0,
+                sum(ye[out]) == 1,
                 zv[i] == xv[i],
-                zv[i] == cp.sum(ze_tail[out]),
+                zv[i] == sum(ze_tail[out]),
             ]
 
         # target constraints
         elif vertex == t:
             constraints += [
                 yv[i] == 1,
-                cp.sum(ye[inc]) == 1,
-                cp.sum(ye[out]) == 0,
+                sum(ye[inc]) == 1,
+                sum(ye[out]) == 0,
                 zv[i] == xv[i],
-                zv[i] == cp.sum(ze_head[inc]),
+                zv[i] == sum(ze_head[inc]),
             ]
 
         # all other vertices constraints
         else:
             constraints += [
-                yv[i] == cp.sum(ye[inc]),
-                yv[i] == cp.sum(ye[out]),
-                zv[i] == cp.sum(ze_tail[out]),
-                zv[i] == cp.sum(ze_head[inc]),
+                yv[i] == sum(ye[inc]),
+                yv[i] == sum(ye[out]),
+                zv[i] == sum(ze_tail[out]),
+                zv[i] == sum(ze_head[inc]),
             ]
             
     return constraints

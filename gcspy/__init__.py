@@ -1,1 +1,1 @@
-from gcspy.graphs import GraphOfConvexprograms
+from gcspy.graphs import GraphOfConvexPrograms

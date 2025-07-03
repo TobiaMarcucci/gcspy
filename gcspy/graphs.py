@@ -25,7 +25,7 @@ class Graph:
     def add_vertex(self, name):
         if self.has_vertex(name):
             raise ValueError(f"Vertex with name {name} is aleady defined.")
-        self._add_vertex(self, name)
+        return self._add_vertex(name)
 
     def add_edge(self, tail, head):
         if not self.has_vertex(tail.name):
@@ -35,7 +35,7 @@ class Graph:
         name = (tail.name, head.name)
         if self.has_edge(name):
             raise ValueError(f"Edge with name {name} is aleady defined.")
-        self._add_edge(self, tail, head)
+        return self._add_edge(tail, head)
 
     def _add_vertex(self, name):
         """
@@ -108,7 +108,7 @@ class Graph:
         return cp.hstack([vertex.y for vertex in self.vertices])
 
     def edge_binaries(self):
-        return cp.arhstackray([edge.y for edge in self.edges])
+        return cp.hstack([edge.y for edge in self.edges])
     
     def add_disjoint_subgraph(self, graph):
         if type(graph) != type(self):
@@ -123,7 +123,7 @@ class Graph:
         from gcspy.plot_utils import graphviz_gcs
         return graphviz_gcs(self)
 
-class GraphOfConicPrograms:
+class GraphOfConicPrograms(Graph):
 
     def __init__(self):
         self.vertices = []
@@ -157,9 +157,13 @@ class GraphOfConvexPrograms(Graph):
     def to_conic(self):
         conic_graph = GraphOfConicPrograms()
         for vertex in self.vertices:
-            conic_graph.vertices.append(vertex.to_conic())
+            conic_vertex = vertex.to_conic()
+            conic_graph.vertices.append(conic_vertex)
         for edge in self.edges:
-            conic_graph.edges.append(edge.to_conic())
+            conic_tail = conic_graph.get_vertex(edge.tail.name)
+            conic_head = conic_graph.get_vertex(edge.head.name)
+            conic_edge = edge.to_conic(conic_tail, conic_head)
+            conic_graph.edges.append(conic_edge)
         return conic_graph
     
     def solve_shortest_path(self, s, t, binary=True, **kwargs):

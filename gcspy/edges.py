@@ -7,8 +7,8 @@ class ConicEdge(ConicProgram):
     def __init__(self, tail, head, c, d, A, b, K, id_to_cols=None):
 
         # check inputs
-        super.__init__(c, d, A, b, K, id_to_cols)
-        self.additional_size = self.size - self.tail.size - self.head.size
+        super().__init__(c, d, A, b, K, id_to_cols)
+        self.additional_size = self.size - tail.size - head.size
         if self.additional_size < 0:
             raise ValueError(
                 f"Size mismatch: edge.size = {self.size}, tail.size = {tail.size}, head.size = {head.size}. "
@@ -50,28 +50,28 @@ class ConvexEdge(ConvexProgram):
         self.name = (self.tail.name, self.head.name)
         self.y = cp.Variable()
 
-    def to_conic(self, tail_id_to_cols, head_id_to_cols):
+    def to_conic(self, conic_tail, conic_head):
 
         # sizes of the tail and head conic programs
-        tail_size = list(tail_id_to_cols.values())[-1].stop
-        head_size = list(head_id_to_cols.values())[-1].stop
+        tail_size = list(conic_tail.id_to_cols.values())[-1].stop
+        head_size = list(conic_head.id_to_cols.values())[-1].stop
 
         # translate edge program to conic program
         conic_program = super().to_conic()
 
         # helper function that shifts a dictionary of ranges by a constant
-        shift_dict = lambda d, a: {k: range(r.start + a, r.stop + a) for k, r in d}
+        shift_dict = lambda d, a: {k: range(r.start + a, r.stop + a) for k, r in d.items()}
 
         # extend the dictionary named conic_program.id_to_cols dictionary
         # to include the tail and head variables
         # order of variables is (x_tail, x_head, x_edge)
-        id_to_cols = tail_id_to_cols | shift_dict(head_id_to_cols, tail_size)
+        id_to_cols = conic_tail.id_to_cols | shift_dict(conic_head.id_to_cols, tail_size)
         start = tail_size + head_size
         for id, r in conic_program.id_to_cols.items():
             if not id in id_to_cols:
                 stop = start + len(r)
                 id_to_cols[id] = range(start, stop)
-                stop = start
+                start = stop
 
         # reorder matrices and extend them with zeros according to the
         # extended id_to_cols dictionary
@@ -83,8 +83,9 @@ class ConvexEdge(ConvexProgram):
                 Ai[:, id_to_cols[id]] = small_Ai[:, r]
 
         # construct conic edge
-        self.conic = ConicEdge(
-            self.name,
+        return ConicEdge(
+            conic_tail,
+            conic_head,
             c,
             conic_program.d,
             A,
@@ -94,5 +95,5 @@ class ConvexEdge(ConvexProgram):
             )
 
     def check_variables_are_defined(self, variables):
-        defined_variables = self.self.variable + self.tail.variable + self.head.variable
+        defined_variables = self.variables + self.tail.variables + self.head.variables
         super().check_variables_are_defined(variables, defined_variables)

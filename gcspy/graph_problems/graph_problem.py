@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 
-def graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, **kwargs):
+def graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
 
     # if binary set all the variables to boolean
     if binary:
@@ -36,11 +36,9 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, *
         constraints += vertex.evaluate_constraints(zv[i], yv[i])
         constraints += vertex.evaluate_constraints(xv[i] - zv[i], 1 - yv[i])
 
-    # cost and constraints on the edges
+    # edge cost
     for k, edge in enumerate(conic_graph.edges):
         cost += edge.evaluate_cost(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.evaluate_constraints(x_tail - ze_tail[k], x_head - ze_head[k], xe[k] - ze[k], 1 - ye[k])
 
         # tail constraints
         x_tail = xv[conic_graph.vertex_index(edge.tail)]
@@ -51,6 +49,10 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, *
         x_head = xv[conic_graph.vertex_index(edge.head)]
         constraints += edge.head.evaluate_constraints(ze_head[k], ye[k])
         constraints += edge.head.evaluate_constraints(x_head - ze_head[k], 1 - ye[k])
+
+        # edge constraints
+        constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
+        constraints += edge.evaluate_constraints(x_tail - ze_tail[k], x_head - ze_head[k], xe[k] - ze[k], 1 - ye[k])
 
     # add the problem specific constraints
     constraints += problem(conic_graph, xv, zv, ze_tail, ze_head)
@@ -75,7 +77,8 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, *
             if xvi.value is None:
                 variable.value = None
             else:
-                variable.value = get_variable_value(variable, xvi.value, vertex.id_to_cols)
+                conic_vertex = conic_graph.get_vertex(vertex.name)
+                variable.value = get_variable_value(variable, xvi.value, conic_vertex.id_to_cols)
 
     # set values of edge variables
     for edge, xek in zip(convex_graph.edges, xe):
@@ -83,7 +86,8 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, *
             if xek.value is None:
                 variable.value = None
             else:
-                variable.value = get_variable_value(variable, xek.value, edge.id_to_cols)
+                conic_edge = conic_graph.get_edge(*edge.name)
+                variable.value = get_variable_value(variable, xek.value, conic_edge.id_to_cols)
 
     return prob
 

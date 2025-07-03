@@ -40,7 +40,7 @@ class ConicProgram:
 
     def evaluate_constraints(self, x, t=1):
         constraints = []
-        for (Ai, bi, Ki) in zip(self.A, self.b, self.k):
+        for (Ai, bi, Ki) in zip(self.A, self.b, self.K):
             constraints.append(self.constrain_in_cone(Ai @ x + bi * t, Ki))
         return constraints
     
