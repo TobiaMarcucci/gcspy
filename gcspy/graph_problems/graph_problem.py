@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 
-def conic_graph_problem(conic_graph, additional_constraints, binary=True, callback=None, **kwargs):
+def conic_graph_problem(conic_graph, additional_constraints, binary=True, callback=None, tol=1e-4, **kwargs):
 
     # if binary set all the y variables to boolean
     if binary:
@@ -20,7 +20,6 @@ def conic_graph_problem(conic_graph, additional_constraints, binary=True, callba
     zv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
 
     # continuous variables for the edges
-    xe = np.array([cp.Variable(edge.additional_size) for edge in conic_graph.edges])
     ze = np.array([cp.Variable(edge.additional_size) for edge in conic_graph.edges])
     ze_tail = np.array([cp.Variable(edge.tail.size) for edge in conic_graph.edges])
     ze_head = np.array([cp.Variable(edge.head.size) for edge in conic_graph.edges])
@@ -49,7 +48,6 @@ def conic_graph_problem(conic_graph, additional_constraints, binary=True, callba
 
         # edge constraints
         constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.evaluate_constraints(x_tail - ze_tail[k], x_head - ze_head[k], xe[k] - ze[k], 1 - ye[k])
 
     # add the problem specific constraints
     constraints += additional_constraints(conic_graph, xv, zv, ze_tail, ze_head)
@@ -68,31 +66,40 @@ def conic_graph_problem(conic_graph, additional_constraints, binary=True, callba
             prob = cp.Problem(cp.Minimize(cost), constraints)
             prob.solve()
 
-    return prob, xv, xe
+    # get values
+    xv_value = [xvi.value for xvi in xv]
+    xe_value = []
+    for (zek, yek) in zip(ze, ye.value):
+        if yek is not None and yek > tol:
+            xe_value.append(zek.value / yek)
+        else:
+            xe_value.append(None)
 
-def convex_graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
+    return prob, xv_value, xe_value
+
+def convex_graph_problem(convex_graph, problem, binary=True, callback=None, tol=1e-4, **kwargs):
 
     # solve conic version of the problem
     conic_graph = convex_graph.to_conic()
-    prob, xv, xe = conic_graph_problem(conic_graph, problem, binary, callback, **kwargs)
+    prob, xv, xe = conic_graph_problem(conic_graph, problem, binary, callback, tol, **kwargs)
 
     # get back value of vertex variables
     for vertex, xvi in zip(convex_graph.vertices, xv):
         for variable in vertex.variables:
-            if xvi.value is None:
+            if xvi is None:
                 variable.value = None
             else:
                 conic_vertex = conic_graph.get_vertex(vertex.name)
-                variable.value = get_variable_value(variable, xvi.value, conic_vertex.id_to_cols)
+                variable.value = get_variable_value(variable, xvi, conic_vertex.id_to_cols)
 
     # get back value of edge variables
     for edge, xek in zip(convex_graph.edges, xe):
         for variable in edge.variables:
-            if xek.value is None:
+            if xek is None:
                 variable.value = None
             else:
                 conic_edge = conic_graph.get_edge(*edge.name)
-                variable.value = get_variable_value(variable, xek.value, conic_edge.id_to_cols)
+                variable.value = get_variable_value(variable, xek, conic_edge.id_to_cols)
 
     return prob
 
