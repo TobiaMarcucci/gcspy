@@ -1,19 +1,16 @@
 import cvxpy as cp
 import numpy as np
 
-def graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
+def conic_graph_problem(conic_graph, problem, binary=True, callback=None, **kwargs):
 
-    # if binary set all the variables to boolean
+    # if binary set all the y variables to boolean
     if binary:
-        for vertex in convex_graph.vertices:
+        for vertex in conic_graph.vertices:
             vertex.y.attributes['boolean'] = True
-        for edge in convex_graph.edges:
+        for edge in conic_graph.edges:
             edge.y.attributes['boolean'] = True
 
-    # translate problem to conic graph
-    conic_graph = convex_graph.to_conic()
-
-    # binary variables
+    # collect vectors of binary variables
     yv = conic_graph.vertex_binaries()
     ye = conic_graph.edge_binaries()
 
@@ -71,7 +68,15 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
             prob = cp.Problem(cp.Minimize(cost), constraints)
             prob.solve()
 
-    # set values of vertex variables
+    return prob, xv, xe
+
+def convex_graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
+
+    # solve conic version of the problem
+    conic_graph = convex_graph.to_conic()
+    prob, xv, xe = conic_graph_problem(conic_graph, problem, binary, callback, **kwargs)
+
+    # get back value of vertex variables
     for vertex, xvi in zip(convex_graph.vertices, xv):
         for variable in vertex.variables:
             if xvi.value is None:
@@ -80,7 +85,7 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
                 conic_vertex = conic_graph.get_vertex(vertex.name)
                 variable.value = get_variable_value(variable, xvi.value, conic_vertex.id_to_cols)
 
-    # set values of edge variables
+    # get back value of edge variables
     for edge, xek in zip(convex_graph.edges, xe):
         for variable in edge.variables:
             if xek.value is None:
@@ -92,11 +97,6 @@ def graph_problem(convex_graph, problem, binary=True, callback=None, **kwargs):
     return prob
 
 def get_variable_value(variable, x, id_to_cols):
-
-    # external variable
-    if not variable.id in id_to_cols:
-        raise ValueError('External variable in the retrieval of the optimal solution.')
-    
     value = x[id_to_cols[variable.id]]
     if variable.is_matrix():
         if variable.is_symmetric():
@@ -107,5 +107,4 @@ def get_variable_value(variable, x, id_to_cols):
             value[np.diag_indices(n)] /= 2
         else:
             value = value.reshape(variable.shape, order='F')
-
     return value

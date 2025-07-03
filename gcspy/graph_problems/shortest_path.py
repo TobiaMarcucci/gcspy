@@ -1,17 +1,16 @@
-import cvxpy as cp
-from gcspy.graph_problems.graph_problem import graph_problem
+from gcspy.graph_problems.graph_problem import convex_graph_problem
 
-def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, source, target):
+def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, target):
 
     # binary variables
-    yv = graph.vertex_binaries()
-    ye = graph.edge_binaries()
+    yv = conic_graph.vertex_binaries()
+    ye = conic_graph.edge_binaries()
 
     # add all constraints one vertex at the time
     constraints = []
-    for i, vertex in enumerate(graph.vertices):
-        inc = graph.incoming_indices(vertex)
-        out = graph.outgoing_indices(vertex)
+    for i, vertex in enumerate(conic_graph.vertices):
+        inc = conic_graph.incoming_indices(vertex)
+        out = conic_graph.outgoing_indices(vertex)
 
         # source constraints
         if vertex.name == source.name:
@@ -46,4 +45,4 @@ def shortest_path_constraints(graph, xv, zv, ze_tail, ze_head, source, target):
 
 def solve_shortest_path(convex_graph, source, target, binary=True, **kwargs):
     additional_constraints = lambda *args: shortest_path_constraints(*args, source, target)
-    return graph_problem(convex_graph, additional_constraints, binary, callback=None, **kwargs)
+    return convex_graph_problem(convex_graph, additional_constraints, binary, callback=None, **kwargs)

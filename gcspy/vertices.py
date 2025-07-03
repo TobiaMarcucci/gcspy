@@ -3,10 +3,13 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicVertex(ConicProgram):
 
-    def __init__(self, name, c, d, A, b, K, y, id_to_cols=None):
+    def __init__(self, name, c, d, A, b, K, y=None, id_to_cols=None):
         super().__init__(c, d, A, b, K, id_to_cols)
         self.name = name
-        self.y = y
+        if y is None:
+            self.y = cp.Variable()
+        else:
+            self.y = y
 
 class ConvexVertex(ConvexProgram):
 
