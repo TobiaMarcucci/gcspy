@@ -19,8 +19,7 @@ def traveling_salesman_constraints(conic_graph, xv, zv, ze_tail, ze_head, subtou
             sum(ye[inc]) == 1,
             zv[i] == xv[i],
             sum(ze_tail[out]) == xv[i],
-            sum(ze_head[inc]) == xv[i],
-        ]
+            sum(ze_head[inc]) == xv[i]]
 
     if subtour_elimination:
         for r in range(2, conic_graph.num_vertices() - 1):

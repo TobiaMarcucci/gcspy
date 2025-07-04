@@ -19,8 +19,7 @@ def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, tar
                 sum(ye[inc]) == 0,
                 sum(ye[out]) == 1,
                 zv[i] == xv[i],
-                zv[i] == sum(ze_tail[out]),
-            ]
+                zv[i] == sum(ze_tail[out])]
 
         # target constraints
         elif vertex.name == target.name:
@@ -29,8 +28,7 @@ def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, tar
                 sum(ye[inc]) == 1,
                 sum(ye[out]) == 0,
                 zv[i] == xv[i],
-                zv[i] == sum(ze_head[inc]),
-            ]
+                zv[i] == sum(ze_head[inc])]
 
         # all other vertices constraints
         else:
@@ -38,8 +36,7 @@ def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, tar
                 yv[i] == sum(ye[inc]),
                 yv[i] == sum(ye[out]),
                 zv[i] == sum(ze_tail[out]),
-                zv[i] == sum(ze_head[inc]),
-            ]
+                zv[i] == sum(ze_head[inc])]
             
     return constraints
 

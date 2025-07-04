@@ -4,35 +4,30 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, c, d, A, b, K, y=None, id_to_cols=None):
+    def __init__(self, tail, head, c, d, A, b, K, id_to_cols=None, y=None):
 
         # check inputs
         super().__init__(c, d, A, b, K, id_to_cols)
         self.additional_size = self.size - tail.size - head.size
         if self.additional_size < 0:
             raise ValueError(
-                f"Size mismatch: edge.size = {self.size}, tail.size = {tail.size}, head.size = {head.size}. "
-                "Size of the edge must be larger than the sum of tail and head sizes."
-                )
+                f"Size mismatch: edge.size = {self.size}, tail.size = "
+                f"{tail.size}, head.size = {head.size}. Size of the edge must "
+                "be larger than the sum of tail and head sizes.")
         
         # store data
         self.tail = tail
         self.head = head
         self.name = (tail.name, head.name)
-        if y is None:
-            self.y = cp.Variable()
-        else:
-            self.y = y
+        self.y = cp.Variable() if y is None else y
 
     def check_vector_sizes(self, xv, xw, xe):
         xs = [xv, xw, xe]
         expected_sizes = [self.tail.size, self.head.size, self.additional_size]
-        for x, expected_size in zip(xs, expected_sizes):
-            if x.size != expected_size:
+        for x, size in zip(xs, expected_sizes):
+            if x.size != size:
                 ValueError(
-                    f"Size mismatch: x.size = {x.size}. "
-                    f"Expected size is {expected_size}."
-                    )
+                    f"Size mismatch: x.size = {x.size}.  Expected size {size}.")
 
     def evaluate_cost(self, xv, xw, xe, t=1):
         self.check_vector_sizes(xv, xw, xe)
@@ -62,13 +57,13 @@ class ConvexEdge(ConvexProgram):
         # translate edge program to conic program
         conic_program = super().to_conic()
 
-        # helper function that shifts a dictionary of ranges by a constant
-        shift_dict = lambda d, a: {k: range(r.start + a, r.stop + a) for k, r in d.items()}
-
-        # extend the dictionary named conic_program.id_to_cols dictionary
-        # to include the tail and head variables
+        # include tail and head variables in dictionary id_to_cols
         # order of variables is (x_tail, x_head, x_edge)
-        id_to_cols = conic_tail.id_to_cols | shift_dict(conic_head.id_to_cols, tail_size)
+        id_to_cols = conic_tail.id_to_cols.copy()
+        for id, r in conic_head.id_to_cols.items():
+            start = r.start + tail_size
+            stop = r.stop + tail_size
+            id_to_cols[id] = range(start, stop)
         start = tail_size + head_size
         for id, r in conic_program.id_to_cols.items():
             if not id in id_to_cols:
@@ -76,8 +71,8 @@ class ConvexEdge(ConvexProgram):
                 id_to_cols[id] = range(start, stop)
                 start = stop
 
-        # reorder matrices and extend them with zeros according to the
-        # extended id_to_cols dictionary
+        # reorder matrices and extend them with zeros according to the extended
+        # id_to_cols dictionary
         c = np.zeros(stop)
         A = [np.zeros((small_Ai.shape[0], stop)) for small_Ai in conic_program.A]
         for id, r in conic_program.id_to_cols.items():
@@ -94,9 +89,8 @@ class ConvexEdge(ConvexProgram):
             A,
             conic_program.b,
             conic_program.K,
-            self.y,
             id_to_cols,
-            )
+            self.y)
 
     def check_variables_are_defined(self, variables):
         defined_variables = self.variables + self.tail.variables + self.head.variables

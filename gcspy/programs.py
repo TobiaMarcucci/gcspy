@@ -5,25 +5,23 @@ class ConicProgram:
 
     def __init__(self, c, d, A, b, K, id_to_cols=None):
 
-        # check that number of conic constraints is coherent
-        lengths = [len(A), len(b), len(K)]
-        if len(set(lengths)) != 1:
+        # check that the number of conic constraints is coherent
+        if len(A) != len(b) or len(b) != len(K):
             raise ValueError(
-                f"Length mismatch: len(A) = {len(A)}, len(b) = {len(b)}, len(K) = {len(K)}. "
-                "A, b, and K must be lists of equal length."
-                )
+                f"Length mismatch: len(A) = {len(A)}, len(b) = {len(b)}, "
+                f"len(K) = {len(K)}. A, b, and K must have equal length.")
         
-        # check that matrices have coherent size
+        # check that the matrices and vectors have coherent size
         for Ai, bi in zip(A, b):
             if Ai.shape != (bi.size, c.size):
                 raise ValueError(
-                    f"Shape mismatch: Ai.shape = {Ai.shape}, bi.size = {bi.size}, c.size = {c.size}. "
-                    "The ith matrix in A must have shape (bi.size, c.size), where bi is the ith vector in b."
-                    )
+                    f"Shape mismatch: Ai.shape = {Ai.shape}, bi.size = "
+                    f"{bi.size}, c.size = {c.size}. Matrix in Ai must have "
+                    "shape equal to (bi.size, c.size).")
         if not isinstance(d, Number):
-            raise ValueError("d must be a scalar number.")
+            raise TypeError(f"d must be a scalar, got d of type {type(d)}.")
         
-        # store data
+        # store input data
         self.c = c
         self.d = d
         self.A = A
@@ -31,8 +29,9 @@ class ConicProgram:
         self.K = K
         self.size = c.size
 
-        # this dictionary is used to store the mapping between the variables
-        # in the conic program and the convex program that generated it
+        # dictionary with keys equal to the variable ids in the convex program
+        # that generated this conic program and values equal to the
+        # corresponding column range in the matrices of the conic program
         self.id_to_cols = id_to_cols
 
     def evaluate_cost(self, x, t=1):
@@ -46,12 +45,10 @@ class ConicProgram:
     
     @staticmethod
     def constrain_in_cone(z, K):
-        if K == cp.constraints.Zero:
-                return K(z)
-        elif K == cp.constraints.NonNeg:
-                return K(z)
-        elif K == cp.constraints.NonPos:
-                return cp.constraints.NonNeg(- z)
+        if K in [cp.constraints.Zero, cp.constraints.NonNeg]:
+            return K(z)
+        elif K == cp.constraints.NonPos: # NonPos will be deprecated
+            return cp.constraints.NonNeg(- z)
         elif K == cp.constraints.SOC:
             return K(z[0], z[1:])
         elif K == cp.constraints.PSD:
@@ -64,7 +61,7 @@ class ConicProgram:
         else:
             raise NotImplementedError
 
-    def _solve(self, **kwargs):
+    def solve(self, **kwargs):
         """
         This method is only used for testing, it is not used in the library.
         """
@@ -77,7 +74,7 @@ class ConicProgram:
 
 class ConvexProgram:
 
-    variable_attributes = ["nonneg", "nonpos", "symmetric", "PSD", "NSD"]
+    supported_attributes = ["nonneg", "nonpos", "symmetric", "PSD", "NSD"]
 
     def __init__(self):
         self.variables = []
@@ -86,8 +83,8 @@ class ConvexProgram:
 
     def add_variable(self, shape, **kwargs):
         for attribute in kwargs:
-            if not attribute in self.variable_attributes:
-                raise ValueError(f"Variable attribute {attribute} is not supported.")
+            if not attribute in self.supported_attributes:
+                raise ValueError(f"Attribute {attribute} is not supported.")
         variable = cp.Variable(shape, **kwargs)
         self.variables.append(variable)
         return variable
@@ -108,38 +105,31 @@ class ConvexProgram:
     def check_variables_are_defined(self, variables, defined_variables=None):
         if defined_variables is None:
             defined_variables = self.variables
-        ids = {variable.id for variable in variables}
-        defined_ids = {variable.id for variable in defined_variables}
-        if not ids <= defined_ids:
-            raise ValueError("A variable does not belong to this convex program.")
+        defined_ids = [variable.id for variable in defined_variables]
+        for variable in variables:
+            if variable.id not in defined_ids:
+                raise ValueError(f"Variable {variable} is not defined.")
 
     def to_conic(self):
         """
-        Converts this ConvexProgram into an equivalent ConicProgram, using CVXPY's reductions.
-        Also returns a function that maps a solution x to values for the original variables.
+        Converts this ConvexProgram into an equivalent ConicProgram, using the
+        reduction chain in cvxpy.
         """
 
-        # trick that ensures that all the variables are included in the conic program
-        used_variable_ids = []
+        # ensure that all the variables are included in the conic program, it
+        # does so by adding a dummy cost of zero on the unused variables
+        used_ids = []
         for constraint in self.constraints:
-            used_variable_ids.extend([variable.id for variable in constraint.variables()])
+            used_ids += [variable.id for variable in constraint.variables()]
         if not isinstance(self.cost, Number):
-            used_variable_ids.extend([variable.id for variable in self.cost.variables()])
+            used_ids += [variable.id for variable in self.cost.variables()]
         for variable in self.variables:
-            if not variable.id in used_variable_ids:
-                self.add_cost(0 * cp.sum(variable))
+            if not variable.id in used_ids:
+                self.add_cost(0 * variable.flatten()[0])
         
         # corner case with constant cost and no constraints
         if isinstance(self.cost, Number) and len(self.constraints) == 0:
-            c = []
-            d = self.cost
-            A = []
-            b = []
-            K = []
-            id_to_cols = {}
-            conic_program = ConicProgram(c, d, A, b, K, id_to_cols)
-            # def get_variable_value(variable, x, reshape=True):
-            #     return None
+            conic_program = ConicProgram([], self.cost, [], [], [], {})
             return conic_program
 
         # construct conic program from given convex program
@@ -172,24 +162,17 @@ class ConvexProgram:
             K.append(type(constraint))
             start = stop
 
-        # double check that variables are ordered
-        ids = [variable.id for variable in conic_prob.variables]
-        if ids != list(conic_prob.var_id_to_col.keys()):
-            raise ValueError("Variables in the conic program are not ordered.")
-
-        # dictionary that maps the id of a variable in the cost
-        # and constraints to the corresponding columns in the
-        # in the conic program
+        # dictionary that maps the id of a variable in the cost and constraints
+        # to the corresponding columns in the in the conic program
         id_to_cols = {}
-        start = 0
         for variable in conic_prob.variables:
+            start = conic_prob.var_id_to_col[variable.id]
             stop = start + variable.size
             id_to_cols[variable.id] = range(start, stop)
-            start = stop
 
         return ConicProgram(c, d, A, b, K, id_to_cols)
 
-    def _solve(self, **kwargs):
+    def solve(self, **kwargs):
         """
         This method is only used for testing, it is not used in the library.
         """
