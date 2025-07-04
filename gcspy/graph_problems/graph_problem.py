@@ -67,11 +67,11 @@ def conic_graph_problem(conic_graph, additional_constraints, binary=True, callba
             prob.solve()
 
     # get values
-    xv_value = [xvi.value for xvi in xv]
+    xv_value = [x.value for x in xv]
     xe_value = []
-    for (zek, yek) in zip(ze, ye.value):
-        if yek is not None and yek > tol:
-            xe_value.append(zek.value / yek)
+    for (z, y) in zip(ze, ye.value):
+        if y is not None and y > tol:
+            xe_value.append(z.value / y)
         else:
             xe_value.append(None)
 
@@ -84,21 +84,21 @@ def convex_graph_problem(convex_graph, problem, binary=True, callback=None, tol=
     prob, xv, xe = conic_graph_problem(conic_graph, problem, binary, callback, tol, **kwargs)
 
     # get back value of vertex variables
-    for convex_vertex, xvi in zip(convex_graph.vertices, xv):
+    for convex_vertex, x in zip(convex_graph.vertices, xv):
         for convex_variable in convex_vertex.variables:
-            if xvi is None:
+            if x is None:
                 convex_variable.value = None
             else:
                 conic_vertex = conic_graph.get_vertex(convex_vertex.name)
-                convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, xvi)
+                convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
 
     # get back value of edge variables
-    for convex_edge, xek in zip(convex_graph.edges, xe):
+    for convex_edge, x in zip(convex_graph.edges, xe):
         for convex_variable in convex_edge.variables:
-            if xek is None:
+            if x is None:
                 convex_variable.value = None
             else:
                 conic_edge = conic_graph.get_edge(*convex_edge.name)
-                convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, xek)
+                convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, x)
 
     return prob
