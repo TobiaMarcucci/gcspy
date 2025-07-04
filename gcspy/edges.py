@@ -4,10 +4,10 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, c, d, A, b, K, id_to_cols=None, y=None):
+    def __init__(self, tail, head, c, d, A, b, K, convex_id_to_conic_idx=None, y=None):
 
         # check inputs
-        super().__init__(c, d, A, b, K, id_to_cols)
+        super().__init__(c, d, A, b, K, convex_id_to_conic_idx)
         self.additional_size = self.size - tail.size - head.size
         if self.additional_size < 0:
             raise ValueError(
@@ -51,34 +51,34 @@ class ConvexEdge(ConvexProgram):
     def to_conic(self, conic_tail, conic_head):
 
         # sizes of the tail and head conic programs
-        tail_size = list(conic_tail.id_to_cols.values())[-1].stop
-        head_size = list(conic_head.id_to_cols.values())[-1].stop
+        tail_size = list(conic_tail.convex_id_to_conic_idx.values())[-1].stop
+        head_size = list(conic_head.convex_id_to_conic_idx.values())[-1].stop
 
         # translate edge program to conic program
         conic_program = super().to_conic()
 
-        # include tail and head variables in dictionary id_to_cols
+        # include tail and head variables in dictionary convex_id_to_conic_idx
         # order of variables is (x_tail, x_head, x_edge)
-        id_to_cols = conic_tail.id_to_cols.copy()
-        for id, r in conic_head.id_to_cols.items():
+        convex_id_to_conic_idx = conic_tail.convex_id_to_conic_idx.copy()
+        for id, r in conic_head.convex_id_to_conic_idx.items():
             start = r.start + tail_size
             stop = r.stop + tail_size
-            id_to_cols[id] = range(start, stop)
+            convex_id_to_conic_idx[id] = range(start, stop)
         start = tail_size + head_size
-        for id, r in conic_program.id_to_cols.items():
-            if not id in id_to_cols:
+        for id, r in conic_program.convex_id_to_conic_idx.items():
+            if not id in convex_id_to_conic_idx:
                 stop = start + len(r)
-                id_to_cols[id] = range(start, stop)
+                convex_id_to_conic_idx[id] = range(start, stop)
                 start = stop
 
         # reorder matrices and extend them with zeros according to the extended
-        # id_to_cols dictionary
+        # convex_id_to_conic_idx dictionary
         c = np.zeros(stop)
         A = [np.zeros((small_Ai.shape[0], stop)) for small_Ai in conic_program.A]
-        for id, r in conic_program.id_to_cols.items():
-            c[id_to_cols[id]] = conic_program.c[r]
+        for id, r in conic_program.convex_id_to_conic_idx.items():
+            c[convex_id_to_conic_idx[id]] = conic_program.c[r]
             for Ai, small_Ai in zip(A, conic_program.A):
-                Ai[:, id_to_cols[id]] = small_Ai[:, r]
+                Ai[:, convex_id_to_conic_idx[id]] = small_Ai[:, r]
 
         # construct conic edge
         return ConicEdge(
@@ -89,7 +89,7 @@ class ConvexEdge(ConvexProgram):
             A,
             conic_program.b,
             conic_program.K,
-            id_to_cols,
+            convex_id_to_conic_idx,
             self.y)
 
     def check_variables_are_defined(self, variables):

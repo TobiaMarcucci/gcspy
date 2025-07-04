@@ -1,9 +1,10 @@
+import numpy as np
 import cvxpy as cp
 from numbers import Number
 
 class ConicProgram:
 
-    def __init__(self, c, d, A, b, K, id_to_cols=None):
+    def __init__(self, c, d, A, b, K, convex_id_to_conic_idx=None):
 
         # check that the number of conic constraints is coherent
         if len(A) != len(b) or len(b) != len(K):
@@ -30,9 +31,9 @@ class ConicProgram:
         self.size = c.size
 
         # dictionary with keys equal to the variable ids in the convex program
-        # that generated this conic program and values equal to the
-        # corresponding column range in the matrices of the conic program
-        self.id_to_cols = id_to_cols
+        # that generated this conic program, and values equal to the
+        # corresponding variable indices in the conic program
+        self.convex_id_to_conic_idx = convex_id_to_conic_idx
 
     def evaluate_cost(self, x, t=1):
         return self.c @ x + self.d * t
@@ -60,6 +61,26 @@ class ConicProgram:
             return K(*z_mat)
         else:
             raise NotImplementedError
+        
+    def get_convex_variable_value(self, convex_variable, conic_x):
+
+        # check that program is created from a convex program
+        if self.convex_id_to_conic_idx is None:
+            raise ValueError(
+                "Conic program was not generated from a convex program.")
+
+        # retrieve value and reshape it appropriately
+        value = conic_x[self.convex_id_to_conic_idx[convex_variable.id]]
+        if convex_variable.is_matrix():
+            if convex_variable.is_symmetric():
+                n = convex_variable.shape[0]
+                full = np.zeros((n, n))
+                full[np.triu_indices(n)] = value
+                value = full + full.T
+                value[np.diag_indices(n)] /= 2
+            else:
+                value = value.reshape(convex_variable.shape, order='F')
+        return value
 
     def solve(self, **kwargs):
         """
@@ -164,13 +185,13 @@ class ConvexProgram:
 
         # dictionary that maps the id of a variable in the cost and constraints
         # to the corresponding columns in the in the conic program
-        id_to_cols = {}
+        convex_id_to_conic_idx = {}
         for variable in conic_prob.variables:
             start = conic_prob.var_id_to_col[variable.id]
             stop = start + variable.size
-            id_to_cols[variable.id] = range(start, stop)
+            convex_id_to_conic_idx[variable.id] = range(start, stop)
 
-        return ConicProgram(c, d, A, b, K, id_to_cols)
+        return ConicProgram(c, d, A, b, K, convex_id_to_conic_idx)
 
     def solve(self, **kwargs):
         """

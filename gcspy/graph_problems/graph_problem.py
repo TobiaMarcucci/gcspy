@@ -84,34 +84,21 @@ def convex_graph_problem(convex_graph, problem, binary=True, callback=None, tol=
     prob, xv, xe = conic_graph_problem(conic_graph, problem, binary, callback, tol, **kwargs)
 
     # get back value of vertex variables
-    for vertex, xvi in zip(convex_graph.vertices, xv):
-        for variable in vertex.variables:
+    for convex_vertex, xvi in zip(convex_graph.vertices, xv):
+        for convex_variable in convex_vertex.variables:
             if xvi is None:
-                variable.value = None
+                convex_variable.value = None
             else:
-                conic_vertex = conic_graph.get_vertex(vertex.name)
-                variable.value = get_variable_value(variable, xvi, conic_vertex.id_to_cols)
+                conic_vertex = conic_graph.get_vertex(convex_vertex.name)
+                convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, xvi)
 
     # get back value of edge variables
-    for edge, xek in zip(convex_graph.edges, xe):
-        for variable in edge.variables:
+    for convex_edge, xek in zip(convex_graph.edges, xe):
+        for convex_variable in convex_edge.variables:
             if xek is None:
-                variable.value = None
+                convex_variable.value = None
             else:
-                conic_edge = conic_graph.get_edge(*edge.name)
-                variable.value = get_variable_value(variable, xek, conic_edge.id_to_cols)
+                conic_edge = conic_graph.get_edge(*convex_edge.name)
+                convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, xek)
 
     return prob
-
-def get_variable_value(variable, x, id_to_cols):
-    value = x[id_to_cols[variable.id]]
-    if variable.is_matrix():
-        if variable.is_symmetric():
-            n = variable.shape[0]
-            full = np.zeros((n, n))
-            full[np.triu_indices(n)] = value
-            value = full + full.T
-            value[np.diag_indices(n)] /= 2
-        else:
-            value = value.reshape(variable.shape, order='F')
-    return value
