@@ -20,7 +20,7 @@ def conic_graph_problem(conic_graph, additional_constraints, binary=True, callba
     zv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
 
     # continuous variables for the edges
-    ze = np.array([cp.Variable(edge.additional_size) for edge in conic_graph.edges])
+    ze = np.array([cp.Variable(edge.slack_size) for edge in conic_graph.edges])
     ze_tail = np.array([cp.Variable(edge.tail.size) for edge in conic_graph.edges])
     ze_head = np.array([cp.Variable(edge.head.size) for edge in conic_graph.edges])
 

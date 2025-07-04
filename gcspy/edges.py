@@ -8,8 +8,8 @@ class ConicEdge(ConicProgram):
 
         # check inputs
         super().__init__(c, d, A, b, K, convex_id_to_conic_idx)
-        self.additional_size = self.size - tail.size - head.size
-        if self.additional_size < 0:
+        self.slack_size = self.size - tail.size - head.size
+        if self.slack_size < 0:
             raise ValueError(
                 f"Size mismatch: edge.size = {self.size}, tail.size = "
                 f"{tail.size}, head.size = {head.size}. Size of the edge must "
@@ -23,7 +23,7 @@ class ConicEdge(ConicProgram):
 
     def check_vector_sizes(self, xv, xw, xe):
         xs = [xv, xw, xe]
-        expected_sizes = [self.tail.size, self.head.size, self.additional_size]
+        expected_sizes = [self.tail.size, self.head.size, self.slack_size]
         for x, size in zip(xs, expected_sizes):
             if x.size != size:
                 ValueError(
