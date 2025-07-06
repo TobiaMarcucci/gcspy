@@ -1,45 +1,39 @@
-from gcspy.graph_problems.graph_problem import convex_graph_problem
+from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
-def shortest_path_constraints(conic_graph, xv, zv, ze_tail, ze_head, source, target):
+class ConicShortestPathProblem(ConicGraphProblem):
 
-    # binary variables
-    yv = conic_graph.vertex_binaries()
-    ye = conic_graph.edge_binaries()
+    def __init__(self, conic_graph, source, target):
 
-    # add all constraints one vertex at the time
-    constraints = []
-    for i, vertex in enumerate(conic_graph.vertices):
-        inc = conic_graph.incoming_indices(vertex)
-        out = conic_graph.outgoing_indices(vertex)
-
-        # source constraints
-        if vertex.name == source.name:
-            constraints += [
-                yv[i] == 1,
-                sum(ye[inc]) == 0,
-                sum(ye[out]) == 1,
-                zv[i] == xv[i],
-                zv[i] == sum(ze_tail[out])]
-
-        # target constraints
-        elif vertex.name == target.name:
-            constraints += [
-                yv[i] == 1,
-                sum(ye[inc]) == 1,
-                sum(ye[out]) == 0,
-                zv[i] == xv[i],
-                zv[i] == sum(ze_head[inc])]
-
-        # all other vertices constraints
-        else:
-            constraints += [
-                yv[i] == sum(ye[inc]),
-                yv[i] == sum(ye[out]),
-                zv[i] == sum(ze_tail[out]),
-                zv[i] == sum(ze_head[inc])]
+        # initialize parent class
+        super().__init__(conic_graph)
             
-    return constraints
+        # add all constraints one vertex at the time
+        for i, vertex in enumerate(conic_graph.vertices):
+            inc = conic_graph.incoming_indices(vertex)
+            out = conic_graph.outgoing_indices(vertex)
 
-def solve_shortest_path(convex_graph, source, target, binary=True, **kwargs):
-    additional_constraints = lambda *args: shortest_path_constraints(*args, source, target)
-    return convex_graph_problem(convex_graph, additional_constraints, binary, **kwargs)
+            # source constraints
+            if vertex.name == source.name:
+                self.constraints += [
+                    self.yv[i] == 1,
+                    sum(self.ye[inc]) == 0,
+                    sum(self.ye[out]) == 1,
+                    self.zv[i] == self.xv[i],
+                    self.zv[i] == sum(self.ze_tail[out])]
+
+            # target constraints
+            elif vertex.name == target.name:
+                self.constraints += [
+                    self.yv[i] == 1,
+                    sum(self.ye[inc]) == 1,
+                    sum(self.ye[out]) == 0,
+                    self.zv[i] == self.xv[i],
+                    self.zv[i] == sum(self.ze_head[inc])]
+
+            # all other vertices constraints
+            else:
+                self.constraints += [
+                    self.yv[i] == sum(self.ye[inc]),
+                    self.yv[i] == sum(self.ye[out]),
+                    self.zv[i] == sum(self.ze_tail[out]),
+                    self.zv[i] == sum(self.ze_head[inc])]

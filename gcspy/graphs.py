@@ -2,8 +2,9 @@ import cvxpy as cp
 from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
-from gcspy.graph_problems.shortest_path import solve_shortest_path
-from gcspy.graph_problems.traveling_salesman import solve_traveling_salesman
+from gcspy.graph_problems.graph_problem import ConvexGraphProblem
+from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
+from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 
 # TODO: add support for undirected graphs.
 
@@ -167,11 +168,13 @@ class GraphOfConvexPrograms(Graph):
             conic_graph.edges.append(conic_edge)
         return conic_graph
     
-    def solve_shortest_path(self, *args, **kwargs):
-        return solve_shortest_path(self, *args, **kwargs)
+    def solve_shortest_path(self, source, target, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source, target)
+        return prob.solve(self, *args, **kwargs)
     
-    def solve_traveling_salesman(self, *args, **kwargs):
-        return solve_traveling_salesman(self, *args, **kwargs)
+    def solve_traveling_salesman(self, *args, subtour_elimination=True, **kwargs):
+        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, subtour_elimination)
+        return prob.solve(self, *args, **kwargs)
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_2d_graph

@@ -1,34 +1,28 @@
 from itertools import combinations
-from gcspy.graph_problems.graph_problem import convex_graph_problem
+from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
-def traveling_salesman_constraints(conic_graph, xv, zv, ze_tail, ze_head, subtour_elimination):
+class ConicTravelingSalesmanProblem(ConicGraphProblem):
 
-    # binary variables
-    yv = conic_graph.vertex_binaries()
-    ye = conic_graph.edge_binaries()
+    def __init__(self, conic_graph, subtour_elimination):
 
-    # add all constraints one vertex at the time
-    constraints = []
-    for i, v in enumerate(conic_graph.vertices):
-        inc = conic_graph.incoming_indices(v)
-        out = conic_graph.outgoing_indices(v)
+        # initialize parent class
+        super().__init__(conic_graph)
 
-        constraints += [
-            yv[i] == 1,
-            sum(ye[out]) == 1,
-            sum(ye[inc]) == 1,
-            zv[i] == xv[i],
-            sum(ze_tail[out]) == xv[i],
-            sum(ze_head[inc]) == xv[i]]
+        # add all constraints one vertex at the time
+        for i, v in enumerate(conic_graph.vertices):
+            inc = conic_graph.incoming_indices(v)
+            out = conic_graph.outgoing_indices(v)
 
-    if subtour_elimination:
-        for r in range(2, conic_graph.num_vertices() - 1):
-            for vertices in combinations(conic_graph.vertices, r):
-                out = conic_graph.outgoing_indices(vertices)
-                constraints.append(sum(ye[out]) >= 1)
+            self.constraints += [
+                self.yv[i] == 1,
+                sum(self.ye[out]) == 1,
+                sum(self.ye[inc]) == 1,
+                self.zv[i] == self.xv[i],
+                sum(self.ze_tail[out]) == self.xv[i],
+                sum(self.ze_head[inc]) == self.xv[i]]
 
-    return constraints
-
-def solve_traveling_salesman(convex_graph, subtour_elimination=True, binary=True, callback=None, **kwargs):
-    additional_constraints = lambda *args: traveling_salesman_constraints(*args, subtour_elimination)
-    return convex_graph_problem(convex_graph, additional_constraints, binary, callback, **kwargs)
+        if subtour_elimination:
+            for r in range(2, conic_graph.num_vertices() - 1):
+                for vertices in combinations(conic_graph.vertices, r):
+                    out = conic_graph.outgoing_indices(vertices)
+                    self.constraints.append(sum(self.ye[out]) >= 1)
