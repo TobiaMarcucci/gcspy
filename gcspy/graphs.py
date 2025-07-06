@@ -5,6 +5,7 @@ from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.graph_problem import ConvexGraphProblem
 from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
 from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
+from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
 
 # TODO: add support for undirected graphs.
 
@@ -174,6 +175,10 @@ class GraphOfConvexPrograms(Graph):
     
     def solve_traveling_salesman(self, *args, subtour_elimination=True, **kwargs):
         prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, subtour_elimination)
+        return prob.solve(self, *args, **kwargs)
+    
+    def solve_facility_location(self, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicFacilityLocationProblem)
         return prob.solve(self, *args, **kwargs)
 
     def plot_2d(self, **kwargs):
