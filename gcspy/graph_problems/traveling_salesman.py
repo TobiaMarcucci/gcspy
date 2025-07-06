@@ -12,7 +12,6 @@ class ConicTravelingSalesmanProblem(ConicGraphProblem):
         for i, v in enumerate(conic_graph.vertices):
             inc = conic_graph.incoming_indices(v)
             out = conic_graph.outgoing_indices(v)
-
             self.constraints += [
                 self.yv[i] == 1,
                 sum(self.ye[out]) == 1,
@@ -21,8 +20,10 @@ class ConicTravelingSalesmanProblem(ConicGraphProblem):
                 sum(self.ze_tail[out]) == self.xv[i],
                 sum(self.ze_head[inc]) == self.xv[i]]
 
+        # subtour elimination constraints for all subsets of vertices with
+        # cardinality between 2 and num_vertices - 2
         if subtour_elimination:
-            for r in range(2, conic_graph.num_vertices() - 1):
-                for vertices in combinations(conic_graph.vertices, r):
+            for size in range(2, conic_graph.num_vertices() - 1):
+                for vertices in combinations(conic_graph.vertices, size):
                     out = conic_graph.outgoing_indices(vertices)
                     self.constraints.append(sum(self.ye[out]) >= 1)

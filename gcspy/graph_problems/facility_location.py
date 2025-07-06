@@ -7,7 +7,7 @@ class ConicFacilityLocationProblem(ConicGraphProblem):
         # initialize parent class
         super().__init__(conic_graph)
 
-        # add constraints one vertex at the time
+        # constraints on the vertices
         for i, vertex in enumerate(conic_graph.vertices):
             inc = conic_graph.incoming_indices(vertex)
             out = conic_graph.outgoing_indices(vertex)
@@ -21,7 +21,7 @@ class ConicFacilityLocationProblem(ConicGraphProblem):
                 self.constraints.append(self.zv[i] == sum(self.ze_head[inc]))
                 self.constraints.append(self.zv[i] == self.xv[i])
 
-        # add constraints one edge at the time
+        # constraints on the edges
         for k, edge in enumerate(conic_graph.edges):
             i = conic_graph.vertex_index(edge.tail)
             self.constraints.append(self.yv[i] >= self.ye[k])

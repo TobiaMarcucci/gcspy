@@ -3,9 +3,10 @@ from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.graph_problem import ConvexGraphProblem
-from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
-from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
+from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
+from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
+from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 
 # TODO: add support for undirected graphs.
 
@@ -170,7 +171,7 @@ class GraphOfConvexPrograms(Graph):
         return conic_graph
     
     def solve_shortest_path(self, source, target, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source, target)
+        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source.name, target.name)
         return prob.solve(self, *args, **kwargs)
     
     def solve_traveling_salesman(self, *args, subtour_elimination=True, **kwargs):
@@ -179,6 +180,10 @@ class GraphOfConvexPrograms(Graph):
     
     def solve_facility_location(self, *args, **kwargs):
         prob = ConvexGraphProblem(self, ConicFacilityLocationProblem)
+        return prob.solve(self, *args, **kwargs)
+    
+    def solve_spanning_tree(self, root, *args, subtour_elimination=True, **kwargs):
+        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, root.name, subtour_elimination)
         return prob.solve(self, *args, **kwargs)
 
     def plot_2d(self, **kwargs):
