@@ -170,21 +170,21 @@ class GraphOfConvexPrograms(Graph):
             conic_graph.edges.append(conic_edge)
         return conic_graph
     
-    def solve_shortest_path(self, source, target, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source.name, target.name)
-        return prob.solve(self, *args, **kwargs)
+    def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source.name, target.name, binary)
+        return prob.solve(*args, **kwargs)
     
-    def solve_traveling_salesman(self, *args, subtour_elimination=True, **kwargs):
-        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, subtour_elimination)
-        return prob.solve(self, *args, **kwargs)
+    def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, subtour_elimination, binary)
+        return prob.solve(*args, **kwargs)
     
-    def solve_facility_location(self, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicFacilityLocationProblem)
-        return prob.solve(self, *args, **kwargs)
+    def solve_facility_location(self, binary=True, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicFacilityLocationProblem, binary)
+        return prob.solve(*args, **kwargs)
     
-    def solve_spanning_tree(self, root, *args, subtour_elimination=True, **kwargs):
-        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, root.name, subtour_elimination)
-        return prob.solve(self, *args, **kwargs)
+    def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
+        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, root.name, subtour_elimination, binary)
+        return prob.solve(*args, **kwargs)
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_2d_graph

@@ -4,7 +4,7 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, c, d, A, b, K, convex_id_to_conic_idx=None, y=None):
+    def __init__(self, tail, head, c, d, A, b, K, convex_id_to_conic_idx=None):
 
         # check inputs
         super().__init__(c, d, A, b, K, convex_id_to_conic_idx)
@@ -19,7 +19,6 @@ class ConicEdge(ConicProgram):
         self.tail = tail
         self.head = head
         self.name = (tail.name, head.name)
-        self.y = cp.Variable() if y is None else y
 
     def check_vector_sizes(self, xv, xw, xe):
         xs = [xv, xw, xe]
@@ -89,8 +88,7 @@ class ConvexEdge(ConvexProgram):
             A,
             conic_program.b,
             conic_program.K,
-            convex_id_to_conic_idx,
-            self.y)
+            convex_id_to_conic_idx)
 
     def check_variables_are_defined(self, variables):
         defined_variables = self.variables + self.tail.variables + self.head.variables

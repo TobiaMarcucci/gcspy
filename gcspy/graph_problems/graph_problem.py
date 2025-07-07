@@ -3,19 +3,19 @@ import numpy as np
 
 class ConicGraphProblem:
 
-    def __init__(self, conic_graph):
+    def __init__(self, conic_graph, binary):
 
         # store data
         self.conic_graph = conic_graph
-        self.define_variables()
+        self.define_variables(binary)
         self.define_cost()
         self.define_constraints()
 
-    def define_variables(self):
+    def define_variables(self, binary):
 
         # collect vectors of binary variables
-        self.yv = self.conic_graph.vertex_binaries()
-        self.ye = self.conic_graph.edge_binaries()
+        self.yv = cp.Variable(self.conic_graph.num_vertices(), boolean=binary)
+        self.ye = cp.Variable(self.conic_graph.num_edges(), boolean=binary)
 
         # continuous variables for the vertices
         # these are numpy arrays since we want to access them using lists of indices
@@ -62,14 +62,7 @@ class ConicGraphProblem:
             # edge constraints
             self.constraints += edge.evaluate_constraints(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
 
-    def solve(self, binary=True, callback=None, tol=1e-4, **kwargs):
-
-        # if binary set all the y variables to boolean
-        if binary:
-            for vertex in self.conic_graph.vertices:
-                vertex.y.attributes['boolean'] = True
-            for edge in self.conic_graph.edges:
-                edge.y.attributes['boolean'] = True
+    def solve(self, callback=None, tol=1e-4, **kwargs):
 
         # solve problem
         prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
@@ -86,15 +79,17 @@ class ConicGraphProblem:
                 prob.solve()
 
         # get optimal solution
-        xv_value = [x.value for x in self.xv]
-        xe_value = []
+        yv = self.yv.value
+        ye = self.ye.value
+        xv = [x.value for x in self.xv]
+        xe = []
         for (z, y) in zip(self.ze, self.ye.value):
             if y is not None and y > tol:
-                xe_value.append(z.value / y)
+                xe.append(z.value / y)
             else:
-                xe_value.append(None)
+                xe.append(None)
 
-        return prob, xv_value, xe_value
+        return prob, yv, xv, ye, xe
     
 class ConvexGraphProblem:
 
@@ -108,10 +103,11 @@ class ConvexGraphProblem:
     def solve(self, *args, **kwargs):
 
         # solve conic problem
-        prob, xv, xe = self.conic_problem.solve(*args, **kwargs)
+        prob, yv, xv, ye, xe = self.conic_problem.solve(*args, **kwargs)
 
-        # get back value of vertex variables
-        for convex_vertex, x in zip(self.convex_graph.vertices, xv):
+        # set value of vertex variables
+        for convex_vertex, y, x in zip(self.convex_graph.vertices, yv, xv):
+            convex_vertex.y.value = y
             for convex_variable in convex_vertex.variables:
                 if x is None:
                     convex_variable.value = None
@@ -119,8 +115,9 @@ class ConvexGraphProblem:
                     conic_vertex = self.conic_graph.get_vertex(convex_vertex.name)
                     convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
 
-        # get back value of edge variables
-        for convex_edge, x in zip(self.convex_graph.edges, xe):
+        # set value of edge variables
+        for convex_edge, y, x in zip(self.convex_graph.edges, ye, xe):
+            convex_edge.y.value = y
             for convex_variable in convex_edge.variables:
                 if x is None:
                     convex_variable.value = None
