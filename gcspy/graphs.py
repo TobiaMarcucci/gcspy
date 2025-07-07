@@ -12,8 +12,8 @@ from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProble
 
 class Graph:
     """
-    Base class that contains the method that are common to
-    GraphOfConicPrograms and GraphOfConvexPrograms
+    Base class that contains the method that are common to GraphOfConicPrograms
+    and GraphOfConvexPrograms.
     """
 
     def __init__(self):

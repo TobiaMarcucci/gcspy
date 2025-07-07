@@ -45,7 +45,7 @@ class ConvexEdge(ConvexProgram):
         self.tail = tail
         self.head = head
         self.name = (self.tail.name, self.head.name)
-        self.y = cp.Variable()
+        self.binary_value = None
 
     def to_conic(self, conic_tail, conic_head):
 
