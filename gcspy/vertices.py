@@ -12,7 +12,6 @@ class ConvexVertex(ConvexProgram):
     def __init__(self, name):
         super().__init__()
         self.name = name
-        self.y = cp.Variable()
 
     def to_conic(self):
         conic_program = super().to_conic()

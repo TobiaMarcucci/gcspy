@@ -73,11 +73,11 @@ def plot_2d_graph(graph, n=50):
 
 def plot_2d_subgraph(graph, tol=1e-4):
     for vertex in graph.vertices:
-        if vertex.binary_value is not None and vertex.binary_value > tol:
+        if vertex.binary_variable.value is not None and vertex.binary_variable.value > tol:
             variable = vertex.variables[0]
             plt.scatter(*variable.value, fc='w', ec='k', zorder=3)
     for edge in graph.edges:
-        if edge.binary_value is not None and edge.binary_value > tol:
+        if edge.binary_variable.value is not None and edge.binary_variable.value > tol:
             tail = edge.tail.variables[0].value
             head = edge.head.variables[0].value
             endpoints = (tail, head)

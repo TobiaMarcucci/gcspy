@@ -101,7 +101,7 @@ class ConvexProgram:
         self.variables = []
         self.cost = 0
         self.constraints = []
-        self.binary_value = None
+        self.binary_variable = cp.Variable()
 
     def add_variable(self, shape, **kwargs):
         for attribute in kwargs:

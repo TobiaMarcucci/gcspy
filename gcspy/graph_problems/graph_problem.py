@@ -107,7 +107,7 @@ class ConvexGraphProblem:
 
         # set value of vertex variables
         for convex_vertex, y, x in zip(self.convex_graph.vertices, yv, xv):
-            convex_vertex.binary_value = y
+            convex_vertex.binary_variable.value = y
             for convex_variable in convex_vertex.variables:
                 if x is None:
                     convex_variable.value = None
@@ -117,7 +117,7 @@ class ConvexGraphProblem:
 
         # set value of edge variables
         for convex_edge, y, x in zip(self.convex_graph.edges, ye, xe):
-            convex_edge.binary_value = y
+            convex_edge.binary_variable.value = y
             for convex_variable in convex_edge.variables:
                 if x is None:
                     convex_variable.value = None
