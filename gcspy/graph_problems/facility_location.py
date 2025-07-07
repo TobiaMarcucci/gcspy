@@ -9,8 +9,8 @@ class ConicFacilityLocationProblem(ConicGraphProblem):
 
         # constraints on the vertices
         for i, vertex in enumerate(conic_graph.vertices):
-            inc = conic_graph.incoming_indices(vertex)
-            out = conic_graph.outgoing_indices(vertex)
+            inc = conic_graph.incoming_edge_indices(vertex)
+            out = conic_graph.outgoing_edge_indices(vertex)
 
             # user vertex
             if len(inc) > 0:

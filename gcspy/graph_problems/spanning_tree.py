@@ -3,14 +3,14 @@ from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
 class ConicSpanningTreeProblem(ConicGraphProblem):
 
-    def __init__(self, conic_graph, root_name, subtour_elimination, binary):
+    def __init__(self, conic_graph, binary, root_name, subtour_elimination):
 
         # initialize parent class
         super().__init__(conic_graph, binary)
 
         # constraints on the vertices
         for i, vertex in enumerate(conic_graph.vertices):
-            inc = conic_graph.incoming_indices(vertex)
+            inc = conic_graph.incoming_edge_indices(vertex)
             self.constraints.append(self.yv[i] == 1)
             self.constraints.append(self.zv[i] == self.xv[i])
             if vertex.name == root_name:
@@ -28,7 +28,7 @@ class ConicSpanningTreeProblem(ConicGraphProblem):
             subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
             for size in range(2, conic_graph.num_vertices()):
                 for vertices in combinations(subvertices, size):
-                    inc = conic_graph.incoming_indices(vertices)
+                    inc = conic_graph.incoming_edge_indices(vertices)
                     self.constraints.append(sum(self.ye[inc]) >= 1)
 
         

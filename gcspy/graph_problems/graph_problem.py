@@ -74,7 +74,7 @@ class ConicGraphProblem:
                 new_constraints = callback(self.yv, self.ye)
                 if len(new_constraints) == 0:
                     break
-                constraints += new_constraints
+                self.constraints += new_constraints
                 prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
                 prob.solve()
 

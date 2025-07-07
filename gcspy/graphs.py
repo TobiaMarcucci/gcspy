@@ -1,3 +1,4 @@
+import numpy as np
 import cvxpy as cp
 from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
@@ -7,6 +8,7 @@ from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
 from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
 from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
+from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
 
 # TODO: add support for undirected graphs.
 
@@ -87,20 +89,20 @@ class Graph:
     def incident_edges(self, v):
         return self.incoming_edges(v) + self.outgoing_edges(v)
 
-    def incoming_indices(self, v):
+    def incoming_edge_indices(self, v):
         if isinstance(v, Iterable):
             return [k for k, e in enumerate(self.edges) if e.head in v and e.tail not in v]
         else:
             return [k for k, e in enumerate(self.edges) if e.head == v]
 
-    def outgoing_indices(self, v):
+    def outgoing_edge_indices(self, v):
         if isinstance(v, Iterable):
             return [k for k, e in enumerate(self.edges) if e.tail in v and e.head not in v]
         else:
             return [k for k, e in enumerate(self.edges) if e.tail == v]
         
-    def incident_indices(self, v):
-        return self.incoming_indices(v) + self.outgoing_indices(v)
+    def incident_edge_indices(self, v):
+        return self.incoming_edge_indices(v) + self.outgoing_edge_indices(v)
 
     def num_vertices(self):
         return len(self.vertices)
@@ -157,7 +159,13 @@ class GraphOfConvexPrograms(Graph):
         edge = ConvexEdge(tail, head)
         self.edges.append(edge)
         return edge
-        
+    
+    def vertex_binaries(self):
+        return np.array([vertex.binary_variable for vertex in self.vertices])
+
+    def edge_binaries(self):
+        return np.array([edge.binary_variable for edge in self.edges])
+
     def to_conic(self):
         conic_graph = GraphOfConicPrograms()
         for vertex in self.vertices:
@@ -171,11 +179,11 @@ class GraphOfConvexPrograms(Graph):
         return conic_graph
     
     def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicShortestPathProblem, source.name, target.name, binary)
+        prob = ConvexGraphProblem(self, ConicShortestPathProblem, binary, source.name, target.name)
         return prob.solve(*args, **kwargs)
     
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, subtour_elimination, binary)
+        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, binary, subtour_elimination)
         return prob.solve(*args, **kwargs)
     
     def solve_facility_location(self, binary=True, *args, **kwargs):
@@ -183,7 +191,13 @@ class GraphOfConvexPrograms(Graph):
         return prob.solve(*args, **kwargs)
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, root.name, subtour_elimination, binary)
+        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, binary, root.name, subtour_elimination)
+        return prob.solve(*args, **kwargs)
+    
+    def solve_from_ilp(self, ilp_constraints, binary=True, *args, **kwargs):
+        yv = self.vertex_binaries()
+        ye = self.edge_binaries()
+        prob = ConvexGraphProblem(self, ConicGraphProblemFromILP, binary, yv, ye, ilp_constraints)
         return prob.solve(*args, **kwargs)
 
     def plot_2d(self, **kwargs):

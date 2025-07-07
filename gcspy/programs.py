@@ -46,17 +46,17 @@ class ConicProgram:
     
     @staticmethod
     def constrain_in_cone(z, K):
-        if K in [cp.constraints.Zero, cp.constraints.NonNeg]:
+        if K in [cp.Zero, cp.NonNeg]:
             return K(z)
-        elif K == cp.constraints.NonPos: # NonPos will be deprecated
-            return cp.constraints.NonNeg(- z)
-        elif K == cp.constraints.SOC:
+        elif K == cp.NonPos: # NonPos will be deprecated
+            return cp.NonNeg(- z)
+        elif K == cp.SOC:
             return K(z[0], z[1:])
-        elif K == cp.constraints.PSD:
+        elif K == cp.PSD:
             n = round(z.size ** .5)
             z_mat = cp.reshape(z, (n, n), order='F')
             return K(z_mat)
-        elif K == cp.constraints.ExpCone:
+        elif K == cp.ExpCone:
             z_mat = z.reshape((3, -1), order='C')
             return K(*z_mat)
         else:
