@@ -234,6 +234,6 @@ class GraphOfConvexPrograms(Graph):
         from gcspy.plot_utils import plot_2d_graph
         return plot_2d_graph(self, **kwargs)
 
-    def plot_2d_subgraph(self):
-        from gcspy.plot_utils import plot_2d_subgraph
-        return plot_2d_subgraph(self)
+    def plot_2d_solution(self):
+        from gcspy.plot_utils import plot_2d_solution
+        return plot_2d_solution(self)

@@ -35,7 +35,6 @@ def plot_2d_vertex(vertex, n=50, tol=1e-4, **kwargs):
         plt.scatter(*vertices[0], fc='k', ec='k')
     else:
         plt.fill(*vertices.T, **options, zorder=0)
-    value = vertex.variables[0].value
     
 def plot_2d_edge(edge, endpoints=None, **kwargs):
     for variables in [edge.tail.variables, edge.head.variables]:
@@ -71,7 +70,7 @@ def plot_2d_graph(graph, n=50):
     for edge in graph.edges:
         plot_2d_edge(edge, color='grey')
 
-def plot_2d_subgraph(graph, tol=1e-4):
+def plot_2d_solution(graph, tol=1e-4):
     for vertex in graph.vertices:
         if vertex.binary_variable.value is not None and vertex.binary_variable.value > tol:
             variable = vertex.variables[0]
