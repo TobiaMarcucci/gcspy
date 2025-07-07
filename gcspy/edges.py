@@ -22,21 +22,21 @@ class ConicEdge(ConicProgram):
 
     def check_vector_sizes(self, xv, xw, xe):
         xs = [xv, xw, xe]
-        expected_sizes = [self.tail.size, self.head.size, self.slack_size]
-        for x, size in zip(xs, expected_sizes):
+        sizes = [self.tail.size, self.head.size, self.slack_size]
+        for x, size in zip(xs, sizes):
             if x.size != size:
                 ValueError(
                     f"Size mismatch: x.size = {x.size}.  Expected size {size}.")
 
-    def evaluate_cost(self, xv, xw, xe, t=1):
+    def evaluate_cost(self, xv, xw, xe, y=1):
         self.check_vector_sizes(xv, xw, xe)
         x = cp.hstack((xv, xw, xe))
-        return super().evaluate_cost(x, t)
+        return super().evaluate_cost(x, y)
         
-    def evaluate_constraints(self, xv, xw, xe, t=1):
+    def evaluate_constraints(self, xv, xw, xe, y=1):
         self.check_vector_sizes(xv, xw, xe)
         x = cp.hstack((xv, xw, xe))
-        return super().evaluate_constraints(x, t)
+        return super().evaluate_constraints(x, y)
     
 class ConvexEdge(ConvexProgram):
 

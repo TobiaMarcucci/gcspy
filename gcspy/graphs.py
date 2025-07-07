@@ -73,54 +73,41 @@ class Graph:
     def edge_index(self, edge):
         return self.edges.index(edge)
 
-    def incoming_edges(self, v):
-        if isinstance(v, Iterable):
-            return [e for e in self.edges if e.head in v and e.tail not in v]
+    def incoming_edge_indices(self, vertex):
+        if isinstance(vertex, Iterable):
+            return [k for k, edge in enumerate(self.edges) if edge.head in vertex and edge.tail not in vertex]
         else:
-            return [e for e in self.edges if e.head == v]
-        
-    def outgoing_edges(self, v):
-        if isinstance(v, Iterable):
-            return [e for e in self.edges if e.tail in v and e.head not in v]
-        else:
-            return [e for e in self.edges if e.tail == v]
-        
-    def incident_edges(self, v):
-        return self.incoming_edges(v) + self.outgoing_edges(v)
+            return [k for k, edge in enumerate(self.edges) if edge.head == vertex]
 
-    def incoming_edge_indices(self, v):
-        if isinstance(v, Iterable):
-            return [k for k, e in enumerate(self.edges) if e.head in v and e.tail not in v]
+    def outgoing_edge_indices(self, vertex):
+        if isinstance(vertex, Iterable):
+            return [k for k, edge in enumerate(self.edges) if edge.tail in vertex and edge.head not in vertex]
         else:
-            return [k for k, e in enumerate(self.edges) if e.head == v]
-
-    def outgoing_edge_indices(self, v):
-        if isinstance(v, Iterable):
-            return [k for k, e in enumerate(self.edges) if e.tail in v and e.head not in v]
-        else:
-            return [k for k, e in enumerate(self.edges) if e.tail == v]
+            return [k for k, edge in enumerate(self.edges) if edge.tail == vertex]
         
-    def incident_edge_indices(self, v):
-        return self.incoming_edge_indices(v) + self.outgoing_edge_indices(v)
+    def incident_edge_indices(self, vertex):
+        return self.incoming_edge_indices(vertex) + self.outgoing_edge_indices(vertex)
+
+    def incoming_edges(self, vertex):
+        return [self.edges[k] for k in self.incoming_edge_indices(vertex)]
+        
+    def outgoing_edges(self, vertex):
+        return [self.edges[k] for k in self.outgoing_edge_indices(vertex)]
+        
+    def incident_edges(self, vertex):
+        return [self.edges[k] for k in self.incident_edge_indices(vertex)]
 
     def num_vertices(self):
         return len(self.vertices)
 
     def num_edges(self):
         return len(self.edges)
-    
-    def vertex_binaries(self):
-        return cp.hstack([vertex.y for vertex in self.vertices])
 
-    def edge_binaries(self):
-        return cp.hstack([edge.y for edge in self.edges])
-    
     def add_disjoint_subgraph(self, graph):
         if type(graph) != type(self):
             raise ValueError(
                 f"Type mismatch: type(graph) = {type(graph)}, type(self) = {type(self)}. "
-                "The two graphs must be of the same type."
-                )
+                "The two graphs must be of the same type.")
         self.vertices += graph.vertices
         self.edges += graph.edges
     
@@ -166,18 +153,25 @@ class GraphOfConvexPrograms(Graph):
         return np.array([edge.binary_variable for edge in self.edges])
 
     def to_conic(self):
+
+        # initialize empty conic graph
         conic_graph = GraphOfConicPrograms()
+
+        # add one vertex at the time
         for vertex in self.vertices:
             conic_vertex = vertex.to_conic()
             conic_graph.vertices.append(conic_vertex)
+
+        # add one edge at the time
         for edge in self.edges:
             conic_tail = conic_graph.get_vertex(edge.tail.name)
             conic_head = conic_graph.get_vertex(edge.head.name)
             conic_edge = edge.to_conic(conic_tail, conic_head)
             conic_graph.edges.append(conic_edge)
+
         return conic_graph
     
-    def set_variable_values_from_conic_graph(self, conic_graph, xv, yv, xe, ye):
+    def set_variable_values(self, conic_graph, xv, yv, xe, ye):
 
         # set value of vertex variables
         for convex_vertex, x, y in zip(self.vertices, xv, yv):
@@ -203,28 +197,28 @@ class GraphOfConvexPrograms(Graph):
         conic_graph = self.to_conic()
         conic_problem = ConicShortestPathProblem(conic_graph, source.name, target.name, binary)
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
-        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        self.set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicTravelingSalesmanProblem(conic_graph, subtour_elimination, binary)
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
-        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        self.set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_facility_location(self, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicFacilityLocationProblem(conic_graph, binary)
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
-        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        self.set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicSpanningTreeProblem(conic_graph, root.name, subtour_elimination, binary)
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
-        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        self.set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_from_ilp(self, ilp_constraints, binary=True, *args, **kwargs):
@@ -233,7 +227,7 @@ class GraphOfConvexPrograms(Graph):
         conic_graph = self.to_conic()
         conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
-        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        self.set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
 
     def plot_2d(self, **kwargs):

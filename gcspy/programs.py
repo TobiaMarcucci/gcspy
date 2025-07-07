@@ -32,45 +32,57 @@ class ConicProgram:
 
         # dictionary with keys equal to the variable ids in the convex program
         # that generated this conic program, and values equal to the
-        # corresponding variable indices in the conic program
+        # corresponding variable index ranges in the conic program
         self.convex_id_to_conic_idx = convex_id_to_conic_idx
 
-    def evaluate_cost(self, x, t=1):
-        return self.c @ x + self.d * t
+    def evaluate_cost(self, x, y=1):
+        return self.c @ x + self.d * y
 
-    def evaluate_constraints(self, x, t=1):
+    def evaluate_constraints(self, x, y=1):
         constraints = []
-        for (Ai, bi, Ki) in zip(self.A, self.b, self.K):
-            constraints.append(self.constrain_in_cone(Ai @ x + bi * t, Ki))
+        for Ai, bi, Ki in zip(self.A, self.b, self.K):
+            constraints.append(self.constrain_in_cone(Ai @ x + bi * y, Ki))
         return constraints
     
     @staticmethod
     def constrain_in_cone(z, K):
+
+        # linear constraints
         if K in [cp.Zero, cp.NonNeg]:
             return K(z)
         elif K == cp.NonPos: # NonPos will be deprecated
             return cp.NonNeg(- z)
+        
+        # second order cone constraint
         elif K == cp.SOC:
             return K(z[0], z[1:])
+        
+        # semidefinite constraint
         elif K == cp.PSD:
             n = round(z.size ** .5)
             z_mat = cp.reshape(z, (n, n), order='F')
             return K(z_mat)
+        
+        # exponential cone constraint
         elif K == cp.ExpCone:
             z_mat = z.reshape((3, -1), order='C')
             return K(*z_mat)
+        
+        # TODO: support all possible cone constraints
         else:
             raise NotImplementedError
         
     def get_convex_variable_value(self, convex_variable, conic_x):
 
-        # check that program is created from a convex program
+        # check that program is generated from a convex program
         if self.convex_id_to_conic_idx is None:
             raise ValueError(
                 "Conic program was not generated from a convex program.")
 
-        # retrieve value and reshape it appropriately
+        # retrieve value
         value = conic_x[self.convex_id_to_conic_idx[convex_variable.id]]
+
+        # reshape value for matrix variables
         if convex_variable.is_matrix():
             if convex_variable.is_symmetric():
                 n = convex_variable.shape[0]
@@ -80,6 +92,7 @@ class ConicProgram:
                 value[np.diag_indices(n)] /= 2
             else:
                 value = value.reshape(convex_variable.shape, order='F')
+                
         return value
 
     def solve(self, **kwargs):
