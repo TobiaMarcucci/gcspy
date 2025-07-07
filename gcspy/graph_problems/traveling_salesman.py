@@ -3,7 +3,7 @@ from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
 class ConicTravelingSalesmanProblem(ConicGraphProblem):
 
-    def __init__(self, conic_graph, binary, subtour_elimination):
+    def __init__(self, conic_graph, subtour_elimination, binary):
 
         # initialize parent class
         super().__init__(conic_graph, binary)

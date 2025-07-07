@@ -5,59 +5,60 @@ from gcspy.programs import ConvexProgram
 
 class ConicGraphProblemFromILP(ConicGraphProblem):
 
-    def __init__(self, conic_graph, binary, yv, ye, ilp_constraints):
+    def __init__(self, conic_graph, convex_yv, convex_ye, ilp_constraints, binary):
 
         # initialize parent class
         super().__init__(conic_graph, binary)
 
         # put given constraints in conic form
         convex_ilp = ConvexProgram()
-        convex_ilp.variables = [y for y in yv] + [y for y in ye]
+        # next line is not elegant but I cannot use convex_ilp.add_variables
+        convex_ilp.variables = [y for y in convex_yv] + [y for y in convex_ye]
         convex_ilp.add_constraints(ilp_constraints)
         conic_ilp = convex_ilp.to_conic()
 
-        # columns in conic program for vertex and edge binaries
-        columns_v = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in yv]
-        columns_e = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in ye]
+        # indices of vertex and edge binaries in conic program, uses the fact
+        # that the variables are scalars
+        idx_v = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_yv]
+        idx_e = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_ye]
 
         # check each line of each conic constraint
         for A, b, K in zip(conic_ilp.A, conic_ilp.b, conic_ilp.K):
             for Aj, bj in zip(A, b):
 
-                # express linear constraint using the problem binaries
-                av = Aj[columns_v]
-                ae = Aj[columns_e]
+                # evaluate linear constraint using the problem binaries
+                av = Aj[idx_v]
+                ae = Aj[idx_e]
                 lhs = av @ self.yv + ae @ self.ye + bj
 
                 # if there are no shared vertices just enforce the scalar constraint
                 shared_vertices = self.find_shared_vertices(av, ae)
                 if not shared_vertices:
-                    constraint = K(lhs)
-                    self.constraints.append(constraint)
+                    self.constraints.append(K(lhs))
 
-                # apply Lemma 5.1 from thesis to each linear constraint with
-                # shared vertices
+                # if there are shared vertices, apply Lemma 5.1 from thesis to
+                # each linear constraint
                 for vertex in shared_vertices:
 
                     # assemble spatial constraints
                     i = conic_graph.vertex_index(vertex)
                     inc = conic_graph.incoming_edge_indices(vertex)
                     out = conic_graph.outgoing_edge_indices(vertex)
-                    spatial_lhs = bj * self.xv[i] + av[i] * self.zv[i]
-                    spatial_lhs += sum(ae[inc] * self.ze_head[inc])
-                    spatial_lhs += sum(ae[out] * self.ze_tail[out])
+                    vector_lhs = bj * self.xv[i] + av[i] * self.zv[i]
+                    vector_lhs += sum(ae[inc] * self.ze_head[inc])
+                    vector_lhs += sum(ae[out] * self.ze_tail[out])
 
-                    # if equality constraints
+                    # enforce implied constraints
                     if K == cp.Zero:
-                        self.constraints += [lhs == 0, spatial_lhs == 0]
+                        self.constraints += [lhs == 0, vector_lhs == 0]
                     elif K == cp.NonNeg:
-                        self.constraints += vertex.evaluate_constraints(spatial_lhs, lhs)
+                        self.constraints += vertex.evaluate_constraints(vector_lhs, lhs)
                     elif K == cp.NonPos:
-                        self.constraints += vertex.evaluate_constraints(-spatial_lhs, -lhs)
+                        self.constraints += vertex.evaluate_constraints(-vector_lhs, -lhs)
                     else:
                         raise ValueError(
-                            f"Got cone of type {type(K)}. "
-                            "All the constraints of the ILP must be linear.")
+                            f"Got cone of type {type(K)}. All the constraints "
+                            "of the ILP must be linear.")
     
     def find_shared_vertices(self, av, ae):
         """
@@ -72,20 +73,23 @@ class ConicGraphProblemFromILP(ConicGraphProblem):
         a decomposition.
         """
 
-        # if av has more than one nonzero entry, the decomposition is impossible
+        # extract nonzero vertices and edges
         nonzero_vertices = [self.conic_graph.vertices[i] for i in np.nonzero(av)[0]]
-        if len(nonzero_vertices) > 1:
-            return []
-        
-        # if av is zero, return all the vertices shared by the edges
-        edges = [self.conic_graph.edges[k] for k in np.nonzero(ae)[0]]
-        tails_and_heads = [{edge.tail, edge.head} for edge in edges]
+        nonzero_edges = [self.conic_graph.edges[k] for k in np.nonzero(ae)[0]]
+
+        # compute shared vertices among all edges
+        tails_and_heads = [{edge.tail, edge.head} for edge in nonzero_edges]
         shared_vertices = set.intersection(*tails_and_heads) if tails_and_heads else set()
-        if len(nonzero_vertices) == 0:
+
+        # if av is zero, return all the vertices shared by the edges
+        if not nonzero_vertices:
             return list(shared_vertices)
         
-        # if av has one nonzero entry, there is only one candidate vertex
-        if set(nonzero_vertices) >= shared_vertices:
+        # if av has one nonzero entry, there is only one candidate vertex, and
+        # no other shared vertex can be different from it
+        elif len(nonzero_vertices) == 1 and shared_vertices <= set(nonzero_vertices):
             return nonzero_vertices
+
+        # in all other cases, the decomposition is impossible
         else:
             return []

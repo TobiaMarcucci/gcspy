@@ -3,7 +3,6 @@ import cvxpy as cp
 from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
-from gcspy.graph_problems.graph_problem import ConvexGraphProblem
 from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
 from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
@@ -178,27 +177,64 @@ class GraphOfConvexPrograms(Graph):
             conic_graph.edges.append(conic_edge)
         return conic_graph
     
+    def set_variable_values_from_conic_graph(self, conic_graph, xv, yv, xe, ye):
+
+        # set value of vertex variables
+        for convex_vertex, x, y in zip(self.vertices, xv, yv):
+            convex_vertex.binary_variable.value = y
+            conic_vertex = conic_graph.get_vertex(convex_vertex.name)
+            for convex_variable in convex_vertex.variables:
+                if x is None:
+                    convex_variable.value = None
+                else:
+                    convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
+
+        # set value of edge variables
+        for convex_edge, x, y in zip(self.edges, xe, ye):
+            convex_edge.binary_variable.value = y
+            conic_edge = conic_graph.get_edge(*convex_edge.name)
+            for convex_variable in convex_edge.variables:
+                if x is None:
+                    convex_variable.value = None
+                else:
+                    convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, x)
+    
     def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicShortestPathProblem, binary, source.name, target.name)
-        return prob.solve(*args, **kwargs)
+        conic_graph = self.to_conic()
+        conic_problem = ConicShortestPathProblem(conic_graph, source.name, target.name, binary)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicTravelingSalesmanProblem, binary, subtour_elimination)
-        return prob.solve(*args, **kwargs)
+        conic_graph = self.to_conic()
+        conic_problem = ConicTravelingSalesmanProblem(conic_graph, subtour_elimination, binary)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_facility_location(self, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicFacilityLocationProblem, binary)
-        return prob.solve(*args, **kwargs)
+        conic_graph = self.to_conic()
+        conic_problem = ConicFacilityLocationProblem(conic_graph, binary)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
-        prob = ConvexGraphProblem(self, ConicSpanningTreeProblem, binary, root.name, subtour_elimination)
-        return prob.solve(*args, **kwargs)
+        conic_graph = self.to_conic()
+        conic_problem = ConicSpanningTreeProblem(conic_graph, root.name, subtour_elimination, binary)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_from_ilp(self, ilp_constraints, binary=True, *args, **kwargs):
-        yv = self.vertex_binaries()
-        ye = self.edge_binaries()
-        prob = ConvexGraphProblem(self, ConicGraphProblemFromILP, binary, yv, ye, ilp_constraints)
-        return prob.solve(*args, **kwargs)
+        convex_yv = self.vertex_binaries()
+        convex_ye = self.edge_binaries()
+        conic_graph = self.to_conic()
+        conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self.set_variable_values_from_conic_graph(conic_graph, xv, yv, xe, ye)
+        return prob
 
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_2d_graph

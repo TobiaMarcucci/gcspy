@@ -83,46 +83,10 @@ class ConicGraphProblem:
         ye = self.ye.value
         xv = [x.value for x in self.xv]
         xe = []
-        for (z, y) in zip(self.ze, self.ye.value):
+        for z, y in zip(self.ze, ye):
             if y is not None and y > tol:
                 xe.append(z.value / y)
             else:
                 xe.append(None)
 
-        return prob, yv, xv, ye, xe
-    
-class ConvexGraphProblem:
-
-    def __init__(self, convex_graph, conic_problem_class, *args, **kwargs):
-
-        # solve problem in conic form
-        self.convex_graph = convex_graph
-        self.conic_graph = convex_graph.to_conic()
-        self.conic_problem = conic_problem_class(self.conic_graph, *args, **kwargs)
-
-    def solve(self, *args, **kwargs):
-
-        # solve conic problem
-        prob, yv, xv, ye, xe = self.conic_problem.solve(*args, **kwargs)
-
-        # set value of vertex variables
-        for convex_vertex, y, x in zip(self.convex_graph.vertices, yv, xv):
-            convex_vertex.binary_variable.value = y
-            for convex_variable in convex_vertex.variables:
-                if x is None:
-                    convex_variable.value = None
-                else:
-                    conic_vertex = self.conic_graph.get_vertex(convex_vertex.name)
-                    convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
-
-        # set value of edge variables
-        for convex_edge, y, x in zip(self.convex_graph.edges, ye, xe):
-            convex_edge.binary_variable.value = y
-            for convex_variable in convex_edge.variables:
-                if x is None:
-                    convex_variable.value = None
-                else:
-                    conic_edge = self.conic_graph.get_edge(*convex_edge.name)
-                    convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, x)
-
-        return prob
+        return prob, xv, yv, xe, ye
