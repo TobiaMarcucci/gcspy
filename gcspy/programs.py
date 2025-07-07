@@ -92,7 +92,7 @@ class ConicProgram:
                 value[np.diag_indices(n)] /= 2
             else:
                 value = value.reshape(convex_variable.shape, order='F')
-                
+
         return value
 
     def solve(self, **kwargs):
@@ -124,6 +124,14 @@ class ConvexProgram:
         self.variables.append(variable)
         return variable
     
+    def check_variables_are_defined(self, variables, defined_variables=None):
+        if defined_variables is None:
+            defined_variables = self.variables
+        defined_ids = [variable.id for variable in defined_variables]
+        for variable in variables:
+            if variable.id not in defined_ids:
+                raise ValueError(f"Variable {variable} is not defined.")
+    
     def add_cost(self, cost):
         if not isinstance(cost, Number):
             self.check_variables_are_defined(cost.variables())
@@ -136,14 +144,6 @@ class ConvexProgram:
     def add_constraints(self, constraints):
         for constraint in constraints:
             self.add_constraint(constraint)
-
-    def check_variables_are_defined(self, variables, defined_variables=None):
-        if defined_variables is None:
-            defined_variables = self.variables
-        defined_ids = [variable.id for variable in defined_variables]
-        for variable in variables:
-            if variable.id not in defined_ids:
-                raise ValueError(f"Variable {variable} is not defined.")
 
     def to_conic(self):
         """
