@@ -23,7 +23,7 @@ class ConicTravelingSalesmanProblem(ConicGraphProblem):
         # subtour elimination constraints for all subsets of vertices with
         # cardinality between 2 and num_vertices - 2
         if subtour_elimination:
-            for size in range(2, conic_graph.num_vertices() - 1):
-                for vertices in combinations(conic_graph.vertices, size):
+            for subtour_size in range(2, conic_graph.num_vertices() - 1):
+                for vertices in combinations(conic_graph.vertices, subtour_size):
                     out = conic_graph.outgoing_edge_indices(vertices)
                     self.constraints.append(sum(self.ye[out]) >= 1)

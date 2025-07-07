@@ -26,8 +26,8 @@ class ConicSpanningTreeProblem(ConicGraphProblem):
             root = conic_graph.get_vertex(root_name)
             i = conic_graph.vertex_index(root)
             subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
-            for size in range(2, conic_graph.num_vertices()):
-                for vertices in combinations(subvertices, size):
+            for subtour_size in range(2, conic_graph.num_vertices()):
+                for vertices in combinations(subvertices, subtour_size):
                     inc = conic_graph.incoming_edge_indices(vertices)
                     self.constraints.append(sum(self.ye[inc]) >= 1)
 
