@@ -257,6 +257,56 @@ class GraphOfConvexPrograms(Graph):
         conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
         return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
 
+    def solve_convex_restriction(self, vertex_indices, edge_indices):
+        """
+        Solves convex program obtained by discarding all the vertices and edges
+        that are not in the given lists.
+        """
+
+        # check the given vertices and edges for a valid subgraph
+        for k in edge_indices:
+            edge = self.edges[k]
+            i = self.vertex_index(edge.tail)
+            j = self.vertex_index(edge.head)
+            if i not in vertex_indices or j not in vertex_indices:
+                raise ValueError('Given indices do not form a subgraph.')
+
+        # assemble convex program
+        cost = 0
+        constraints = []
+        for i in vertex_indices:
+            vertex = self.vertices[i]
+            cost += vertex.cost
+            constraints.extend(vertex.constraints)
+        for k in edge_indices:
+            edge = self.edges[k]
+            cost += edge.cost
+            constraints.extend(edge.constraints)
+
+        # solve convex program
+        prob = cp.Problem(cp.Minimize(cost), constraints)
+        prob.solve()
+
+        # set vertex variable values
+        for i, vertex in enumerate(self.vertices):
+            if i in vertex_indices:
+                vertex.binary_variable.value = 1
+            else:
+                vertex.binary_variable.value = None
+                for variable in vertex.variables:
+                    variable.value = None
+
+        # set edgevariable values
+        for k, edge in enumerate(self.edges):
+            if k in edge_indices:
+                edge.binary_variable.value = 1
+            else:
+                edge.binary_variable.value = 0
+                for variable in edge.variables:
+                    variable.value = None
+
+        return prob
+
     def plot_2d(self, **kwargs):
         from gcspy.plot_utils import plot_2d_graph
         return plot_2d_graph(self, **kwargs)
