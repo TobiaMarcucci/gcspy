@@ -54,7 +54,7 @@ for tail in graph.vertices:
 if __name__ == '__main__':
 
     # solve traveling salesman problem using Dantzig–Fulkerson–Johnson
-    # formulation all the subtour elimination constraints are included
+    # formulation, all the subtour elimination constraints are included
     prob = graph.solve_traveling_salesman(subtour_elimination=True)
     print('Problem status:', prob.status)
     print('Optimal value:', prob.value)
@@ -66,8 +66,7 @@ if __name__ == '__main__':
     # plot optimal solution (requires matplotlib)
     import matplotlib.pyplot as plt
     plt.figure()
-    plt.gca().set_aspect('equal')
-    plt.axis('off')
+    plt.axis("equal")
     graph.plot_2d()
     graph.plot_2d_solution()
     plt.show()

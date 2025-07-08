@@ -35,8 +35,8 @@ for i in range(grid_side):
 # imported by other files
 if __name__ == '__main__':
 
-    # solve traveling salesman problem using Dantzig–Fulkerson–Johnson
-    # formulation all the subtour elimination constraints are included
+    # solve spanning tree problem using Dantzig–Fulkerson–Johnson formulation
+    # all the subtour elimination constraints are included
     root = graph.vertices[0]
     prob = graph.solve_spanning_tree(root)
     print('Problem status:', prob.status)
@@ -49,8 +49,7 @@ if __name__ == '__main__':
     # plot optimal solution (requires matplotlib)
     import matplotlib.pyplot as plt
     plt.figure()
-    plt.gca().set_aspect('equal')
-    plt.axis('off')
+    plt.axis("equal")
     graph.plot_2d()
     graph.plot_2d_solution()
     plt.show()
