@@ -3,8 +3,8 @@ from spanning_tree import graph, root
 
 # solve MSTP using Dantzig–Fulkerson–Johnson formulation
 prob = graph.solve_spanning_tree(root)
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+print("Problem status:", prob.status)
+print("Optimal value:", prob.value)
 
 # If the method solve_spanning_tree was not implemented, we could still
 # solve the MSTP by passing the constraints of its integer linear program (ILP)
@@ -34,5 +34,5 @@ for subtour_size in range(2, graph.num_vertices()):
 # solve MSTP from constraints of the ILP formulation and check that optimal
 # value is equal to the one above
 prob = graph.solve_from_ilp(ilp_constraints)
-print('Problem status from ILP:', prob.status)
-print('Optimal value from ILP:', prob.value)
+print("Problem status from ILP:", prob.status)
+print("Optimal value from ILP:", prob.value)

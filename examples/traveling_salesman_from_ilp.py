@@ -3,8 +3,8 @@ from traveling_salesman import graph
 
 # solve TSP using Dantzig–Fulkerson–Johnson formulation
 prob = graph.solve_traveling_salesman()
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+print("Problem status:", prob.status)
+print("Optimal value:", prob.value)
 
 # If the method solve_traveling_salesman was not implemented, we could still
 # solve the TSP by passing the constraints of its integer linear program (ILP)
@@ -33,5 +33,5 @@ for subtour_size in range(2, graph.num_vertices() - 1):
 # solve TSP from constraints of the ILP formulation and check that optimal value
 # is equal to the one above
 prob = graph.solve_from_ilp(ilp_constraints)
-print('Problem status from ILP:', prob.status)
-print('Optimal value from ILP:', prob.value)
+print("Problem status from ILP:", prob.status)
+print("Optimal value from ILP:", prob.value)

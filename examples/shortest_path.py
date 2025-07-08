@@ -63,8 +63,8 @@ dot.view()
 
 # solve shortest path problem
 prob = graph.solve_shortest_path(s, t)
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+print("Problem status:", prob.status)
+print("Optimal value:", prob.value)
 
 # plot optimal solution (requires matplotlib)
 import matplotlib.pyplot as plt

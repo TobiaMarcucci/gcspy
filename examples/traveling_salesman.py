@@ -51,13 +51,13 @@ for tail in graph.vertices:
 
 # run followin code only if this file is executed directly, and not when it is
 # imported by other files
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # solve traveling salesman problem using Dantzig–Fulkerson–Johnson
     # formulation, all the subtour elimination constraints are included
     prob = graph.solve_traveling_salesman(subtour_elimination=True)
-    print('Problem status:', prob.status)
-    print('Optimal value:', prob.value)
+    print("Problem status:", prob.status)
+    print("Optimal value:", prob.value)
 
     # show graph using graphviz (requires graphviz)
     dot = graph.graphviz()

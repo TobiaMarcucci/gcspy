@@ -34,13 +34,13 @@ for i, j, k, l in grid_points(4):
 
 # run followin code only if this file is executed directly, and not when it is
 # imported by other files
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # solve spanning tree problem using Dantzig–Fulkerson–Johnson formulation
     # all the subtour elimination constraints are included
     prob = graph.solve_spanning_tree(root)
-    print('Problem status:', prob.status)
-    print('Optimal value:', prob.value)
+    print("Problem status:", prob.status)
+    print("Optimal value:", prob.value)
 
     # show graph using graphviz (requires graphviz)
     dot = graph.graphviz()

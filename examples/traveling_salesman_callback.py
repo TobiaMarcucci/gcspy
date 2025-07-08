@@ -5,8 +5,8 @@ from traveling_salesman import graph
 # solve TSP using Dantzig–Fulkerson–Johnson formulation, all the subtour
 # elimination constraints are included
 prob = graph.solve_traveling_salesman(subtour_elimination=True)
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+print("Problem status:", prob.status)
+print("Optimal value:", prob.value)
 
 # Instead of including all the subtour elimination constraints in the initial
 # formulation, we can add them as needed. To this end we provide as a
@@ -50,5 +50,5 @@ def subtour_elimination(yv, ye):
     
 # solve traveling salesman using callback
 prob = graph.solve_traveling_salesman(subtour_elimination=False, callback=subtour_elimination)
-print('Problem status with callback:', prob.status)
-print('Optimal value with callback:', prob.value)
+print("Problem status with callback:", prob.status)
+print("Optimal value with callback:", prob.value)
