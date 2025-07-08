@@ -87,11 +87,11 @@ def graphviz_graph(graph, vertex_labels=None, edge_labels=None):
         vertex_labels = [vertex.name for vertex in graph.vertices]
     if edge_labels is None:
         edge_labels = [''] * graph.num_edges()
-    digraph = gv.Digraph()
+    dot = gv.Digraph()
     for label in vertex_labels:
-        digraph.node(str(label))
+        dot.node(str(label))
     for edge, label in zip(graph.edges, edge_labels):
         tail = vertex_labels[graph.vertices.index(edge.tail)]
         head = vertex_labels[graph.vertices.index(edge.head)]
-        digraph.edge(str(tail), str(head), str(label))
-    return digraph
+        dot.edge(str(tail), str(head), str(label))
+    return dot
