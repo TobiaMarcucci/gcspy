@@ -53,6 +53,3 @@ if __name__ == '__main__':
     graph.plot_2d()
     graph.plot_2d_solution()
     plt.show()
-
-
-
