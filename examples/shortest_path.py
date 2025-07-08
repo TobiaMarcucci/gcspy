@@ -57,19 +57,23 @@ for edge in graph.edges:
     # add constraint that y variables can only increase along the path
     edge.add_constraint(x_head[1] >= x_tail[1])
 
-# show graph using graphviz (requires graphviz)
-dot = graph.graphviz()
-dot.view()
+# run followin code only if this file is executed directly, and not when it is
+# imported by other files
+if __name__ == "__main__":
 
-# solve shortest path problem
-prob = graph.solve_shortest_path(s, t)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+    # solve shortest path problem
+    prob = graph.solve_shortest_path(s, t)
+    print("Problem status:", prob.status)
+    print("Optimal value:", prob.value)
 
-# plot optimal solution (requires matplotlib)
-import matplotlib.pyplot as plt
-plt.figure()
-plt.axis("equal")
-graph.plot_2d()
-graph.plot_2d_solution()
-plt.show()
+    # show graph using graphviz (requires graphviz)
+    dot = graph.graphviz()
+    dot.view()
+
+    # plot optimal solution (requires matplotlib)
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.axis("equal")
+    graph.plot_2d()
+    graph.plot_2d_solution()
+    plt.show()

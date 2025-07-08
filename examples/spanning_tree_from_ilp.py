@@ -6,8 +6,8 @@ prob = graph.solve_spanning_tree(root)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 
-# If the method solve_spanning_tree was not implemented, we could still
-# solve the MSTP by passing the constraints of its integer linear program (ILP)
+# If the method solve_spanning_tree was not implemented, we could still solve
+# the MSTP by passing the constraints of its integer linear program (ILP)
 # formulation. Below, we write the constraints for the ILP formulation by DFJ
 # explicitly. Note that the lower bound of 0 and upper bound of 1 on the binary
 # variables are automatically enforced and we do not have to include them in our

@@ -81,6 +81,10 @@ class ConicGraphProblem:
         # get optimal solution
         yv = self.yv.value
         ye = self.ye.value
+        if yv is None:
+            yv = np.array([None] * self.conic_graph.num_vertices())
+        if ye is None:
+            ye = np.array([None] * self.conic_graph.num_edges())
         xv = [x.value for x in self.xv]
         xe = []
         for z, y in zip(self.ze, ye):
