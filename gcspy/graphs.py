@@ -73,34 +73,66 @@ class Graph:
     def edge_index(self, edge):
         return self.edges.index(edge)
 
-    def incoming_edge_indices(self, vertex):
-        if isinstance(vertex, Iterable):
-            return [k for k, edge in enumerate(self.edges) if edge.head in vertex and edge.tail not in vertex]
-        else:
-            return [k for k, edge in enumerate(self.edges) if edge.head == vertex]
+    def incoming_edge_indices(self, vertices):
+        """
+        Return indices of edges that are incoming to `vertices` (i.e., edges
+        whose head is in `vertices` but tail is not).
+        """
+        if not isinstance(vertices, Iterable):
+            vertices = [vertices]
+        def is_incoming(edge, vertices):
+            return edge.tail not in vertices and edge.head in vertices
+        return [k for k, edge in enumerate(self.edges) if is_incoming(edge, vertices)]
 
-    def outgoing_edge_indices(self, vertex):
-        if isinstance(vertex, Iterable):
-            return [k for k, edge in enumerate(self.edges) if edge.tail in vertex and edge.head not in vertex]
-        else:
-            return [k for k, edge in enumerate(self.edges) if edge.tail == vertex]
-        
-    def incident_edge_indices(self, vertex):
-        return self.incoming_edge_indices(vertex) + self.outgoing_edge_indices(vertex)
+    def outgoing_edge_indices(self, vertices):
+        """
+        Return indices of edges that are outgoing from `vertices` (i.e., edges
+        whose tail is in `vertices` but head is not).
+        """
+        if not isinstance(vertices, Iterable):
+            vertices = [vertices]
+        def is_outgoing(edge, vertices):
+            return edge.tail in vertices and edge.head not in vertices
+        return [k for k, edge in enumerate(self.edges) if is_outgoing(edge, vertices)]
 
-    def incoming_edges(self, vertex):
-        return [self.edges[k] for k in self.incoming_edge_indices(vertex)]
+    def incident_edge_indices(self, vertices):
+        """
+        Return indices of edges that are incident with `vertices` (either
+        incoming or outgoing).
+        """
+        return self.incoming_edge_indices(vertices) + self.outgoing_edge_indices(vertices)
+
+    def incoming_edges(self, vertices):
+        """
+        Return edges that are incoming to `vertices` (i.e., edges whose head is
+        in `vertices` but tail is not).
+        """
+        return [self.edges[k] for k in self.incoming_edge_indices(vertices)]
         
-    def outgoing_edges(self, vertex):
-        return [self.edges[k] for k in self.outgoing_edge_indices(vertex)]
+    def outgoing_edges(self, vertices):
+        """
+        Return edges that are outgoing from `vertices` (i.e., edges whose tail
+        is in `vertices` but head is not).
+        """
+        return [self.edges[k] for k in self.outgoing_edge_indices(vertices)]
         
-    def incident_edges(self, vertex):
-        return [self.edges[k] for k in self.incident_edge_indices(vertex)]
+    def incident_edges(self, vertices):
+        """
+        Return edges that are incident with `vertices` (either incoming or
+        outgoing).
+        """
+        return [self.edges[k] for k in self.incident_edge_indices(vertices)]
 
     def num_vertices(self):
+        """
+        Return number of vertices in the graph.
+        """
         return len(self.vertices)
 
     def num_edges(self):
+        """
+        Return number of edges in the graph.
+        """
         return len(self.edges)
 
     def add_disjoint_subgraph(self, graph):
@@ -173,10 +205,10 @@ class GraphOfConvexPrograms(Graph):
 
     def _solve_graph_problem(self, conic_graph, conic_problem, *args, **kwargs):
 
-        # solve problem
+        # solve problem in conic form
         prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
 
-        # set value of vertex variables
+        # set value of vertex variables for convex program
         for convex_vertex, x, y in zip(self.vertices, xv, yv):
             convex_vertex.binary_variable.value = y
             conic_vertex = conic_graph.get_vertex(convex_vertex.name)
@@ -186,7 +218,7 @@ class GraphOfConvexPrograms(Graph):
                 else:
                     convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
 
-        # set value of edge variables
+        # set value of edge variables for convex program
         for convex_edge, x, y in zip(self.edges, xe, ye):
             convex_edge.binary_variable.value = y
             conic_edge = conic_graph.get_edge(*convex_edge.name)
