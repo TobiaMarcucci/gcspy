@@ -5,9 +5,6 @@ from gcspy import GraphOfConvexPrograms
 # initialize empty graph
 graph = GraphOfConvexPrograms()
 
-# initialize empty graph
-graph = GraphOfConvexPrograms()
-
 # vertex 1
 v1 = graph.add_vertex("v1")
 x1 = v1.add_variable(2)
