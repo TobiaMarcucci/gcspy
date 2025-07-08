@@ -16,6 +16,9 @@ for i, j in grid_points(2):
     center = np.array([i, j])
     v.add_constraint(cp.norm2(x - center) <= radius)
 
+# root of the spanning tree
+root = graph.vertices[0]
+
 # add edges between neighboring vertices
 for i, j, k, l in grid_points(4):
     distance = abs(k - i) + abs(l - j)
@@ -35,7 +38,6 @@ if __name__ == '__main__':
 
     # solve spanning tree problem using Dantzig–Fulkerson–Johnson formulation
     # all the subtour elimination constraints are included
-    root = graph.vertices[0]
     prob = graph.solve_spanning_tree(root)
     print('Problem status:', prob.status)
     print('Optimal value:', prob.value)
