@@ -132,4 +132,4 @@ dmypy.json
 .DS_Store
 
 # graphviz
-.gv
+Digraph.gv
