@@ -27,15 +27,21 @@ class ConicEdge(ConicProgram):
             if x.size != size:
                 ValueError(
                     f"Size mismatch: x.size = {x.size}.  Expected size {size}.")
+                
+    def stack_variables(self, xv, xw, xe):
+        if self.slack_size == 0:
+            return cp.hstack((xv, xw))
+        else:
+            return cp.hstack((xv, xw, xe))
 
     def evaluate_cost(self, xv, xw, xe, y=1):
         self.check_vector_sizes(xv, xw, xe)
-        x = cp.hstack((xv, xw, xe))
+        x = self.stack_variables(xv, xw, xe)
         return super().evaluate_cost(x, y)
         
     def evaluate_constraints(self, xv, xw, xe, y=1):
         self.check_vector_sizes(xv, xw, xe)
-        x = cp.hstack((xv, xw, xe))
+        x = self.stack_variables(xv, xw, xe)
         return super().evaluate_constraints(x, y)
     
 class ConvexEdge(ConvexProgram):

@@ -23,7 +23,8 @@ class ConicGraphProblem:
         self.zv = np.array([cp.Variable(vertex.size) for vertex in self.conic_graph.vertices])
 
         # continuous variables for the edges
-        self.ze = np.array([cp.Variable(edge.slack_size) for edge in self.conic_graph.edges])
+        safe_variable = lambda size: cp.Variable(size) if size > 0 else np.array([])
+        self.ze = np.array([safe_variable(edge.slack_size) for edge in self.conic_graph.edges])
         self.ze_tail = np.array([cp.Variable(edge.tail.size) for edge in self.conic_graph.edges])
         self.ze_head = np.array([cp.Variable(edge.head.size) for edge in self.conic_graph.edges])
 
@@ -88,7 +89,9 @@ class ConicGraphProblem:
         xv = [x.value for x in self.xv]
         xe = []
         for z, y in zip(self.ze, ye):
-            if y is not None and y > tol:
+            if len(z) == 0:
+                xe.append(np.array([]))
+            elif y is not None and y > tol:
                 xe.append(z.value / y)
             else:
                 xe.append(None)
