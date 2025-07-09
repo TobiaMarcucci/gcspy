@@ -136,10 +136,6 @@ class Graph:
         return len(self.edges)
 
     def add_disjoint_subgraph(self, graph):
-        if type(graph) != type(self):
-            raise ValueError(
-                f"Type mismatch: type(graph) = {type(graph)}, type(self) = {type(self)}. "
-                "The two graphs must be of the same type.")
         self.vertices += graph.vertices
         self.edges += graph.edges
     
