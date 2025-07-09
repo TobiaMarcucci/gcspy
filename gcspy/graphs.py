@@ -211,22 +211,27 @@ class GraphOfConvexPrograms(Graph):
         # set value of vertex variables for convex program
         for convex_vertex, x, y in zip(self.vertices, xv, yv):
             convex_vertex.binary_variable.value = y
-            conic_vertex = conic_graph.get_vertex(convex_vertex.name)
-            for convex_variable in convex_vertex.variables:
-                if x is None:
-                    convex_variable.value = None
-                else:
-                    convex_variable.value = conic_vertex.get_convex_variable_value(convex_variable, x)
+            if x is None:
+                for variable in convex_vertex.variables:
+                    variable.value = None
+            else:
+                conic_vertex = conic_graph.get_vertex(convex_vertex.name)
+                for variable in convex_vertex.variables:
+                    variable.value = conic_vertex.get_convex_variable_value(variable, x)
 
         # set value of edge variables for convex program
         for convex_edge, x, y in zip(self.edges, xe, ye):
             convex_edge.binary_variable.value = y
-            conic_edge = conic_graph.get_edge(*convex_edge.name)
-            for convex_variable in convex_edge.variables:
-                if x is None:
-                    convex_variable.value = None
-                else:
-                    convex_variable.value = conic_edge.get_convex_variable_value(convex_variable, x)
+            if x is None:
+                for variable in convex_edge.variables:
+                    variable.value = None
+            else:
+                conic_edge = conic_graph.get_edge(*convex_edge.name)
+                x_tail = xv[self.vertex_index(convex_edge.tail)]
+                x_head = xv[self.vertex_index(convex_edge.head)]
+                x_extended = np.concatenate((x_tail, x_head, x))
+                for variable in convex_edge.variables:
+                    variable.value = conic_edge.get_convex_variable_value(variable, x_extended)
 
         return prob
     

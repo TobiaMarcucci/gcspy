@@ -65,15 +65,11 @@ for i, (center_i, radius_i) in enumerate(zip(centers, radii)):
                 vertex_j = graph.get_vertex(j)
                 qj, zj = vertex_j.variables[:2]
                 edge = graph.add_edge(vertex_i, vertex_j)
-                t = cp.norm2(qi - qj) / speed
+                t = edge.add_variable(1) # flight time between islands i and j
                 edge.add_cost(t)
-                edge.add_constraint(zi[1] >= zj[0] + discharge_rate * t)
-                
-                # t = edge.add_variable(1) # flight time between islands i and j
-                # edge.add_cost(t)
-                # edge.add_constraints([
-                #     t >= cp.norm2(qi - qj) / speed,
-                #     zi[1] == zj[0] + discharge_rate * t])
+                edge.add_constraints([
+                    t >= cp.norm2(qi - qj) / speed,
+                    zi[1] == zj[0] + discharge_rate * t])
 
 # solve shortest path problem from start to goal points
 source = graph.vertices[0]
@@ -109,12 +105,13 @@ battery_levels = []
 times = [0]
 vertex = source
 while vertex != target:
-    q, z, t = vertex.variables
+    z, t = vertex.variables[1:]
     battery_levels.extend(z.value)
     times.extend(times[-1] + t.value)
     for edge in graph.outgoing_edges(vertex):
         if np.isclose(edge.binary_variable.value, 1):
-            times.append(times[-1] + edge.cost.value)
+            t = edge.variables[0]
+            times.extend(times[-1] + t.value)
             vertex = edge.head
             break
 battery_levels.append(target.variables[1].value[0])

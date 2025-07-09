@@ -79,21 +79,25 @@ class ConicGraphProblem:
                 prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
                 prob.solve()
 
-        # get optimal solution
-        yv = self.yv.value
-        ye = self.ye.value
-        if yv is None:
-            yv = np.array([None] * self.conic_graph.num_vertices())
-        if ye is None:
-            ye = np.array([None] * self.conic_graph.num_edges())
-        xv = [x.value for x in self.xv]
-        xe = []
-        for z, y in zip(self.ze, ye):
-            if z.size == 0:
-                xe.append(np.array([]))
-            elif y is not None and y > tol:
-                xe.append(z.value / y)
-            else:
-                xe.append(None)
+        # if problem is not solved to optimality
+        if prob.status != 'optimal':
+            xv = np.full(self.conic_graph.num_vertices(), None)
+            xe = np.full(self.conic_graph.num_edges(), None)
+            yv = xv
+            ye = xe
+
+        # if problem is solved to optimality
+        else:
+            yv = self.yv.value
+            ye = self.ye.value
+            xv = [x.value for x in self.xv]
+            xe = []
+            for z, y in zip(self.ze, ye):
+                if z.size == 0:
+                    xe.append(np.array([]))
+                elif y > tol:
+                    xe.append(z.value / y)
+                else:
+                    xe.append(None)
 
         return prob, xv, yv, xe, ye
