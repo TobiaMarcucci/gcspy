@@ -28,13 +28,15 @@ for i in range(maze_side):
         vertex.add_cost(cp.norm2(x[1] - x[0]))
 
         # constrain trajectory segment in cell (i, j)
-        vertex.add_constraints([x[0] >= [i, j], x[0] <= [i + 1, j + 1]])
-        vertex.add_constraints([x[1] >= [i, j], x[1] <= [i + 1, j + 1]])
+        l = np.array([i, j])
+        u = l + 1
+        vertex.add_constraints([x[0] >= l, x[0] <= u])
+        vertex.add_constraints([x[1] >= l, x[1] <= u])
 
         # fix start and goal points
-        if i == 0 and j == 0:
+        if all(l == 0):
             vertex.add_constraint(x[0] == start)
-        elif i == maze_side - 1 and j == maze_side - 1:
+        elif all(u == maze_side):
             vertex.add_constraint(x[1] == goal)
 
 # add edges between communicating cells
@@ -64,6 +66,6 @@ import matplotlib.pyplot as plt
 plt.figure()
 maze.plot()
 for vertex in graph.vertices:
-    if vertex.binary_variable.value and vertex.binary_variable.value > 0.5:
+    if np.isclose(vertex.binary_variable.value, 1):
         plt.plot(*vertex.variables[0].value.T, c='b')
 plt.show()
