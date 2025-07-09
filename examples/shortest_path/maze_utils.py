@@ -70,7 +70,6 @@ class Maze:
                 knock_downs += 1
 
     def plot(self):
-        plt.gca().axis("off")
         plt.plot([0, self.nx - 1], [self.ny, self.ny], c="k")
         plt.plot([self.nx, self.nx], [0, self.ny], c="k")
         for x in range(self.nx):

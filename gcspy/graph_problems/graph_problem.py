@@ -89,7 +89,7 @@ class ConicGraphProblem:
         xv = [x.value for x in self.xv]
         xe = []
         for z, y in zip(self.ze, ye):
-            if len(z) == 0:
+            if z.size == 0:
                 xe.append(np.array([]))
             elif y is not None and y > tol:
                 xe.append(z.value / y)
