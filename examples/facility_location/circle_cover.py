@@ -25,7 +25,7 @@ mesh = np.array([
 ])
 
 # problem parameters
-circle_cost = 0 # fixed cost of adding a circle
+circle_cost = 0 # fixed cost of using a circle
 num_circles = 5 # maximum number of circles
 
 # initialize empty graph
@@ -84,8 +84,8 @@ for triangle in mesh:
 
 # plot the circle cover
 for circle in circles:
-    center, radius = circle.variables
-    if center.value is not None:
+    if np.isclose(circle.binary_variable.value, 1):
+        center, radius = circle.variables
         patch = plt.Circle(center.value, radius.value, fc="None", ec="b")
         plt.gca().add_patch(patch)
 
