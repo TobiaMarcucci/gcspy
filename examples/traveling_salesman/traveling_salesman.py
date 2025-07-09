@@ -5,38 +5,38 @@ from gcspy import GraphOfConvexPrograms
 # initialize empty graph
 graph = GraphOfConvexPrograms()
 
+# vertex 0
+v0 = graph.add_vertex("v0")
+x0 = v0.add_variable(2)
+c0 = np.array([-3, 0]) # center of the set
+v0.add_constraint(cp.norm_inf(x0 - c0) <= 1)
+
 # vertex 1
 v1 = graph.add_vertex("v1")
 x1 = v1.add_variable(2)
-c1 = np.array([-3, 0]) # center of the set
-v1.add_constraint(cp.norm_inf(x1 - c1) <= 1)
+c1 = np.array([0, 2.5]) # center of the set
+D1 = np.diag([.25, 2]) # scaling matrix
+v1.add_constraint(cp.norm_inf(D1 @ (x1 - c1)) <= 1)
 
 # vertex 2
 v2 = graph.add_vertex("v2")
 x2 = v2.add_variable(2)
-c2 = np.array([0, 2.5]) # center of the set
-D2 = np.diag([.25, 2]) # scaling matrix
-v2.add_constraint(cp.norm_inf(D2 @ (x2 - c2)) <= 1)
+c2 = np.array([3, 0]) # center of the set
+v2.add_constraint(cp.norm2(x2 - c2) <= 1)
+v2.add_constraint(x2 >= c2) # keep only top right part of the set
 
 # vertex 3
 v3 = graph.add_vertex("v3")
 x3 = v3.add_variable(2)
-c3 = np.array([3, 0]) # center of the set
-v3.add_constraint(cp.norm2(x3 - c3) <= 1)
-v3.add_constraint(x3 >= c3) # keep only top right part of the set
+c3 = np.array([0, -2.5]) # center of the set
+D3 = np.diag([1, 2]) # scaling matrix
+v3.add_constraint(cp.norm2(D3 @ (x3 - c3)) <= 1)
 
 # vertex 4
 v4 = graph.add_vertex("v4")
 x4 = v4.add_variable(2)
-c4 = np.array([0, -2.5]) # center of the set
-D4 = np.diag([1, 2]) # scaling matrix
-v4.add_constraint(cp.norm2(D4 @ (x4 - c4)) <= 1)
-
-# vertex 5
-v5 = graph.add_vertex("v5")
-x5 = v5.add_variable(2)
-c5 = np.array([.3, .3]) # center of the set
-v5.add_constraint(cp.norm1(x5 - c5) <= 1)
+c4 = np.array([.3, .3]) # center of the set
+v4.add_constraint(cp.norm1(x4 - c4) <= 1)
 
 # add an edges vetween every pair of distinct vertices
 for tail in graph.vertices:
