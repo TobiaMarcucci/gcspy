@@ -76,8 +76,8 @@ class Floor(GraphOfConvexPrograms):
         v = self.add_vertex(f"{self.name}_{n}")
         x1 = v.add_variable(2)
         x2 = v.add_variable(2)
-        v.add_constraint([x1 >= l, x1 <= u])
-        v.add_constraint([x2 >= l, x2 <= u])
+        v.add_constraints([x1 >= l, x1 <= u])
+        v.add_constraints([x2 >= l, x2 <= u])
         v.add_cost(cp.norm2(x2 - x1))
         return v
     
