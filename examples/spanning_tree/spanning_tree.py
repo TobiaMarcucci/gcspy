@@ -1,10 +1,10 @@
 import cvxpy as cp
 import numpy as np
 from itertools import product
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # create vertices on a grid
 grid_side = 3

@@ -1,9 +1,9 @@
 import cvxpy as cp
 import numpy as np
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # vertex 0
 v0 = graph.add_vertex("v0")

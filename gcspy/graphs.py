@@ -13,8 +13,8 @@ from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
 
 class Graph:
     """
-    Base class that contains the method that are common to GraphOfConicPrograms
-    and GraphOfConvexPrograms.
+    Base class that contains the method that are common to GraphOfConicSets
+    and GraphOfConvexSets.
     """
 
     def __init__(self):
@@ -143,7 +143,7 @@ class Graph:
         from gcspy.plot_utils import graphviz_graph
         return graphviz_graph(self)
 
-class GraphOfConicPrograms(Graph):
+class GraphOfConicSets(Graph):
 
     def __init__(self):
         self.vertices = []
@@ -159,7 +159,7 @@ class GraphOfConicPrograms(Graph):
         self.edges.append(edge)
         return edge
 
-class GraphOfConvexPrograms(Graph):
+class GraphOfConvexSets(Graph):
 
     def __init__(self):
         super().__init__()
@@ -189,7 +189,7 @@ class GraphOfConvexPrograms(Graph):
     def to_conic(self):
 
         # initialize empty conic graph
-        conic_graph = GraphOfConicPrograms()
+        conic_graph = GraphOfConicSets()
 
         # add one vertex at the time
         for vertex in self.vertices:

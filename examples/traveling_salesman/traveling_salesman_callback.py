@@ -1,5 +1,4 @@
 import numpy as np
-from itertools import combinations
 from traveling_salesman import graph
 
 # solve TSP using Dantzig–Fulkerson–Johnson formulation, all the subtour

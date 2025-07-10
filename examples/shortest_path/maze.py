@@ -2,7 +2,7 @@ import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
 from maze_utils import Maze
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # create maze
 maze_side = 10
@@ -12,7 +12,7 @@ maze = Maze(maze_side, maze_side, random_seed)
 maze.knock_down_walls(knock_downs)
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # start and goal points
 start = np.array([0.5, 0])

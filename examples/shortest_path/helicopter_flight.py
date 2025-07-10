@@ -1,7 +1,7 @@
 import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # problem data
 num_islands = 20 # number of islands
@@ -34,7 +34,7 @@ centers = np.vstack([start, centers, goal])
 radii = np.concatenate([[0], radii, [0]])
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # add one vertex for every island (including start and goal)
 for i, (center, radius) in enumerate(zip(centers, radii)):

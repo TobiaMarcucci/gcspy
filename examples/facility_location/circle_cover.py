@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # triangular mesh for 2d robot link
 mesh = np.array([
@@ -29,7 +29,7 @@ circle_cost = 0 # fixed cost of using a circle
 num_circles = 5 # maximum number of circles
 
 # initialize empty graph
-gcs = GraphOfConvexPrograms()
+gcs = GraphOfConvexSets()
 
 # compute bounding box for entire mesh
 l = np.min(np.vstack(mesh), axis=0)

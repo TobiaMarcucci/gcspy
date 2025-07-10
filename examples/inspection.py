@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # all the rooms in the floor plant
 # each room is described by a triplet (index, lower corner, upper corner)
@@ -60,7 +60,7 @@ doors = [
 visit_rooms = [0, 2, 7, 10, 13, 15, 18]
 
 # helper class that allows to construct a floor
-class Floor(GraphOfConvexPrograms):
+class Floor(GraphOfConvexSets):
 
     def __init__(self, rooms, doors, name):
         super().__init__()
@@ -96,7 +96,7 @@ class Floor(GraphOfConvexPrograms):
         return e1, e2
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # adds one copy of the floor plant for each room that we must visit
 num_floors = len(visit_rooms)

@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # problem data
 party_position = np.array([45, 7])
@@ -14,7 +14,7 @@ l = np.min(positions, axis=0)
 u = np.max(positions, axis=0)
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # vertex for every guest
 for i, position in enumerate(guest_positions):

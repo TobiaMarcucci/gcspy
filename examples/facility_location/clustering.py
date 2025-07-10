@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from gcspy import GraphOfConvexPrograms
+from gcspy import GraphOfConvexSets
 
 # random points to be clustered
 num_clusters = 3
@@ -11,7 +11,7 @@ np.random.seed(0)
 points = np.random.rand(num_points, dim)
 
 # initialize empty graph
-graph = GraphOfConvexPrograms()
+graph = GraphOfConvexSets()
 
 # one vertex per cluster
 clusters = []
