@@ -242,6 +242,11 @@ class GraphOfConvexPrograms(Graph):
         conic_problem = ConicShortestPathProblem(conic_graph, source.name, target.name, binary)
         return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
     
+    def solve_shortest_path_with_rounding(self, source, target, rounding_fn, *args, **kwargs):
+        relaxation = self.solve_shortest_path(source, target, binary=False, *args, **kwargs)
+        restriction = rounding_fn(self, source, target)
+        return relaxation, restriction
+
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicTravelingSalesmanProblem(conic_graph, subtour_elimination, binary)
