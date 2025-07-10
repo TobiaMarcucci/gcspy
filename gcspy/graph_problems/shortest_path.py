@@ -1,33 +1,39 @@
-def shortest_path(gcs, xv, zv, ze_out, ze_inc, s, t):
+from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
-    yv = gcs.vertex_binaries()
-    ye = gcs.edge_binaries()
+class ConicShortestPathProblem(ConicGraphProblem):
 
-    constraints = []
-    for i, vertex in enumerate(gcs.vertices):
-        inc_edges = gcs.incoming_indices(vertex)
-        out_edges = gcs.outgoing_indices(vertex)
-        
-        if vertex == s:
-            constraints.append(sum(ye[inc_edges]) == 0)
-            constraints.append(sum(ye[out_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            constraints.append(zv[i] == xv[i])
+    def __init__(self, conic_graph, source_name, target_name, binary):
+
+        # initialize parent class
+        super().__init__(conic_graph, binary)
             
-        elif vertex == t:
-            constraints.append(sum(ye[out_edges]) == 0)
-            constraints.append(sum(ye[inc_edges]) == 1)
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            constraints.append(zv[i] == xv[i])
-            
-        else:
-            constraints.append(yv[i] == sum(ye[out_edges]))
-            constraints.append(yv[i] == sum(ye[inc_edges]))
-            constraints.append(yv[i] <= 1)
-            constraints.append(zv[i] == sum(ze_out[out_edges]))
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            constraints += vertex.conic.eval_constraints(xv[i] - zv[i], 1 - yv[i])
-            
-    return constraints
+        # add all constraints one vertex at the time
+        for i, vertex in enumerate(conic_graph.vertices):
+            inc = conic_graph.incoming_edge_indices(vertex)
+            out = conic_graph.outgoing_edge_indices(vertex)
+
+            # source constraints
+            if vertex.name == source_name:
+                self.constraints += [
+                    self.yv[i] == 1,
+                    sum(self.ye[inc]) == 0,
+                    sum(self.ye[out]) == 1,
+                    self.zv[i] == self.xv[i],
+                    self.zv[i] == sum(self.ze_tail[out])]
+
+            # target constraints
+            elif vertex.name == target_name:
+                self.constraints += [
+                    self.yv[i] == 1,
+                    sum(self.ye[inc]) == 1,
+                    sum(self.ye[out]) == 0,
+                    self.zv[i] == self.xv[i],
+                    self.zv[i] == sum(self.ze_head[inc])]
+
+            # all other vertices constraints
+            else:
+                self.constraints += [
+                    self.yv[i] == sum(self.ye[inc]),
+                    self.yv[i] == sum(self.ye[out]),
+                    self.zv[i] == sum(self.ze_tail[out]),
+                    self.zv[i] == sum(self.ze_head[inc])]

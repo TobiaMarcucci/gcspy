@@ -1,26 +1,28 @@
-def facility_location(gcs, xv, zv, ze_out, ze_inc):
+from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
-    yv = gcs.vertex_binaries()
-    ye = gcs.edge_binaries()
+class ConicFacilityLocationProblem(ConicGraphProblem):
 
-    constraints = []
-    for i, vertex in enumerate(gcs.vertices):
-        inc_edges = gcs.incoming_indices(vertex)
-        if len(inc_edges) == 0: # facility
-            constraints.append(yv[i] <= 1)
-            constraints += vertex.conic.eval_constraints(xv[i] - zv[i], 1 - yv[i])
-        else: # user
-            out_edges = gcs.outgoing_indices(vertex)
-            if len(out_edges) > 0:
-                raise ValueError("Graph does not have facility-location topology.")
-            constraints.append(yv[i] == 1)
-            constraints.append(sum(ye[inc_edges]) == 1)
-            constraints.append(zv[i] == sum(ze_inc[inc_edges]))
-            constraints.append(zv[i] == xv[i])
+    def __init__(self, conic_graph, binary):
 
-    for k, edge in enumerate(gcs.edges):
-        i = gcs.vertex_index(edge.tail)
-        constraints.append(yv[i] >= ye[k])
-        constraints += edge.tail.conic.eval_constraints(zv[i] - ze_out[k], yv[i] - ye[k])
+        # initialize parent class
+        super().__init__(conic_graph, binary)
 
-    return constraints
+        # constraints on the vertices
+        for i, vertex in enumerate(conic_graph.vertices):
+            inc = conic_graph.incoming_edge_indices(vertex)
+            out = conic_graph.outgoing_edge_indices(vertex)
+
+            # user vertex
+            if len(inc) > 0:
+                if len(out) > 0:
+                    raise ValueError("Graph does not have facility-location topology.")
+                self.constraints.append(self.yv[i] == 1)
+                self.constraints.append(sum(self.ye[inc]) == 1)
+                self.constraints.append(self.zv[i] == sum(self.ze_head[inc]))
+                self.constraints.append(self.zv[i] == self.xv[i])
+
+        # constraints on the edges
+        for k, edge in enumerate(conic_graph.edges):
+            i = conic_graph.vertex_index(edge.tail)
+            self.constraints.append(self.yv[i] >= self.ye[k])
+            self.constraints += edge.tail.evaluate_constraints(self.zv[i] - self.ze_tail[k], self.yv[i] - self.ye[k])

@@ -1,27 +1,29 @@
 from itertools import combinations
+from gcspy.graph_problems.graph_problem import ConicGraphProblem
 
+class ConicTravelingSalesmanProblem(ConicGraphProblem):
 
-def traveling_salesman(gcs, xv, zv, ze_out, ze_inc, subtour_elimination=True):
+    def __init__(self, conic_graph, subtour_elimination, binary):
 
-    yv = gcs.vertex_binaries()
-    ye = gcs.edge_binaries()
+        # initialize parent class
+        super().__init__(conic_graph, binary)
 
-    constraints = []
-    for i, v in enumerate(gcs.vertices):
-        inc_edges = gcs.incoming_indices(v)
-        out_edges = gcs.outgoing_indices(v)
+        # add all constraints one vertex at the time
+        for i, v in enumerate(conic_graph.vertices):
+            inc = conic_graph.incoming_edge_indices(v)
+            out = conic_graph.outgoing_edge_indices(v)
+            self.constraints += [
+                self.yv[i] == 1,
+                sum(self.ye[out]) == 1,
+                sum(self.ye[inc]) == 1,
+                self.zv[i] == self.xv[i],
+                sum(self.ze_tail[out]) == self.xv[i],
+                sum(self.ze_head[inc]) == self.xv[i]]
 
-        constraints.append(yv[i] == 1)
-        constraints.append(sum(ye[out_edges]) == 1)
-        constraints.append(sum(ye[inc_edges]) == 1)
-        constraints.append(zv[i] == xv[i])
-        constraints.append(sum(ze_out[out_edges]) == xv[i])
-        constraints.append(sum(ze_inc[inc_edges]) == xv[i])
-
-    if subtour_elimination:
-        for r in range(2, gcs.num_vertices() - 1):
-            for vertices in combinations(gcs.vertices, r):
-                out_edges = gcs.outgoing_indices(vertices)
-                constraints.append(sum(ye[out_edges]) >= 1)
-
-    return constraints
+        # subtour elimination constraints for all subsets of vertices with
+        # cardinality between 2 and num_vertices - 2
+        if subtour_elimination:
+            for subtour_size in range(2, conic_graph.num_vertices() - 1):
+                for vertices in combinations(conic_graph.vertices, subtour_size):
+                    out = conic_graph.outgoing_edge_indices(vertices)
+                    self.constraints.append(sum(self.ye[out]) >= 1)

@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import random as rd
 
-
 class Cell:
 
     def __init__(self, x, y):
@@ -15,28 +14,17 @@ class Cell:
     def knock_down_wall(self, wall):
         self.walls[wall] = False
 
-
 class Maze:
     directions = {"W": (-1, 0), "E": (1, 0), "S": (0, -1), "N": (0, 1)}
 
-    def __init__(self, nx, ny):
+    def __init__(self, nx, ny, seed=0):
         self.nx = nx
         self.ny = ny
         self.cells = [[Cell(x, y) for y in range(ny)] for x in range(nx)]
+        self.make_maze(seed)
 
     def get_cell(self, x, y):
         return self.cells[x][y]
-    
-    def plot(self):
-        plt.gca().axis('off')
-        plt.plot([0, self.nx - 1], [self.ny, self.ny], c='k')
-        plt.plot([self.nx, self.nx], [0, self.ny], c='k')
-        for x in range(self.nx):
-            for y in range(self.ny):
-                if self.get_cell(x, y).walls['S'] and (x != 0 or y != 0):
-                    plt.plot([x, x + 1], [y, y], c='k')
-                if self.get_cell(x, y).walls['W']:
-                    plt.plot([x, x], [y, y + 1], c='k')
         
     def unexplored_neighbors(self, cell):
         neighbours = []
@@ -49,9 +37,8 @@ class Maze:
                     neighbours.append((direction, neighbour))
         return neighbours
 
-    def make_maze(self, seed=0):
+    def make_maze(self, seed):
         rd.seed(seed)
-        n = self.nx * self.ny
         cell_stack = [self.get_cell(0, 0)]
         while len(cell_stack) > 0:
             neighbours = self.unexplored_neighbors(cell_stack[-1])
@@ -66,7 +53,7 @@ class Maze:
         cell.knock_down_wall(wall)
         dx, dy = self.directions[wall]
         neighbor = self.get_cell(cell.x + dx, cell.y + dy)
-        neighbor_wall = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}[wall]
+        neighbor_wall = {"N": "S", "S": "N", "E": "W", "W": "E"}[wall]
         neighbor.knock_down_wall(neighbor_wall)
 
     def knock_down_walls(self, n, seed=0):
@@ -81,3 +68,13 @@ class Maze:
                 wall = rd.choice(walls)
                 self.knock_down_wall(cell, wall)
                 knock_downs += 1
+
+    def plot(self):
+        plt.plot([0, self.nx - 1], [self.ny, self.ny], c="k")
+        plt.plot([self.nx, self.nx], [0, self.ny], c="k")
+        for x in range(self.nx):
+            for y in range(self.ny):
+                if self.get_cell(x, y).walls["S"] and (x != 0 or y != 0):
+                    plt.plot([x, x + 1], [y, y], c="k")
+                if self.get_cell(x, y).walls["W"]:
+                    plt.plot([x, x], [y, y + 1], c="k")
