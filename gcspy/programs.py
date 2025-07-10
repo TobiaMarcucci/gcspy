@@ -1,5 +1,6 @@
 import numpy as np
 import cvxpy as cp
+from itertools import accumulate
 from numbers import Number
 
 class ConicProgram:
@@ -178,24 +179,18 @@ class ConvexProgram:
 
         # cost
         cd = conic_prob.c.toarray().flatten()
-        # TODO: convert to sparse format
         c = cd[:-1]
         d = cd[-1]
 
-        # constraints
+        # constraints (sparse matrices are converted to dense numpy arrays,
+        # I tried keeping them sparse but it slows things down apparently)
         cols = conic_prob.c.shape[0]
         Ab = conic_prob.A.toarray().reshape((-1, cols), order='F')
-        # TODO: convert to sparse format
-        A = []
-        b = []
-        K = []
-        start = 0
-        for constraint in conic_prob.constraints:
-            stop = start + constraint.size
-            A.append(Ab[start:stop, :-1])
-            b.append(Ab[start:stop, -1])
-            K.append(type(constraint))
-            start = stop
+        sizes = [constraint.size for constraint in conic_prob.constraints]
+        breaks = list(accumulate(sizes, initial=0))
+        A = [Ab[start:stop, :-1] for start, stop in zip(breaks[:-1], breaks[1:])]
+        b = [Ab[start:stop, -1] for start, stop in zip(breaks[:-1], breaks[1:])]
+        K = [type(constraint) for constraint in conic_prob.constraints]
 
         # dictionary that maps the id of a variable in the cost and constraints
         # to the corresponding columns in the in the conic program
