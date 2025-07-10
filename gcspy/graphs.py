@@ -179,6 +179,12 @@ class GraphOfConvexPrograms(Graph):
 
     def edge_binaries(self):
         return np.array([edge.binary_variable for edge in self.edges])
+    
+    def vertex_binary_values(self):
+        return np.array([vertex.binary_variable.value for vertex in self.vertices])
+
+    def edge_binary_values(self):
+        return np.array([edge.binary_variable.value for edge in self.edges])
 
     def to_conic(self):
 
@@ -258,29 +264,27 @@ class GraphOfConvexPrograms(Graph):
         conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
         return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
 
-    def solve_convex_restriction(self, vertex_indices, edge_indices):
+    def solve_convex_restriction(self, vertices, edges):
         """
         Solves convex program obtained by discarding all the vertices and edges
         that are not in the given lists.
         """
 
         # check the given vertices and edges for a valid subgraph
-        for k in edge_indices:
-            edge = self.edges[k]
-            i = self.vertex_index(edge.tail)
-            j = self.vertex_index(edge.head)
-            if i not in vertex_indices or j not in vertex_indices:
-                raise ValueError('Given indices do not form a subgraph.')
+        for vertex in vertices:
+            if vertex not in self.vertices:
+                raise ValueError('Vertices are not a subset of the graph vertices.')
+        for edge in edges:
+            if edge.tail not in vertices or edge.head not in vertices:
+                raise ValueError('Given vertices and edges do not form a subgraph.')
 
         # assemble convex program
         cost = 0
         constraints = []
-        for i in vertex_indices:
-            vertex = self.vertices[i]
+        for vertex in vertices:
             cost += vertex.cost
             constraints.extend(vertex.constraints)
-        for k in edge_indices:
-            edge = self.edges[k]
+        for edge in edges:
             cost += edge.cost
             constraints.extend(edge.constraints)
 
@@ -289,17 +293,17 @@ class GraphOfConvexPrograms(Graph):
         prob.solve()
 
         # set vertex variable values
-        for i, vertex in enumerate(self.vertices):
-            if i in vertex_indices:
+        for vertex in self.vertices:
+            if vertex in vertices:
                 vertex.binary_variable.value = 1
             else:
-                vertex.binary_variable.value = None
+                vertex.binary_variable.value = 0
                 for variable in vertex.variables:
                     variable.value = None
 
         # set edgevariable values
-        for k, edge in enumerate(self.edges):
-            if k in edge_indices:
+        for edge in self.edges:
+            if edge in edges:
                 edge.binary_variable.value = 1
             else:
                 edge.binary_variable.value = 0

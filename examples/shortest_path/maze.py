@@ -1,12 +1,14 @@
 import numpy as np
 import cvxpy as cp
+import matplotlib.pyplot as plt
 from maze_utils import Maze
 from gcspy import GraphOfConvexPrograms
 
 # create maze
 maze_side = 10
 knock_downs = 3
-maze = Maze(maze_side, maze_side)
+random_seed = 0
+maze = Maze(maze_side, maze_side, random_seed)
 maze.knock_down_walls(knock_downs)
 
 # initialize empty graph
@@ -54,18 +56,23 @@ for i in range(maze_side):
                 start_head = head.variables[0][0]
                 edge.add_constraint(end_tail == start_head) 
 
-# solve shortest path problem
-s = graph.get_vertex((0, 0))
-t = graph.get_vertex((maze_side - 1, maze_side - 1))
-prob = graph.solve_shortest_path(s, t)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+# select source and target vertices
+source = graph.get_vertex((0, 0))
+target = graph.get_vertex((maze_side - 1, maze_side - 1))
 
-# plot optimal trajectory
-import matplotlib.pyplot as plt
-plt.figure()
-maze.plot()
-for vertex in graph.vertices:
-    if np.isclose(vertex.binary_variable.value, 1):
-        plt.plot(*vertex.variables[0].value.T, c='b')
-plt.show()
+# run followin code only if this file is executed directly, and not when it is
+# imported by other files
+if __name__ == "__main__":
+
+    # solve problem
+    prob = graph.solve_shortest_path(source, target)
+    print("Problem status:", prob.status)
+    print("Optimal value:", prob.value)
+
+    # plot optimal trajectory
+    plt.figure()
+    maze.plot()
+    for vertex in graph.vertices:
+        if np.isclose(vertex.binary_variable.value, 1):
+            plt.plot(*vertex.variables[0].value.T, 'b--')
+    plt.show()
