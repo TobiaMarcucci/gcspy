@@ -39,8 +39,8 @@ for tail in graph.vertices:
 
 # solve problem
 prob = graph.solve_traveling_salesman()
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+print("Problem status:", prob.status)
+print("Optimal value:", prob.value)
 
 # helper function that draws an L1 arrow between two points
 def l1_arrow(tail, head, color):
