@@ -8,6 +8,7 @@ from gcspy.graph_problems.shortest_path import ConicShortestPathProblem
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
 from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
+from gcspy.graph_problems.shortest_path_optimized import ConicShortestPathProblemOptimized
 
 # TODO: add support for undirected graphs.
 
@@ -240,6 +241,11 @@ class GraphOfConvexSets(Graph):
     def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicShortestPathProblem(conic_graph, source.name, target.name, binary)
+        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+    
+    def solve_shortest_path_optimized(self, source, target, binary=True, *args, **kwargs):
+        conic_graph = self.to_conic()
+        conic_problem = ConicShortestPathProblemOptimized(conic_graph, source.name, target.name, binary)
         return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
     
     def solve_shortest_path_with_rounding(self, source, target, rounding_fn, *args, **kwargs):

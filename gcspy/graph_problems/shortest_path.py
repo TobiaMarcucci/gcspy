@@ -30,7 +30,7 @@ class ConicShortestPathProblem(ConicGraphProblem):
                     self.zv[i] == self.xv[i],
                     self.zv[i] == sum(self.ze_head[inc])]
 
-            # all other vertices constraints
+            # all other vertex constraints
             else:
                 self.constraints += [
                     self.yv[i] == sum(self.ye[inc]),
