@@ -16,7 +16,7 @@ class ConicShortestPathProblem(ConicGraphProblem):
             if vertex.name == source_name:
                 self.constraints += [
                     self.yv[i] == 1,
-                    sum(self.ye[inc]) == 0,
+                    self.ye[inc] == 0,
                     sum(self.ye[out]) == 1,
                     self.zv[i] == self.xv[i],
                     self.zv[i] == sum(self.ze_tail[out])]
@@ -26,7 +26,7 @@ class ConicShortestPathProblem(ConicGraphProblem):
                 self.constraints += [
                     self.yv[i] == 1,
                     sum(self.ye[inc]) == 1,
-                    sum(self.ye[out]) == 0,
+                    self.ye[out] == 0,
                     self.zv[i] == self.xv[i],
                     self.zv[i] == sum(self.ze_head[inc])]
 
