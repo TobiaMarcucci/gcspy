@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
-from gcspy.graph_problems.shortest_path_optimized import ConicShortestPathProblem
+from gcspy.graph_problems.shortest_path import shortest_path
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
 from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
@@ -205,10 +205,7 @@ class GraphOfConvexSets(Graph):
 
         return conic_graph
 
-    def _solve_graph_problem(self, conic_graph, conic_problem, *args, **kwargs):
-
-        # solve problem in conic form
-        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+    def _set_variable_values(self, conic_graph, xv, yv, xe, ye):
 
         # set value of vertex variables for convex program
         for convex_vertex, x, y in zip(self.vertices, xv, yv):
@@ -234,13 +231,12 @@ class GraphOfConvexSets(Graph):
                 x_extended = np.concatenate((x_tail, x_head, x))
                 for variable in convex_edge.variables:
                     variable.value = conic_edge.get_convex_variable_value(variable, x_extended)
-
-        return prob
     
     def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
-        conic_problem = ConicShortestPathProblem(conic_graph, source.name, target.name, binary)
-        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+        prob, xv, yv, xe, ye = shortest_path(conic_graph, source.name, target.name, binary, *args, **kwargs)
+        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_shortest_path_with_rounding(self, source, target, rounding_fn, *args, **kwargs):
         relaxation = self.solve_shortest_path(source, target, binary=False, *args, **kwargs)
@@ -250,24 +246,32 @@ class GraphOfConvexSets(Graph):
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicTravelingSalesmanProblem(conic_graph, subtour_elimination, binary)
-        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_facility_location(self, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicFacilityLocationProblem(conic_graph, binary)
-        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicSpanningTreeProblem(conic_graph, root.name, subtour_elimination, binary)
-        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        return prob
     
     def solve_from_ilp(self, ilp_constraints, binary=True, *args, **kwargs):
         convex_yv = self.vertex_binaries()
         convex_ye = self.edge_binaries()
         conic_graph = self.to_conic()
         conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
-        return self._solve_graph_problem(conic_graph, conic_problem, *args, **kwargs)
+        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        return prob
 
     def solve_convex_restriction(self, vertices, edges):
         """

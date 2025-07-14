@@ -24,6 +24,7 @@ class ConicTravelingSalesmanProblem:
             self.cost += edge.evaluate_cost(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
 
             # spread vertex cost over the edges
+            # since cost is linear this does not change things
             self.cost += edge.tail.evaluate_cost(self.ze_tail[k])
 
         # constraints on the edges

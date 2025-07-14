@@ -5,8 +5,8 @@ from maze_utils import Maze
 from gcspy import GraphOfConvexSets
 
 # create maze
-maze_side = 10
-knock_downs = 3
+maze_side = 12
+knock_downs = 10
 random_seed = 0
 maze = Maze(maze_side, maze_side, random_seed)
 maze.knock_down_walls(knock_downs)
