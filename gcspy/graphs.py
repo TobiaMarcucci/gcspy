@@ -232,9 +232,9 @@ class GraphOfConvexSets(Graph):
                 for variable in convex_edge.variables:
                     variable.value = conic_edge.get_convex_variable_value(variable, x_extended)
     
-    def solve_shortest_path(self, source, target, binary=True, *args, **kwargs):
+    def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = shortest_path(conic_graph, source.name, target.name, binary, *args, **kwargs)
+        prob, xv, yv, xe, ye = shortest_path(conic_graph, source.name, target.name, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
