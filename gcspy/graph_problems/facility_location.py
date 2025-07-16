@@ -22,9 +22,10 @@ def facility_location(conic_graph, binary, tol, **kwargs):
         # user vertex
         if len(inc) > 0:
             cost += vertex.evaluate_cost(zv[i])
-            constraints.append(yv[i] == 1)
-            constraints.append(sum(ye[inc]) == 1)
-            constraints.append(sum(ze_head[inc]) == zv[i])
+            constraints += [
+                yv[i] == 1,
+                sum(ye[inc]) == 1,
+                sum(ze_head[inc]) == zv[i]]
         
         # facility vertex
         else:

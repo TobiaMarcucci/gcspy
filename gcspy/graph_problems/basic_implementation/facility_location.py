@@ -16,10 +16,11 @@ class ConicFacilityLocationProblem(ConicGraphProblem):
             if len(inc) > 0:
                 if len(out) > 0:
                     raise ValueError("Graph does not have facility-location topology.")
-                self.constraints.append(self.yv[i] == 1)
-                self.constraints.append(sum(self.ye[inc]) == 1)
-                self.constraints.append(self.zv[i] == sum(self.ze_head[inc]))
-                self.constraints.append(self.zv[i] == self.xv[i])
+                self.constraints += [
+                    self.yv[i] == 1,
+                    sum(self.ye[inc]) == 1,
+                    self.zv[i] == sum(self.ze_head[inc]),
+                    self.zv[i] == self.xv[i]]
 
         # constraints on the edges
         for k, edge in enumerate(conic_graph.edges):

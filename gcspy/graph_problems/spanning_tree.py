@@ -1,34 +1,50 @@
+import cvxpy as cp
+import numpy as np
 from itertools import combinations
-from gcspy.graph_problems.graph_problem import ConicGraphProblem
+from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
-class ConicSpanningTreeProblem(ConicGraphProblem):
+def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kwargs):
 
-    def __init__(self, conic_graph, root_name, subtour_elimination, binary):
+    # define variables
+    yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-        # initialize parent class
-        super().__init__(conic_graph, binary)
+    # edge costs and constraints
+    cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
-        # constraints on the vertices
-        for i, vertex in enumerate(conic_graph.vertices):
-            inc = conic_graph.incoming_edge_indices(vertex)
-            self.constraints.append(self.yv[i] == 1)
-            self.constraints.append(self.zv[i] == self.xv[i])
-            if vertex.name == root_name:
-                self.constraints.append(sum(self.ye[inc]) == 0)
-                self.constraints.append(sum(self.ze_head[inc]) == 0)
-            else:
-                self.constraints.append(sum(self.ye[inc]) == 1)
-                self.constraints.append(sum(self.ze_head[inc]) == self.xv[i])
+    # constraints on the vertices
+    for i, vertex in enumerate(conic_graph.vertices):
+        cost += vertex.evaluate_cost(zv[i])
+        inc = conic_graph.incoming_edge_indices(vertex)
+        if vertex.name == root_name:
+            constraints += vertex.evaluate_constraints(zv[i])
+            constraints += [ye[k] == 0 for k in inc]
+            constraints += [ze_head[k] == 0 for k in inc]
+        else:
+            constraints += [sum(ye[inc]) == 1, sum(ze_head[inc]) == zv[i]]
 
-        # subtour elimination constraints for all subsets of vertices with
-        # cardinality between 2 and num_vertices - 1
-        if subtour_elimination:
-            root = conic_graph.get_vertex(root_name)
-            i = conic_graph.vertex_index(root)
-            subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
-            for subtour_size in range(2, conic_graph.num_vertices()):
-                for vertices in combinations(subvertices, subtour_size):
-                    inc = conic_graph.incoming_edge_indices(vertices)
-                    self.constraints.append(sum(self.ye[inc]) >= 1)
+    # constraints on the edges
+    for k, edge in enumerate(conic_graph.edges):
+        z_tail = zv[conic_graph.vertex_index(edge.tail)]
+        constraints += edge.tail.evaluate_constraints(z_tail - ze_tail[k], 1 - ye[k])
 
+    # subtour elimination constraints for all subsets of vertices with
+    # cardinality between 2 and num_vertices - 1
+    if subtour_elimination:
+        root = conic_graph.get_vertex(root_name)
+        i = conic_graph.vertex_index(root)
+        subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
+        for subtour_size in range(2, conic_graph.num_vertices()):
+            for vertices in combinations(subvertices, subtour_size):
+                inc = conic_graph.incoming_edge_indices(vertices)
+                constraints.append(sum(ye[inc]) >= 1)
+
+    # solve problem
+    prob = cp.Problem(cp.Minimize(cost), constraints)
+    prob.solve(**kwargs)
+
+    # set value of vertex binaries
+    if prob.status == "optimal":
+        yv.value = np.ones(conic_graph.num_vertices())
+
+    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)
         
