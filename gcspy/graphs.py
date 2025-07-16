@@ -3,10 +3,10 @@ import cvxpy as cp
 from collections.abc import Iterable
 from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
-from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
 from gcspy.graph_problems.shortest_path import shortest_path
+from gcspy.graph_problems.traveling_salesman import traveling_salesman
+from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
-from gcspy.graph_problems.traveling_salesman import ConicTravelingSalesmanProblem
 from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
 
 # TODO: add support for undirected graphs.
@@ -238,18 +238,18 @@ class GraphOfConvexSets(Graph):
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
-    def solve_shortest_path_with_rounding(self, source, target, rounding_fn, *args, **kwargs):
-        relaxation = self.solve_shortest_path(source, target, binary=False, *args, **kwargs)
+    def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
+        binary = False
+        relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
         restriction = rounding_fn(self, source, target)
         return relaxation, restriction
 
-    def solve_traveling_salesman(self, subtour_elimination=True, binary=True, *args, **kwargs):
+    def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        conic_problem = ConicTravelingSalesmanProblem(conic_graph, subtour_elimination, binary)
-        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        prob, xv, yv, xe, ye = traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
-    
+
     def solve_facility_location(self, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicFacilityLocationProblem(conic_graph, binary)

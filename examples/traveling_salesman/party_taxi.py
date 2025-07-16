@@ -6,7 +6,15 @@ from gcspy import GraphOfConvexSets
 
 # problem data
 party_position = np.array([45, 7])
-guest_positions = np.array([[50, 8], [47, 5], [43, 10], [48, 11], [47, 9], [52, 4]])
+guest_positions = np.array([
+    [47, 9],
+    [52, 4],
+    [52, 8],
+    [47, 5],
+    [48, 11],
+    [43, 10],
+    [42, 6],
+    [44, 4]])
 
 # compute bounding box for all positions
 positions = np.vstack((party_position, guest_positions))
@@ -38,7 +46,7 @@ for tail in graph.vertices:
             edge.add_cost(cp.norm1(x_tail - x_head)) # Manhattan distance traveled by the driver
 
 # solve problem
-prob = graph.solve_traveling_salesman()
+prob = graph.solve_traveling_salesman_basic()
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 
