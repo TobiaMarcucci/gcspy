@@ -7,10 +7,10 @@ from gcspy import GraphOfConvexSets
 graph = GraphOfConvexSets()
 
 # create vertices on a grid
-grid_side = 3
+grid_sides = (3, 4)
+grid_points = [(i, j) for i in range(grid_sides[0]) for j in range(grid_sides[1])]
 radius = .25
-grid_points = lambda dim: product(*[range(grid_side)] * dim)
-for i, j in grid_points(2):
+for i, j in grid_points:
     v = graph.add_vertex((i, j))
     x = v.add_variable(2)
     center = np.array([i, j])
@@ -20,17 +20,18 @@ for i, j in grid_points(2):
 root = graph.vertices[0]
 
 # add edges between neighboring vertices
-for i, j, k, l in grid_points(4):
-    distance = abs(k - i) + abs(l - j)
-    if distance > 0 and distance <= 1:
-        tail = graph.get_vertex((i, j))
-        head = graph.get_vertex((k, l))
-        edge = graph.add_edge(tail, head)
+for i, j in grid_points:
+    for k, l in grid_points:
+        distance = abs(k - i) + abs(l - j)
+        if distance > 0 and distance <= 1:
+            tail = graph.get_vertex((i, j))
+            head = graph.get_vertex((k, l))
+            edge = graph.add_edge(tail, head)
 
-        # edge cost is Euclidean distance
-        x_tail = tail.variables[0]
-        x_head = head.variables[0]
-        edge.add_cost(cp.norm2(x_head - x_tail))
+            # edge cost is Euclidean distance
+            x_tail = tail.variables[0]
+            x_head = head.variables[0]
+            edge.add_cost(cp.norm2(x_head - x_tail))
 
 # run followin code only if this file is executed directly, and not when it is
 # imported by other files
