@@ -1,28 +1,43 @@
-from gcspy.graph_problems.graph_problem import ConicGraphProblem
+import cvxpy as cp
+import numpy as np
+from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
-class ConicFacilityLocationProblem(ConicGraphProblem):
+def facility_location(conic_graph, binary, tol, **kwargs):
 
-    def __init__(self, conic_graph, binary):
+    # define variables
+    yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-        # initialize parent class
-        super().__init__(conic_graph, binary)
+    # edge costs and constraints
+    cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
-        # constraints on the vertices
-        for i, vertex in enumerate(conic_graph.vertices):
-            inc = conic_graph.incoming_edge_indices(vertex)
-            out = conic_graph.outgoing_edge_indices(vertex)
+    # constraints on the vertices
+    for i, vertex in enumerate(conic_graph.vertices):
+        inc = conic_graph.incoming_edge_indices(vertex)
+        out = conic_graph.outgoing_edge_indices(vertex)
 
-            # user vertex
-            if len(inc) > 0:
-                if len(out) > 0:
-                    raise ValueError("Graph does not have facility-location topology.")
-                self.constraints.append(self.yv[i] == 1)
-                self.constraints.append(sum(self.ye[inc]) == 1)
-                self.constraints.append(self.zv[i] == sum(self.ze_head[inc]))
-                self.constraints.append(self.zv[i] == self.xv[i])
+        # check that graph topology is correct
+        if len(inc) > 0 and len(out) > 0:
+            raise ValueError("Graph is not bipartite.")
 
-        # constraints on the edges
-        for k, edge in enumerate(conic_graph.edges):
-            i = conic_graph.vertex_index(edge.tail)
-            self.constraints.append(self.yv[i] >= self.ye[k])
-            self.constraints += edge.tail.evaluate_constraints(self.zv[i] - self.ze_tail[k], self.yv[i] - self.ye[k])
+        # user vertex
+        if len(inc) > 0:
+            cost += vertex.evaluate_cost(zv[i])
+            constraints.append(yv[i] == 1)
+            constraints.append(sum(ye[inc]) == 1)
+            constraints.append(sum(ze_head[inc]) == zv[i])
+        
+        # facility vertex
+        else:
+            cost += vertex.evaluate_cost(zv[i], yv[i])
+            constraints.append(yv[i] <= 1)
+
+    # constraints on the edges
+    for k, edge in enumerate(conic_graph.edges):
+        i = conic_graph.vertex_index(edge.tail)
+        constraints += edge.tail.evaluate_constraints(zv[i] - ze_tail[k], yv[i] - ye[k])
+
+    # solve problem
+    prob = cp.Problem(cp.Minimize(cost), constraints)
+    prob.solve(**kwargs)
+
+    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)

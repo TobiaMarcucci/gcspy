@@ -5,7 +5,7 @@ from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.shortest_path import shortest_path
 from gcspy.graph_problems.traveling_salesman import traveling_salesman
-from gcspy.graph_problems.facility_location import ConicFacilityLocationProblem
+from gcspy.graph_problems.facility_location import facility_location
 from gcspy.graph_problems.spanning_tree import ConicSpanningTreeProblem
 from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
 
@@ -249,14 +249,13 @@ class GraphOfConvexSets(Graph):
         prob, xv, yv, xe, ye = traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
-
-    def solve_facility_location(self, binary=True, *args, **kwargs):
+    
+    def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        conic_problem = ConicFacilityLocationProblem(conic_graph, binary)
-        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        prob, xv, yv, xe, ye = facility_location(conic_graph, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
-    
+
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, *args, **kwargs):
         conic_graph = self.to_conic()
         conic_problem = ConicSpanningTreeProblem(conic_graph, root.name, subtour_elimination, binary)
