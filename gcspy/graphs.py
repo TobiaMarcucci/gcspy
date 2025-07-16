@@ -7,7 +7,7 @@ from gcspy.graph_problems.shortest_path import shortest_path
 from gcspy.graph_problems.traveling_salesman import traveling_salesman
 from gcspy.graph_problems.facility_location import facility_location
 from gcspy.graph_problems.spanning_tree import spanning_tree
-from gcspy.graph_problems.from_ilp import ConicGraphProblemFromILP
+from gcspy.graph_problems.from_ilp import from_ilp
 
 # TODO: add support for undirected graphs.
 
@@ -261,13 +261,12 @@ class GraphOfConvexSets(Graph):
         prob, xv, yv, xe, ye = spanning_tree(conic_graph, root.name, subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
-
-    def solve_from_ilp(self, ilp_constraints, binary=True, *args, **kwargs):
+    
+    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, *args, **kwargs):
         convex_yv = self.vertex_binaries()
         convex_ye = self.edge_binaries()
         conic_graph = self.to_conic()
-        conic_problem = ConicGraphProblemFromILP(conic_graph, convex_yv, convex_ye, ilp_constraints, binary)
-        prob, xv, yv, xe, ye = conic_problem.solve(*args, **kwargs)
+        prob, xv, yv, xe, ye = from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol=1e-4)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
 
