@@ -12,7 +12,6 @@ print("Optimal value:", prob.value)
 # enforced and we do not have to include them in our formulation.
 
 # binary variables
-
 yv = graph.vertex_binaries()
 ye = graph.edge_binaries()
 

@@ -26,7 +26,7 @@ for i, v in enumerate(graph.vertices):
     out = graph.outgoing_edge_indices(v)
     ilp_constraints += [
         yv[i] == sum(ye[inc]) + is_source,
-        sum(ye[inc]) + is_source == sum(ye[out]) + is_target]
+        yv[i] == sum(ye[out]) + is_target]
 
 # solve SPP from constraints of the ILP formulation and check that optimal value
 # is equal to the one above

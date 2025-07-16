@@ -7,7 +7,7 @@ from gcspy import GraphOfConvexSets
 graph = GraphOfConvexSets()
 
 # create vertices on a grid
-grid_sides = (3, 4)
+grid_sides = (4, 3)
 grid_points = [(i, j) for i in range(grid_sides[0]) for j in range(grid_sides[1])]
 radius = .25
 for i, j in grid_points:
