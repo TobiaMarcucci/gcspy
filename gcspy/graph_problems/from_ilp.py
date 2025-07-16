@@ -12,8 +12,8 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
     convex_ilp.add_constraints(ilp_constraints)
     conic_ilp = convex_ilp.to_conic()
 
-    # indices of vertex and edge binaries in conic program, uses the fact
-    # that the variables are scalars
+    # indices of vertex and edge binaries in conic program, uses the fact that
+    # the binaries are scalars
     idx_v = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_yv]
     idx_e = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_ye]
 
@@ -26,6 +26,8 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
     constraints = []
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.evaluate_cost(zv[i], yv[i])
+        # enforce spatial constration implied by 0 <= yv <= 1 (letting the user
+        # decide when to enforce them them is error very prone)
         constraints += vertex.evaluate_constraints(zv[i], yv[i])
         constraints += vertex.evaluate_constraints(xv[i] - zv[i], 1 - yv[i])
 
@@ -34,14 +36,13 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
         cost += edge.evaluate_cost(ze_tail[k], ze_head[k], ze[k], ye[k])
         constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
 
-        # tail constraints
-        x_tail = xv[conic_graph.vertex_index(edge.tail)]
+        # enforce spatial constration implied by 0 <= ye <= 1 (letting the user
+        # decide when to enforce them them is error very prone)
         constraints += edge.tail.evaluate_constraints(ze_tail[k], ye[k])
-        constraints += edge.tail.evaluate_constraints(x_tail - ze_tail[k], 1 - ye[k])
-
-        # head constraints
-        x_head = xv[conic_graph.vertex_index(edge.head)]
         constraints += edge.head.evaluate_constraints(ze_head[k], ye[k])
+        x_tail = xv[conic_graph.vertex_index(edge.tail)]
+        x_head = xv[conic_graph.vertex_index(edge.head)]
+        constraints += edge.tail.evaluate_constraints(x_tail - ze_tail[k], 1 - ye[k])
         constraints += edge.head.evaluate_constraints(x_head - ze_head[k], 1 - ye[k])
 
     # check each line of each conic constraint
