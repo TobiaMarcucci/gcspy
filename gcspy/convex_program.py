@@ -52,8 +52,9 @@ class ConvexProgram:
 
     def homogenization(self, variables, y):
         conic_program = ConicProgram(self)
-        cost = conic_program.cost_homogenization(variables, y)
-        constraints = conic_program.constraint_homogenization(variables, y)
+        x = conic_program.variables_to_x(variables)
+        cost = conic_program.cost_homogenization(x, y)
+        constraints = conic_program.constraint_homogenization(x, y)
         return cost, constraints
     
     def copy_variables(self):

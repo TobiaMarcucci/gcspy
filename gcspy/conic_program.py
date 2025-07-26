@@ -18,7 +18,7 @@ class ConicProgram:
             used_ids += [variable.id for variable in convex_program.cost.variables()]
         for variable in convex_program.variables:
             if not variable.id in used_ids:
-                convex_program.cost += 0 * variable.flatten()[0]
+                convex_program.cost += 0 * variable.flatten(order='F')[0]
 
         # Deal with corner case with constant cost and no constraints.
         if isinstance(convex_program.cost, Number) and len(convex_program.constraints) == 0:
@@ -27,7 +27,8 @@ class ConicProgram:
             self.A = np.array([])
             self.b = np.array([])
             self.K = []
-            self.id_to_range = {}
+            self.id_to_size = {}
+            return
 
         # Construct conic program from given convex program.
         prob = cp.Problem(cp.Minimize(convex_program.cost), convex_program.constraints)
@@ -50,7 +51,7 @@ class ConicProgram:
         Ab = prob.A.toarray().reshape((-1, cols), order='F')
         self.A = Ab[:, :-1]
         self.b = Ab[:, -1]
-        self.K = prob.constraints
+        self.K = [(type(c), c.size) for c in prob.constraints]
 
         # Dictionary that maps the id of a variable to its size. The entries
         # are ordered as the variables appear in the vector x.
@@ -73,8 +74,17 @@ class ConicProgram:
                 raise ValueError(
                     f"Variable {new_var.id} has shape {new_var.shape}, "
                     f"while it must have shape {old_var.shape}.")
-    
+            
+            # Check symmetry attribute.
+            if new_var.is_symmetric() != old_var.is_symmetric():
+                raise ValueError(
+                    f"Symmetry of variable {new_var.id} is incorrect.")
+            
     def variables_to_x(self, variables):
+
+        # Deal with trivial case.
+        if len(variables) == 0:
+            return np.array([])
 
         # Check that passed variables are coherent with program variables.
         self.check_variable_copies(variables)
@@ -94,21 +104,30 @@ class ConicProgram:
 
         return cp.hstack(x)
 
-    def cost_homogenization(self, variables, y):
-        x = self.variables_to_x(variables)
+    def cost_homogenization(self, x, y):
         return self.c @ x + self.d * y
 
-    def constraint_homogenization(self, variables, y):
-        x = self.variables_to_x(variables)
+    def constraint_homogenization(self, x, y):
         constraints = []
         z = self.A @ x + self.b * y
         start = 0
-        for Ki in self.K:
-            stop = start + Ki.size
+        for Ki, size in self.K:
+            stop = start + size
             zi = z[start:stop]
-            constraints.append(self.constrain_in_cone(zi, type(Ki)))
+            constraints.append(self.constrain_in_cone(zi, Ki))
             start = stop
         return constraints
+    
+    def _solve(self, y=1, **kwargs):
+        """
+        This method is not used in the library but is useful for testing.
+        """
+        x = cp.Variable(self.c.size)
+        cost = self.cost_homogenization(self, x, y)
+        constraints = self.constraint_homogenization(x, y)
+        prob = cp.Problem(cp.Minimize(cost), constraints)
+        prob.solve(**kwargs)
+        return prob.value, x.value
 
     @staticmethod
     def variable_to_xi(variable):
