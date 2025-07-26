@@ -27,7 +27,7 @@ class ConicProgram:
             self.A = np.array([])
             self.b = np.array([])
             self.K = []
-            self.id_to_size = {}
+            self.id_and_size = []
             return
 
         # Construct conic program from given convex program.
@@ -44,21 +44,20 @@ class ConicProgram:
         self.c = cd[:-1]
         self.d = cd[-1]
 
-        # Define constraints of conic program. (Sparse matrices are converted to
-        # dense numpy arrays, since keeping them sparse seems to make things
-        # slower.)
+        # Define constraints of conic program. Sparse matrices are converted to
+        # dense arrays, since keeping them sparse seems to make things slower.
         cols = prob.c.shape[0]
         Ab = prob.A.toarray().reshape((-1, cols), order='F')
         self.A = Ab[:, :-1]
         self.b = Ab[:, -1]
         self.K = [(type(c), c.size) for c in prob.constraints]
 
-        # Dictionary that maps the id of a variable to its size. The entries
-        # are ordered as the variables appear in the vector x.
-        key = lambda item: item[1]
-        self.id_to_size =  dict(sorted(prob.var_id_to_col.items(), key=key))
-        for variable in prob.variables:
-            self.id_to_size[variable.id] = variable.size
+        # List of tuples with variable id and size. The tupes are ordered as the
+        # variables appear in the vector x.
+        starts = np.array([prob.var_id_to_col[v.id] for v in prob.variables])
+        if any(starts[1:] <= starts[:-1]):
+            raise ValueError("Variables are not sorted.")
+        self.id_and_size = [(v.id, v.size) for v in prob.variables]
 
     def check_variable_copies(self, variables):
 
@@ -82,7 +81,7 @@ class ConicProgram:
             
     def variables_to_x(self, variables):
 
-        # Deal with trivial case.
+        # Rule out trivial case.
         if len(variables) == 0:
             return np.array([])
 
@@ -94,20 +93,24 @@ class ConicProgram:
 
         # Assemble vector x one piece at the time.
         x = []
-        for id, size in self.id_to_size.items():
+        for id, size in self.id_and_size:
+
+            # If variable was part of the original set of variables.
             if id in variable_ids:
                 variable = variables[variable_ids.index(id)]
                 xi = self.variable_to_xi(variable)
+
+            # If variable was added in the tranformation to conic.
             else:
                 xi = cp.Variable(size)
             x.append(xi)
 
         return cp.hstack(x)
 
-    def cost_homogenization(self, x, y):
+    def cost_homogenization(self, x, y=1):
         return self.c @ x + self.d * y
 
-    def constraint_homogenization(self, x, y):
+    def constraint_homogenization(self, x, y=1):
         constraints = []
         z = self.A @ x + self.b * y
         start = 0
