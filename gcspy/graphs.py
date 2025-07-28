@@ -27,12 +27,12 @@ class Graph:
     def has_edge(self, name):
         return name in [edge.name for edge in self.edges]
         
-    def add_vertex(self, name):
+    def add_vertex(self, name, *args, **kwargs):
         if self.has_vertex(name):
             raise ValueError(f"Vertex with name {name} is aleady defined.")
-        return self._add_vertex(name)
+        return self._add_vertex(name, *args, **kwargs)
 
-    def add_edge(self, tail, head):
+    def add_edge(self, tail, head, *args, **kwargs):
         if not self.has_vertex(tail.name):
             raise ValueError(f"Vertex with name {tail.name} is not defined.")
         if not self.has_vertex(head.name):
@@ -40,15 +40,15 @@ class Graph:
         name = (tail.name, head.name)
         if self.has_edge(name):
             raise ValueError(f"Edge with name {name} is aleady defined.")
-        return self._add_edge(tail, head)
+        return self._add_edge(tail, head, *args, **kwargs)
 
-    def _add_vertex(self, name):
+    def _add_vertex(self, name, *args, **kwargs):
         """
         This method must be overwritte by the derived class.
         """
         raise NotImplementedError
 
-    def _add_edge(self, tail, head):
+    def _add_edge(self, tail, head, *args, **kwargs):
         """
         This method must be overwritte by the derived class.
         """
@@ -149,13 +149,13 @@ class GraphOfConicSets(Graph):
         self.vertices = []
         self.edges = []
 
-    def _add_vertex(self, name):
-        vertex = ConicVertex(name) # This is wrong!
+    def _add_vertex(self, name, c, d, A, b, K, id_to_range=None):
+        vertex = ConicVertex(name, c, d, A, b, K, id_to_range)
         self.vertices.append(vertex)
         return vertex
 
-    def _add_edge(self, tail, head):
-        edge = ConicEdge(tail, head) # This is wrong!
+    def _add_edge(self, tail, head, c, d, A, b, K, id_to_range=None):
+        edge = ConicEdge(tail, head, c, d, A, b, K, id_to_range)
         self.edges.append(edge)
         return edge
 
@@ -191,17 +191,34 @@ class GraphOfConvexSets(Graph):
         # Initialize empty conic graph.
         conic_graph = GraphOfConicSets()
 
-        # Add one vertex at the time.
+        # Add one vertex at the time. The following is equivalent to
+        # conic_graph.vertices.append(conic_vertex) but safer.
         for vertex in self.vertices:
             conic_vertex = vertex.to_conic()
-            conic_graph.vertices.append(conic_vertex)
+            conic_graph.add_vertex(
+                conic_vertex.name,
+                conic_vertex.c,
+                conic_vertex.d,
+                conic_vertex.A,
+                conic_vertex.b,
+                conic_vertex.K,
+                conic_vertex.id_to_range)
 
-        # Add one edge at the time.
+        # Add one edge at the time. The following is equivalent to
+        # conic_graph.edges.append(conic_edge) but safer.
         for edge in self.edges:
             conic_tail = conic_graph.get_vertex(edge.tail.name)
             conic_head = conic_graph.get_vertex(edge.head.name)
             conic_edge = edge.to_conic(conic_tail, conic_head)
-            conic_graph.edges.append(conic_edge)
+            conic_graph.add_edge(
+                conic_tail,
+                conic_head,
+                conic_edge.c,
+                conic_edge.d,
+                conic_edge.A,
+                conic_edge.b,
+                conic_edge.K,
+                conic_edge.id_to_range)
 
         return conic_graph
 
