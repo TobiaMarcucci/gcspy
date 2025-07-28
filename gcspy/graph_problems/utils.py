@@ -24,10 +24,10 @@ def enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head):
     cost = 0
     constraints = []
     for k, edge in enumerate(conic_graph.edges):
-        cost += edge.evaluate_cost(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.tail.evaluate_constraints(ze_tail[k], ye[k])
-        constraints += edge.head.evaluate_constraints(ze_head[k], ye[k])
+        cost += edge.cost_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
+        constraints += edge.constraint_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
+        constraints += edge.tail.constraint_homogenization(ze_tail[k], ye[k])
+        constraints += edge.head.constraint_homogenization(ze_head[k], ye[k])
 
     return cost, constraints
 

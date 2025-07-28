@@ -3,8 +3,8 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicVertex(ConicProgram):
 
-    def __init__(self, name, c, d, A, b, K, convex_id_to_conic_idx=None):
-        super().__init__(c, d, A, b, K, convex_id_to_conic_idx)
+    def __init__(self, name, c, d, A, b, K, id_to_range=None):
+        super().__init__(c, d, A, b, K, id_to_range)
         self.name = name
 
 class ConvexVertex(ConvexProgram):
@@ -22,4 +22,4 @@ class ConvexVertex(ConvexProgram):
             conic_program.A,
             conic_program.b,
             conic_program.K,
-            conic_program.convex_id_to_conic_idx)
+            conic_program.id_to_range)

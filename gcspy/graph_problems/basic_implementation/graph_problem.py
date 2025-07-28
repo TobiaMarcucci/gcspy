@@ -33,35 +33,35 @@ class ConicGraphProblem:
         # cost of the vertices
         self.cost = 0
         for i, vertex in enumerate(self.conic_graph.vertices):
-            self.cost += vertex.evaluate_cost(self.zv[i], self.yv[i])
+            self.cost += vertex.cost_homogenization(self.zv[i], self.yv[i])
 
         # cost of the edges
         for k, edge in enumerate(self.conic_graph.edges):
-            self.cost += edge.evaluate_cost(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
+            self.cost += edge.cost_homogenization(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
 
     def define_constraints(self):
 
         # constraints on the vertices
         self.constraints = []
         for i, vertex in enumerate(self.conic_graph.vertices):
-            self.constraints += vertex.evaluate_constraints(self.zv[i], self.yv[i])
-            self.constraints += vertex.evaluate_constraints(self.xv[i] - self.zv[i], 1 - self.yv[i])
+            self.constraints += vertex.constraint_homogenization(self.zv[i], self.yv[i])
+            self.constraints += vertex.constraint_homogenization(self.xv[i] - self.zv[i], 1 - self.yv[i])
         
         # constraints on the edges
         for k, edge in enumerate(self.conic_graph.edges):
             
             # tail constraints
             x_tail = self.xv[self.conic_graph.vertex_index(edge.tail)]
-            self.constraints += edge.tail.evaluate_constraints(self.ze_tail[k], self.ye[k])
-            self.constraints += edge.tail.evaluate_constraints(x_tail - self.ze_tail[k], 1 - self.ye[k])
+            self.constraints += edge.tail.constraint_homogenization(self.ze_tail[k], self.ye[k])
+            self.constraints += edge.tail.constraint_homogenization(x_tail - self.ze_tail[k], 1 - self.ye[k])
 
             # head constraints
             x_head = self.xv[self.conic_graph.vertex_index(edge.head)]
-            self.constraints += edge.head.evaluate_constraints(self.ze_head[k], self.ye[k])
-            self.constraints += edge.head.evaluate_constraints(x_head - self.ze_head[k], 1 - self.ye[k])
+            self.constraints += edge.head.constraint_homogenization(self.ze_head[k], self.ye[k])
+            self.constraints += edge.head.constraint_homogenization(x_head - self.ze_head[k], 1 - self.ye[k])
 
             # edge constraints
-            self.constraints += edge.evaluate_constraints(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
+            self.constraints += edge.constraint_homogenization(self.ze_tail[k], self.ze_head[k], self.ze[k], self.ye[k])
 
     def solve(self, callback=None, tol=1e-4, **kwargs):
 

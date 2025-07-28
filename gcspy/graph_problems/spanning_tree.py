@@ -13,10 +13,10 @@ def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kw
 
     # constraints on the vertices
     for i, vertex in enumerate(conic_graph.vertices):
-        cost += vertex.evaluate_cost(zv[i])
+        cost += vertex.cost_homogenization(zv[i])
         inc = conic_graph.incoming_edge_indices(vertex)
         if vertex.name == root_name:
-            constraints += vertex.evaluate_constraints(zv[i])
+            constraints += vertex.constraint_homogenization(zv[i])
             constraints += [ye[k] == 0 for k in inc]
             constraints += [ze_head[k] == 0 for k in inc]
         else:
@@ -25,7 +25,7 @@ def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kw
     # constraints on the edges
     for k, edge in enumerate(conic_graph.edges):
         z_tail = zv[conic_graph.vertex_index(edge.tail)]
-        constraints += edge.tail.evaluate_constraints(z_tail - ze_tail[k], 1 - ye[k])
+        constraints += edge.tail.constraint_homogenization(z_tail - ze_tail[k], 1 - ye[k])
 
     # subtour elimination constraints for all subsets of vertices with
     # cardinality between 2 and num_vertices - 1

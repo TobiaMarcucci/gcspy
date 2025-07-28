@@ -1,4 +1,4 @@
-from gcspy.graph_problems.graph_problem import ConicGraphProblem
+from gcspy.graph_problems.basic_implementation.graph_problem import ConicGraphProblem
 
 class ConicFacilityLocationProblem(ConicGraphProblem):
 
@@ -26,4 +26,4 @@ class ConicFacilityLocationProblem(ConicGraphProblem):
         for k, edge in enumerate(conic_graph.edges):
             i = conic_graph.vertex_index(edge.tail)
             self.constraints.append(self.yv[i] >= self.ye[k])
-            self.constraints += edge.tail.evaluate_constraints(self.zv[i] - self.ze_tail[k], self.yv[i] - self.ye[k])
+            self.constraints += edge.tail.constraint_homogenization(self.zv[i] - self.ze_tail[k], self.yv[i] - self.ye[k])

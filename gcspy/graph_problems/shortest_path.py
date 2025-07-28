@@ -16,21 +16,21 @@ def shortest_path(conic_graph, source_name, target_name, binary, tol, **kwargs):
 
         # source cost and constraints
         if vertex.name == source_name:
-            cost += vertex.evaluate_cost(zv[i])
+            cost += vertex.cost_homogenization(zv[i], 1)
             constraints += [yv[i] == 1, 1 == sum(ye[out]), zv[i] == sum(ze_tail[out])]
             for k in inc:
                 constraints += [ye[k] == 0, ze_head[k] == 0]
 
         # target cost and constraints
         elif vertex.name == target_name:
-            cost += vertex.evaluate_cost(zv[i])
+            cost += vertex.cost_homogenization(zv[i], 1)
             constraints += [yv[i] == 1, 1 == sum(ye[inc]), zv[i] == sum(ze_head[inc])]
             for k in out:
                 constraints += [ye[k] == 0, ze_tail[k] == 0]
 
         # cost and constraints on other vertices
         else:
-            cost += vertex.evaluate_cost(zv[i], yv[i])
+            cost += vertex.cost_homogenization(zv[i], yv[i])
             constraints += [
                 yv[i] <= 1,
                 yv[i] == sum(ye[inc]),

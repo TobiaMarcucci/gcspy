@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcspy.graph_problems.graph_problem import ConicGraphProblem
+from gcspy.graph_problems.basic_implementation.graph_problem import ConicGraphProblem
 from gcspy.programs import ConvexProgram
 
 class ConicGraphProblemFromILP(ConicGraphProblem):
@@ -52,9 +52,9 @@ class ConicGraphProblemFromILP(ConicGraphProblem):
                     if K == cp.Zero:
                         self.constraints += [lhs == 0, vector_lhs == 0]
                     elif K == cp.NonNeg:
-                        self.constraints += vertex.evaluate_constraints(vector_lhs, lhs)
+                        self.constraints += vertex.constraint_homogenization(vector_lhs, lhs)
                     elif K == cp.NonPos:
-                        self.constraints += vertex.evaluate_constraints(-vector_lhs, -lhs)
+                        self.constraints += vertex.constraint_homogenization(-vector_lhs, -lhs)
                     else:
                         raise ValueError(
                             f"Got cone of type {type(K)}. All the constraints "

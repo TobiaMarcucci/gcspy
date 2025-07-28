@@ -21,7 +21,7 @@ def facility_location(conic_graph, binary, tol, **kwargs):
 
         # user vertex
         if len(inc) > 0:
-            cost += vertex.evaluate_cost(zv[i])
+            cost += vertex.cost_homogenization(zv[i], 1)
             constraints += [
                 yv[i] == 1,
                 sum(ye[inc]) == 1,
@@ -29,13 +29,13 @@ def facility_location(conic_graph, binary, tol, **kwargs):
         
         # facility vertex
         else:
-            cost += vertex.evaluate_cost(zv[i], yv[i])
+            cost += vertex.cost_homogenization(zv[i], yv[i])
             constraints.append(yv[i] <= 1)
 
     # constraints on the edges
     for k, edge in enumerate(conic_graph.edges):
         i = conic_graph.vertex_index(edge.tail)
-        constraints += edge.tail.evaluate_constraints(zv[i] - ze_tail[k], yv[i] - ye[k])
+        constraints += edge.tail.constraint_homogenization(zv[i] - ze_tail[k], yv[i] - ye[k])
 
     # solve problem
     prob = cp.Problem(cp.Minimize(cost), constraints)

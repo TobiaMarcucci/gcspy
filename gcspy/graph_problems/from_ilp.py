@@ -25,25 +25,25 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
     cost = 0
     constraints = []
     for i, vertex in enumerate(conic_graph.vertices):
-        cost += vertex.evaluate_cost(zv[i], yv[i])
+        cost += vertex.cost_homogenization(zv[i], yv[i])
         # enforce spatial constration implied by 0 <= yv <= 1 (letting the user
         # decide when to enforce them them is error very prone)
-        constraints += vertex.evaluate_constraints(zv[i], yv[i])
-        constraints += vertex.evaluate_constraints(xv[i] - zv[i], 1 - yv[i])
+        constraints += vertex.constraint_homogenization(zv[i], yv[i])
+        constraints += vertex.constraint_homogenization(xv[i] - zv[i], 1 - yv[i])
 
     # edge costs and constraints
     for k, edge in enumerate(conic_graph.edges):
-        cost += edge.evaluate_cost(ze_tail[k], ze_head[k], ze[k], ye[k])
-        constraints += edge.evaluate_constraints(ze_tail[k], ze_head[k], ze[k], ye[k])
+        cost += edge.cost_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
+        constraints += edge.constraint_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
 
         # enforce spatial constration implied by 0 <= ye <= 1 (letting the user
         # decide when to enforce them them is error very prone)
-        constraints += edge.tail.evaluate_constraints(ze_tail[k], ye[k])
-        constraints += edge.head.evaluate_constraints(ze_head[k], ye[k])
+        constraints += edge.tail.constraint_homogenization(ze_tail[k], ye[k])
+        constraints += edge.head.constraint_homogenization(ze_head[k], ye[k])
         x_tail = xv[conic_graph.vertex_index(edge.tail)]
         x_head = xv[conic_graph.vertex_index(edge.head)]
-        constraints += edge.tail.evaluate_constraints(x_tail - ze_tail[k], 1 - ye[k])
-        constraints += edge.head.evaluate_constraints(x_head - ze_head[k], 1 - ye[k])
+        constraints += edge.tail.constraint_homogenization(x_tail - ze_tail[k], 1 - ye[k])
+        constraints += edge.head.constraint_homogenization(x_head - ze_head[k], 1 - ye[k])
 
     # check each line of each conic constraint
     for A, b, K in zip(conic_ilp.A, conic_ilp.b, conic_ilp.K):
@@ -75,9 +75,9 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
                 if K == cp.Zero:
                     constraints += [lhs == 0, vector_lhs == 0]
                 elif K == cp.NonNeg:
-                    constraints += vertex.evaluate_constraints(vector_lhs, lhs)
+                    constraints += vertex.constraint_homogenization(vector_lhs, lhs)
                 elif K == cp.NonPos:
-                    constraints += vertex.evaluate_constraints(-vector_lhs, -lhs)
+                    constraints += vertex.constraint_homogenization(-vector_lhs, -lhs)
                 else:
                     raise ValueError(
                         f"Got cone of type {type(K)}. All the constraints "

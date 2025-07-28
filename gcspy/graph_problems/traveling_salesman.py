@@ -13,7 +13,7 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
 
     # add all costs and constraints one vertex at the time
     for i, vertex in enumerate(conic_graph.vertices):
-        cost += vertex.evaluate_cost(zv[i])
+        cost += vertex.cost_homogenization(zv[i], 1)
         inc = conic_graph.incoming_edge_indices(vertex)
         out = conic_graph.outgoing_edge_indices(vertex)
         constraints += [

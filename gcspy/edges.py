@@ -4,10 +4,10 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, c, d, A, b, K, convex_id_to_conic_idx=None):
+    def __init__(self, tail, head, c, d, A, b, K, id_to_range=None):
 
         # check inputs
-        super().__init__(c, d, A, b, K, convex_id_to_conic_idx)
+        super().__init__(c, d, A, b, K, id_to_range)
         self.slack_size = self.size - tail.size - head.size
         if self.slack_size < 0:
             raise ValueError(
@@ -34,15 +34,15 @@ class ConicEdge(ConicProgram):
         else:
             return cp.hstack((xv, xw, xe))
 
-    def evaluate_cost(self, xv, xw, xe, y=1):
+    def cost_homogenization(self, xv, xw, xe, y):
         self.check_vector_sizes(xv, xw, xe)
         x = self.stack_variables(xv, xw, xe)
-        return super().evaluate_cost(x, y)
+        return super().cost_homogenization(x, y)
         
-    def evaluate_constraints(self, xv, xw, xe, y=1):
+    def constraint_homogenization(self, xv, xw, xe, y):
         self.check_vector_sizes(xv, xw, xe)
         x = self.stack_variables(xv, xw, xe)
-        return super().evaluate_constraints(x, y)
+        return super().constraint_homogenization(x, y)
     
 class ConvexEdge(ConvexProgram):
 
@@ -54,35 +54,34 @@ class ConvexEdge(ConvexProgram):
 
     def to_conic(self, conic_tail, conic_head):
 
-        # sizes of the tail and head conic programs
-        tail_size = list(conic_tail.convex_id_to_conic_idx.values())[-1].stop
-        head_size = list(conic_head.convex_id_to_conic_idx.values())[-1].stop
+        # Sizes of the tail and head conic programs.
+        tail_size = list(conic_tail.id_to_range.values())[-1].stop
+        head_size = list(conic_head.id_to_range.values())[-1].stop
 
-        # translate edge program to conic program
+        # Translate edge program to conic program.
         conic_program = super().to_conic()
 
-        # include tail and head variables in dictionary convex_id_to_conic_idx
-        # order of variables is (x_tail, x_head, x_edge)
-        convex_id_to_conic_idx = conic_tail.convex_id_to_conic_idx.copy()
-        for id, r in conic_head.convex_id_to_conic_idx.items():
+        # Include tail and head variables in id_to_range. Variable
+        # order is (x_tail, x_head, x_edge).
+        id_to_range = conic_tail.id_to_range.copy()
+        for id, r in conic_head.id_to_range.items():
             start = r.start + tail_size
             stop = r.stop + tail_size
-            convex_id_to_conic_idx[id] = range(start, stop)
+            id_to_range[id] = range(start, stop)
         start = tail_size + head_size
-        for id, r in conic_program.convex_id_to_conic_idx.items():
-            if not id in convex_id_to_conic_idx:
+        for id, r in conic_program.id_to_range.items():
+            if not id in id_to_range:
                 stop = start + len(r)
-                convex_id_to_conic_idx[id] = range(start, stop)
+                id_to_range[id] = range(start, stop)
                 start = stop
 
-        # reorder matrices and extend them with zeros according to the extended
-        # convex_id_to_conic_idx dictionary
+        # Reorder matrices and extend them with zeros according to the extended
+        # id_to_range dictionary.
         c = np.zeros(stop)
-        A = [np.zeros((small_Ai.shape[0], stop)) for small_Ai in conic_program.A]
-        for id, r in conic_program.convex_id_to_conic_idx.items():
-            c[convex_id_to_conic_idx[id]] = conic_program.c[r]
-            for Ai, small_Ai in zip(A, conic_program.A):
-                Ai[:, convex_id_to_conic_idx[id]] = small_Ai[:, r]
+        A = np.zeros((conic_program.A.shape[0], stop))
+        for id, r in conic_program.id_to_range.items():
+            c[id_to_range[id]] = conic_program.c[r]
+            A[:, id_to_range[id]] = conic_program.A[:, r]
 
         # construct conic edge
         return ConicEdge(
@@ -93,7 +92,7 @@ class ConvexEdge(ConvexProgram):
             A,
             conic_program.b,
             conic_program.K,
-            convex_id_to_conic_idx)
+            id_to_range)
 
     def check_variables_are_defined(self, variables):
         defined_variables = self.variables + self.tail.variables + self.head.variables

@@ -1,5 +1,5 @@
 from itertools import combinations
-from gcspy.graph_problems.graph_problem import ConicGraphProblem
+from gcspy.graph_problems.basic_implementation.graph_problem import ConicGraphProblem
 
 class ConicTravelingSalesmanProblem(ConicGraphProblem):
 
