@@ -148,14 +148,14 @@ class GraphOfConicSets(Graph):
     def __init__(self):
         self.vertices = []
         self.edges = []
-        
+
     def _add_vertex(self, name):
-        vertex = ConicVertex(name)
+        vertex = ConicVertex(name) # This is wrong!
         self.vertices.append(vertex)
         return vertex
 
     def _add_edge(self, tail, head):
-        edge = ConicEdge(tail, head)
+        edge = ConicEdge(tail, head) # This is wrong!
         self.edges.append(edge)
         return edge
 
@@ -188,15 +188,15 @@ class GraphOfConvexSets(Graph):
 
     def to_conic(self):
 
-        # initialize empty conic graph
+        # Initialize empty conic graph.
         conic_graph = GraphOfConicSets()
 
-        # add one vertex at the time
+        # Add one vertex at the time.
         for vertex in self.vertices:
             conic_vertex = vertex.to_conic()
             conic_graph.vertices.append(conic_vertex)
 
-        # add one edge at the time
+        # Add one edge at the time.
         for edge in self.edges:
             conic_tail = conic_graph.get_vertex(edge.tail.name)
             conic_head = conic_graph.get_vertex(edge.head.name)
@@ -207,7 +207,7 @@ class GraphOfConvexSets(Graph):
 
     def _set_variable_values(self, conic_graph, xv, yv, xe, ye):
 
-        # set value of vertex variables for convex program
+        # Set value of vertex variables for convex program.
         for convex_vertex, x, y in zip(self.vertices, xv, yv):
             convex_vertex.binary_variable.value = y
             if x is None:
@@ -218,7 +218,7 @@ class GraphOfConvexSets(Graph):
                 for variable in convex_vertex.variables:
                     variable.value = conic_vertex.get_convex_variable_value(variable, x)
 
-        # set value of edge variables for convex program
+        # Set value of edge variables for convex program.
         for convex_edge, x, y in zip(self.edges, xe, ye):
             convex_edge.binary_variable.value = y
             if x is None:
@@ -276,7 +276,7 @@ class GraphOfConvexSets(Graph):
         that are not in the given lists.
         """
 
-        # check the given vertices and edges for a valid subgraph
+        # Check that given vertices and edges form a valid subgraph.
         for vertex in vertices:
             if vertex not in self.vertices:
                 raise ValueError('Vertices are not a subset of the graph vertices.')
@@ -284,7 +284,7 @@ class GraphOfConvexSets(Graph):
             if edge.tail not in vertices or edge.head not in vertices:
                 raise ValueError('Given vertices and edges do not form a subgraph.')
 
-        # assemble convex program
+        # Assemble convex program.
         cost = 0
         constraints = []
         for vertex in vertices:
@@ -294,11 +294,11 @@ class GraphOfConvexSets(Graph):
             cost += edge.cost
             constraints.extend(edge.constraints)
 
-        # solve convex program
+        # Solve convex program.
         prob = cp.Problem(cp.Minimize(cost), constraints)
         prob.solve()
 
-        # set vertex variable values
+        # Set vertex variable values.
         for vertex in self.vertices:
             if vertex in vertices:
                 vertex.binary_variable.value = 1
@@ -307,7 +307,7 @@ class GraphOfConvexSets(Graph):
                 for variable in vertex.variables:
                     variable.value = None
 
-        # set edgevariable values
+        # Set edge variable values.
         for edge in self.edges:
             if edge in edges:
                 edge.binary_variable.value = 1

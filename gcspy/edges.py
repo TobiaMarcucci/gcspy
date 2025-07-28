@@ -6,7 +6,7 @@ class ConicEdge(ConicProgram):
 
     def __init__(self, tail, head, c, d, A, b, K, id_to_range=None):
 
-        # check inputs
+        # Check inputs.
         super().__init__(c, d, A, b, K, id_to_range)
         self.slack_size = self.size - tail.size - head.size
         if self.slack_size < 0:
@@ -14,8 +14,8 @@ class ConicEdge(ConicProgram):
                 f"Size mismatch: edge.size = {self.size}, tail.size = "
                 f"{tail.size}, head.size = {head.size}. Size of the edge must "
                 "be larger than the sum of tail and head sizes.")
-        
-        # store data
+
+        # Store inputs.
         self.tail = tail
         self.head = head
         self.name = (tail.name, head.name)
@@ -54,36 +54,33 @@ class ConvexEdge(ConvexProgram):
 
     def to_conic(self, conic_tail, conic_head):
 
-        # Sizes of the tail and head conic programs.
-        tail_size = list(conic_tail.id_to_range.values())[-1].stop
-        head_size = list(conic_head.id_to_range.values())[-1].stop
-
-        # Translate edge program to conic program.
-        conic_program = super().to_conic()
-
-        # Include tail and head variables in id_to_range. Variable
-        # order is (x_tail, x_head, x_edge).
+        # Include tail and head variables in id_to_range. Variable order is
+        # x_tail, x_head, a dn then x_edge. Start with copy of tail dictionary.
         id_to_range = conic_tail.id_to_range.copy()
+
+        # Add copy of the head dictionary shifted by the size of the tail.
+        offset = conic_tail.size
         for id, r in conic_head.id_to_range.items():
-            start = r.start + tail_size
-            stop = r.stop + tail_size
-            id_to_range[id] = range(start, stop)
-        start = tail_size + head_size
+            id_to_range[id] = range(r.start + offset, r.stop + offset)
+
+        # Add to dictionary variables that are associated with this edge if they
+        # are not in the tail or head dictionary yet.
+        conic_program = super().to_conic()
+        offset = conic_tail.size + conic_head.size
         for id, r in conic_program.id_to_range.items():
             if not id in id_to_range:
-                stop = start + len(r)
-                id_to_range[id] = range(start, stop)
-                start = stop
+                id_to_range[id] = range(r.start + offset, r.stop + offset)
 
         # Reorder matrices and extend them with zeros according to the extended
         # id_to_range dictionary.
-        c = np.zeros(stop)
-        A = np.zeros((conic_program.A.shape[0], stop))
+        size = max([r.stop for r in id_to_range.values()])
+        c = np.zeros(size)
+        A = np.zeros((conic_program.A.shape[0], size))
         for id, r in conic_program.id_to_range.items():
             c[id_to_range[id]] = conic_program.c[r]
             A[:, id_to_range[id]] = conic_program.A[:, r]
 
-        # construct conic edge
+        # Construct conic edge.
         return ConicEdge(
             conic_tail,
             conic_head,
