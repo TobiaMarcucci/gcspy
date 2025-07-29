@@ -4,16 +4,16 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, c, d, A, b, K, id_to_range=None):
+    def __init__(self, tail, head, size, id_to_range=None):
 
         # Check inputs.
-        super().__init__(c, d, A, b, K, id_to_range)
-        self.slack_size = self.size - tail.size - head.size
+        super().__init__(size, id_to_range)
+        self.slack_size = size - tail.size - head.size
         if self.slack_size < 0:
             raise ValueError(
-                f"Size mismatch: edge.size = {self.size}, tail.size = "
-                f"{tail.size}, head.size = {head.size}. Size of the edge must "
-                "be larger than the sum of tail and head sizes.")
+                f"Size mismatch: edge.size = {size}, tail.size = {tail.size}, "
+                f"head.size = {head.size}. Size of the edge must be larger "
+                "than the sum of tail and head sizes.")
 
         # Store inputs.
         self.tail = tail
@@ -71,25 +71,22 @@ class ConvexEdge(ConvexProgram):
             if not id in id_to_range:
                 id_to_range[id] = range(r.start + offset, r.stop + offset)
 
-        # Reorder matrices and extend them with zeros according to the extended
-        # id_to_range dictionary.
+        # Initialize empty edge program.
         size = max([r.stop for r in id_to_range.values()])
+        conic_edge = ConicEdge(conic_tail, conic_head, size, id_to_range)
+
+        # Reorder matrices and extend them with zeros according to the new
+        # id_to_range dictionary.
         c = np.zeros(size)
         A = np.zeros((conic_program.A.shape[0], size))
         for id, r in conic_program.id_to_range.items():
             c[id_to_range[id]] = conic_program.c[r]
             A[:, id_to_range[id]] = conic_program.A[:, r]
 
-        # Construct conic edge.
-        return ConicEdge(
-            conic_tail,
-            conic_head,
-            c,
-            conic_program.d,
-            A,
-            conic_program.b,
-            conic_program.K,
-            id_to_range)
+        # Assemble conic edge.
+        conic_edge.add_cost(c, conic_program.d)
+        conic_edge.add_constraints(A, conic_program.b, conic_program.K)
+        return conic_edge
 
     def check_variables_are_defined(self, variables):
         defined_variables = self.variables + self.tail.variables + self.head.variables

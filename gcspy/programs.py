@@ -4,14 +4,42 @@ from numbers import Number
 
 class ConicProgram:
 
-    def __init__(self, c, d, A, b, K, id_to_range=None):
-        self.c = c
-        self.d = d
-        self.A = A
-        self.b = b
-        self.K = K
+    def __init__(self, size, id_to_range=None):
+        self.size = size
+        self.c = np.zeros(size)
+        self.d = 0
+        self.A = np.zeros((0, size))
+        self.b = np.zeros(0)
+        self.K = []
         self.id_to_range = id_to_range
-        self.size = c.size
+
+    def add_cost(self, ci, di):
+        if not isinstance(di, Number):
+            raise ValueError(
+                f"Argument di must be a number, got type(di) = {type(di)}.")
+        self.c += ci
+        self.d += di
+
+    def add_constraint(self, Ai, bi, Ki):
+        if len(set(Ai.shape[0], bi.size, Ki[1])) != 1:
+            raise ValueError(
+                "Matrix Ai, vector bi, and cone Ki must have coherent size."
+                f"Got Ai of shape {Ai.shape}, bi of size {bi.size}, and K of "
+                f"size {Ki[1]}.")
+        self.A = np.vstack((self.A, Ai))
+        self.b = np.concatenate((self.b, bi))
+        self.K.append(Ki)
+
+    def add_constraints(self, A, b, K):
+        K_size = sum([Ki[1] for Ki in K])
+        if len({A.shape[0], b.size, K_size}) != 1:
+            raise ValueError(
+                "Matrix A, vector b, and cones K must have coherent size. Got "
+                f"A of shape {A.shape}, b of size {b.size}, K of total size "
+                f"{K_size}.")
+        self.A = np.vstack((self.A, A))
+        self.b = np.concatenate((self.b, b))
+        self.K.extend(K)
 
     def cost_homogenization(self, x, y):
         return self.c @ x + self.d * y
@@ -51,7 +79,7 @@ class ConicProgram:
             z_mat = z.reshape((3, -1), order='C')
             return K(*z_mat)
         
-        # TODO: support all possible cone constraints.
+        # TODO: support all cone constraints.
         else:
             raise NotImplementedError
         
@@ -148,40 +176,42 @@ class ConvexProgram:
         
         # Deal with corner case with constant cost and no constraints.
         if isinstance(self.cost, Number) and len(self.constraints) == 0:
-            conic_program = ConicProgram([], self.cost, [], [], [], {})
+            conic_program = ConicProgram(0)
+            conic_program.add_cost([], self.cost)
             return conic_program
 
         # Apply cvxpy reductions to get conic program.
-        prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
-        if not prob.is_dcp():
+        cp_convex = cp.Problem(cp.Minimize(self.cost), self.constraints)
+        if not cp_convex.is_dcp():
             raise ValueError(f"Convex program is not DCP.")
         solver_opts = {"use_quad_obj": False}
-        chain = prob._construct_chain(solver_opts=solver_opts)
+        chain = cp_convex._construct_chain(solver_opts=solver_opts)
         chain.reductions = chain.reductions[:-1]
-        conic_prob = chain.apply(prob)[0]
+        cp_conic = chain.apply(cp_convex)[0]
 
-        # Define cost of conic program.
-        cd = conic_prob.c.toarray().flatten()
-        c = cd[:-1]
-        d = cd[-1]
-
-        # Define constraints of conic program. Sparse matrices are converted to
-        # dense arrays, since keeping them sparse seems to make things slower.
-        cols = conic_prob.c.shape[0]
-        Ab = conic_prob.A.toarray().reshape((-1, cols), order='F')
-        A = Ab[:, :-1]
-        b = Ab[:, -1]
-        K = [(type(c), c.size) for c in conic_prob.constraints]
-
-        # dictionary that maps the id of a variable in the cost and constraints
-        # to the corresponding columns in the in the conic program
+        # Dictionary that maps the id of a variable in the cost and constraints
+        # to the corresponding columns in the in the conic program.
         id_to_range = {}
-        for variable in conic_prob.variables:
-            start = conic_prob.var_id_to_col[variable.id]
+        for variable in cp_conic.variables:
+            start = cp_conic.var_id_to_col[variable.id]
             stop = start + variable.size
             id_to_range[variable.id] = range(start, stop)
 
-        return ConicProgram(c, d, A, b, K, id_to_range)
+        # Initialize empty conic program.
+        conic_program = ConicProgram(cp_conic.x.size, id_to_range)
+
+        # Define cost of conic program.
+        cd = cp_conic.c.toarray().flatten()
+        conic_program.add_cost(cd[:-1], cd[-1])
+
+        # Define constraints of conic program. Sparse matrices are converted to
+        # dense arrays, since keeping them sparse seems to make things slower.
+        cols = cp_conic.c.shape[0]
+        Ab = cp_conic.A.toarray().reshape((-1, cols), order='F')
+        K = [(type(c), c.size) for c in cp_conic.constraints]
+        conic_program.add_constraints(Ab[:, :-1], Ab[:, -1], K)
+
+        return conic_program
 
     def solve(self, **kwargs):
         """
