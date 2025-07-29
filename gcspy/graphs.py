@@ -150,8 +150,10 @@ class Graph:
         return len(self.edges)
 
     def add_disjoint_subgraph(self, graph):
-        self.vertices += graph.vertices
-        self.edges += graph.edges
+        for vertex in graph.vertices:
+            self.append_vertex(vertex)
+        for edge in graph.edges:
+            self.append_edge(edge)
     
     def graphviz(self):
         from gcspy.plot_utils import graphviz_graph
@@ -163,17 +165,27 @@ class GraphOfConicSets(Graph):
         self.vertices = []
         self.edges = []
 
-    def _add_vertex(self, name, c, d, A, b, K, id_to_range=None):
-        vertex = ConicVertex(name, c, d, A, b, K, id_to_range)
+    def _add_vertex(self, name, size, id_to_range=None):
+        vertex = ConicVertex(name, size, id_to_range)
         self.vertices.append(vertex)
         return vertex
 
-    def _add_edge(self, tail, head, c, d, A, b, K, id_to_range=None):
-        edge = ConicEdge(tail, head, c, d, A, b, K, id_to_range)
+    def _add_edge(self, tail, head, size, id_to_range=None):
+        edge = ConicEdge(tail, head, size, id_to_range)
         self.edges.append(edge)
         return edge
     
-    # TODO: allow the solution of the problems directly from the conic graph.
+    def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
+        return shortest_path(self, source, target, binary, tol, **kwargs)
+
+    def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
+        return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
+    
+    def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
+        return facility_location(self, binary, tol, **kwargs)
+    
+    def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
+        return spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
 
 class GraphOfConvexSets(Graph):
 
@@ -250,39 +262,42 @@ class GraphOfConvexSets(Graph):
     
     def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = shortest_path(conic_graph, source.name, target.name, binary, tol, **kwargs)
+        prob, xv, yv, xe, ye = conic_graph.solve_shortest_path(source, target, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
-    
-    def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
-        binary = False
-        relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
-        restriction = rounding_fn(self, source, target)
-        return relaxation, restriction
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs)
+        prob, xv, yv, xe, ye = conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = facility_location(conic_graph, binary, tol, **kwargs)
+        prob, xv, yv, xe, ye = conic_graph.solve_facility_location(binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = spanning_tree(conic_graph, root.name, subtour_elimination, binary, tol, **kwargs)
+        prob, xv, yv, xe, ye = conic_graph.solve_spanning_tree(root, subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
     
-    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, *args, **kwargs):
+    # TODO: try to reuse the following method for all the graph problems.
+    # TODO: move the following method to the conic graph.
+    def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
+        binary = False
+        relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
+        restriction = rounding_fn(self, source, target)
+        return relaxation, restriction
+    
+    # TODO: move the following method to the conic graph.
+    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
         convex_yv = self.vertex_binaries()
         convex_ye = self.edge_binaries()
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol=1e-4)
+        prob, xv, yv, xe, ye = from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **kwargs)
         self._set_variable_values(conic_graph, xv, yv, xe, ye)
         return prob
 
@@ -295,10 +310,10 @@ class GraphOfConvexSets(Graph):
         # Check that given vertices and edges form a valid subgraph.
         for vertex in vertices:
             if vertex not in self.vertices:
-                raise ValueError('Vertices are not a subset of the graph vertices.')
+                raise ValueError("Vertices are not a subset of the graph vertices.")
         for edge in edges:
             if edge.tail not in vertices or edge.head not in vertices:
-                raise ValueError('Given vertices and edges do not form a subgraph.')
+                raise ValueError("Given vertices and edges do not form a subgraph.")
 
         # Assemble convex program.
         cost = 0

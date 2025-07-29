@@ -3,7 +3,7 @@ import numpy as np
 from itertools import combinations
 from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
-def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kwargs):
+def spanning_tree(conic_graph, root, subtour_elimination, binary, tol, **kwargs):
 
     # define variables
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
@@ -15,7 +15,7 @@ def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kw
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
         inc = conic_graph.incoming_edge_indices(vertex)
-        if vertex.name == root_name:
+        if vertex.name == root.name:
             constraints += vertex.constraint_homogenization(zv[i], 1)
             constraints += [ye[k] == 0 for k in inc]
             constraints += [ze_head[k] == 0 for k in inc]
@@ -30,7 +30,7 @@ def spanning_tree(conic_graph, root_name, subtour_elimination, binary, tol, **kw
     # subtour elimination constraints for all subsets of vertices with
     # cardinality between 2 and num_vertices - 1
     if subtour_elimination:
-        root = conic_graph.get_vertex(root_name)
+        root = conic_graph.get_vertex(root.name)
         i = conic_graph.vertex_index(root)
         subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
         for subtour_size in range(2, conic_graph.num_vertices()):

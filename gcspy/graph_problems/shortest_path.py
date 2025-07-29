@@ -1,7 +1,7 @@
 import cvxpy as cp
 from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
-def shortest_path(conic_graph, source_name, target_name, binary, tol, **kwargs):
+def shortest_path(conic_graph, source, target, binary, tol, **kwargs):
 
     # define variables
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
@@ -15,14 +15,14 @@ def shortest_path(conic_graph, source_name, target_name, binary, tol, **kwargs):
         out = conic_graph.outgoing_edge_indices(vertex)
 
         # source cost and constraints
-        if vertex.name == source_name:
+        if vertex.name == source.name:
             cost += vertex.cost_homogenization(zv[i], 1)
             constraints += [yv[i] == 1, 1 == sum(ye[out]), zv[i] == sum(ze_tail[out])]
             for k in inc:
                 constraints += [ye[k] == 0, ze_head[k] == 0]
 
         # target cost and constraints
-        elif vertex.name == target_name:
+        elif vertex.name == target.name:
             cost += vertex.cost_homogenization(zv[i], 1)
             constraints += [yv[i] == 1, 1 == sum(ye[inc]), zv[i] == sum(ze_head[inc])]
             for k in out:
