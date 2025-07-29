@@ -26,20 +26,26 @@ class Graph:
     
     def has_edge(self, name):
         return name in [edge.name for edge in self.edges]
-        
-    def add_vertex(self, name, *args, **kwargs):
+
+    def ensure_vertex_name_available(self, name):
         if self.has_vertex(name):
             raise ValueError(f"Vertex with name {name} is aleady defined.")
+        
+    def ensure_edge_name_available(self, tail_name, head_name):
+        if not self.has_vertex(tail_name):
+            raise ValueError(f"Vertex with name {tail_name} is not defined.")
+        if not self.has_vertex(head_name):
+            raise ValueError(f"Vertex with name {head_name} is not defined.")
+        name = (tail_name, head_name)
+        if self.has_edge(name):
+            raise ValueError(f"Edge with name {name} is aleady defined.")
+    
+    def add_vertex(self, name, *args, **kwargs):
+        self.ensure_vertex_name_available(name)
         return self._add_vertex(name, *args, **kwargs)
 
     def add_edge(self, tail, head, *args, **kwargs):
-        if not self.has_vertex(tail.name):
-            raise ValueError(f"Vertex with name {tail.name} is not defined.")
-        if not self.has_vertex(head.name):
-            raise ValueError(f"Vertex with name {head.name} is not defined.")
-        name = (tail.name, head.name)
-        if self.has_edge(name):
-            raise ValueError(f"Edge with name {name} is aleady defined.")
+        self.ensure_edge_name_available(tail.name, head.name)
         return self._add_edge(tail, head, *args, **kwargs)
 
     def _add_vertex(self, name, *args, **kwargs):
@@ -53,6 +59,14 @@ class Graph:
         This method must be overwritte by the derived class.
         """
         raise NotImplementedError
+    
+    def append_vertex(self, vertex):
+        self.ensure_vertex_name_available(vertex.name)
+        return self.vertices.append(vertex)
+
+    def append_edge(self, edge):
+        self.ensure_edge_name_available(edge.tail.name, edge.head.name)
+        return self.edges.append(edge)
 
     def get_vertex(self, name):
         for vertex in self.vertices:
@@ -158,6 +172,8 @@ class GraphOfConicSets(Graph):
         edge = ConicEdge(tail, head, c, d, A, b, K, id_to_range)
         self.edges.append(edge)
         return edge
+    
+    # TODO: allow the solution of the problems directly from the conic graph.
 
 class GraphOfConvexSets(Graph):
 
@@ -191,34 +207,17 @@ class GraphOfConvexSets(Graph):
         # Initialize empty conic graph.
         conic_graph = GraphOfConicSets()
 
-        # Add one vertex at the time. The following is equivalent to
-        # conic_graph.vertices.append(conic_vertex) but safer.
-        for vertex in self.vertices:
-            conic_vertex = vertex.to_conic()
-            conic_graph.add_vertex(
-                conic_vertex.name,
-                conic_vertex.c,
-                conic_vertex.d,
-                conic_vertex.A,
-                conic_vertex.b,
-                conic_vertex.K,
-                conic_vertex.id_to_range)
+        # Add one vertex at the time.
+        for convex_vertex in self.vertices:
+            conic_vertex = convex_vertex.to_conic()
+            conic_graph.append_vertex(conic_vertex)
 
-        # Add one edge at the time. The following is equivalent to
-        # conic_graph.edges.append(conic_edge) but safer.
-        for edge in self.edges:
-            conic_tail = conic_graph.get_vertex(edge.tail.name)
-            conic_head = conic_graph.get_vertex(edge.head.name)
-            conic_edge = edge.to_conic(conic_tail, conic_head)
-            conic_graph.add_edge(
-                conic_tail,
-                conic_head,
-                conic_edge.c,
-                conic_edge.d,
-                conic_edge.A,
-                conic_edge.b,
-                conic_edge.K,
-                conic_edge.id_to_range)
+        # Add one edge at the time.
+        for convex_edge in self.edges:
+            conic_tail = conic_graph.get_vertex(convex_edge.tail.name)
+            conic_head = conic_graph.get_vertex(convex_edge.head.name)
+            conic_edge = convex_edge.to_conic(conic_tail, conic_head)
+            conic_graph.append_edge(conic_edge)
 
         return conic_graph
 

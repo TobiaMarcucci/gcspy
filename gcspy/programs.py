@@ -1,6 +1,5 @@
 import numpy as np
 import cvxpy as cp
-from itertools import accumulate
 from numbers import Number
 
 class ConicProgram:
