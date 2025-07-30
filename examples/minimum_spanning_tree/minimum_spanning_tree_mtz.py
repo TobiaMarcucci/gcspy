@@ -1,7 +1,7 @@
-from spanning_tree import graph, root
+from minimum_spanning_tree import graph, root
 
 # solve MSTP using subtour-elimination formulation
-prob = graph.solve_spanning_tree(root)
+prob = graph.solve_minimum_spanning_tree(root)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 
@@ -26,6 +26,6 @@ for edge in graph.edges:
             edge.add_constraint(count_head == count_tail + 1)
 
 # now we can solve the MSTP withouth the subtour elimination constraints
-prob = graph.solve_spanning_tree(root, subtour_elimination=False)
+prob = graph.solve_minimum_spanning_tree(root, subtour_elimination=False)
 print("Problem status MTZ:", prob.status)
 print("Optimal value MTZ:", prob.value)

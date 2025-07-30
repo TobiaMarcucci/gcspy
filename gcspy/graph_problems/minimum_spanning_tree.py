@@ -3,7 +3,7 @@ import numpy as np
 from itertools import combinations
 from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
-def spanning_tree(conic_graph, root, subtour_elimination, binary, tol, **kwargs):
+def minimum_spanning_tree(conic_graph, root, subtour_elimination, binary, tol, **kwargs):
 
     # define variables
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)

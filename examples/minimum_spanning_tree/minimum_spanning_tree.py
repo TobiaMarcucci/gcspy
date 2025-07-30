@@ -7,7 +7,7 @@ from gcspy import GraphOfConvexSets
 graph = GraphOfConvexSets()
 
 # create vertices on a grid
-grid_sides = (4, 3)
+grid_sides = (3, 3)
 grid_points = [(i, j) for i in range(grid_sides[0]) for j in range(grid_sides[1])]
 radius = .25
 for i, j in grid_points:
@@ -37,9 +37,9 @@ for i, j in grid_points:
 # imported by other files
 if __name__ == "__main__":
 
-    # solve spanning tree problem using Dantzig–Fulkerson–Johnson formulation
-    # all the subtour elimination constraints are included
-    prob = graph.solve_spanning_tree(root)
+    # solve minimum spanning tree problem using Dantzig–Fulkerson–Johnson
+    # formulation all the subtour elimination constraints are included
+    prob = graph.solve_minimum_spanning_tree(root)
     print("Problem status:", prob.status)
     print("Optimal value:", prob.value)
 

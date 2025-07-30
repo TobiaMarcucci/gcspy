@@ -1,12 +1,12 @@
 from itertools import combinations
-from spanning_tree import graph, root
+from minimum_spanning_tree import graph, root
 
 # Solve problem using built-in method.
-prob = graph.solve_spanning_tree(root)
+prob = graph.solve_minimum_spanning_tree(root)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 
-# If the method solve_spanning_tree was not implemented, we could still solve
+# If the method solve_minimum_spanning_tree was not implemented, we could still solve
 # the problem by passing the constraints of its integer linear programming (ILP)
 # formulation. Below we write these constraints explicitly. Note that the lower
 # bound of 0 and upper bound of 1 on the binary variables are automatically
