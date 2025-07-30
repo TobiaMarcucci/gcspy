@@ -3,20 +3,21 @@ import numpy as np
 from gcspy.programs import ConvexProgram
 from gcspy.graph_problems.utils import define_variables, get_solution
 
-def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **kwargs):
+def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 
     # Put given constraints in conic form.
     convex_ilp = ConvexProgram()
 
-    # Next line is not nice but I cannot use convex_ilp.add_variables.
-    convex_ilp.variables = [y for y in convex_yv] + [y for y in convex_ye]
+    # Next lines are not nice but I cannot use convex_ilp.add_variables.
+    convex_ilp.variables.extend(conic_graph.vertex_binaries())
+    convex_ilp.variables.extend(conic_graph.edge_binaries())
     convex_ilp.add_constraints(ilp_constraints)
     conic_ilp = convex_ilp.to_conic()
 
     # Indices of vertex and edge binaries in conic program. Use the fact that
     # the binaries are scalars.
-    idx_v = [conic_ilp.id_to_range[y.id].start for y in convex_yv]
-    idx_e = [conic_ilp.id_to_range[y.id].start for y in convex_ye]
+    idx_v = [conic_ilp.id_to_range[y.id].start for y in conic_graph.vertex_binaries()]
+    idx_e = [conic_ilp.id_to_range[y.id].start for y in conic_graph.edge_binaries()]
 
     # Define variables of GCS problem.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
@@ -48,8 +49,6 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
         constraints += edge.head.constraint_homogenization(x_head - ze_head[k], 1 - ye[k])
 
     # Check each line of each conic constraint.
-    # for A, b, K in zip(conic_ilp.A, conic_ilp.b, conic_ilp.K):
-    #     for Aj, bj in zip(A, b):
     start = 0
     for K, size in conic_ilp.K:
         stop = start + size

@@ -4,10 +4,10 @@ from gcspy.programs import ConicProgram, ConvexProgram
 
 class ConicEdge(ConicProgram):
 
-    def __init__(self, tail, head, size, id_to_range=None):
+    def __init__(self, tail, head, size, id_to_range=None, binary_variable=None):
 
         # Check inputs.
-        super().__init__(size, id_to_range)
+        super().__init__(size, id_to_range, binary_variable)
         self.slack_size = size - tail.size - head.size
         if self.slack_size < 0:
             raise ValueError(
@@ -73,7 +73,12 @@ class ConvexEdge(ConvexProgram):
 
         # Initialize empty edge program.
         size = max([r.stop for r in id_to_range.values()])
-        conic_edge = ConicEdge(conic_tail, conic_head, size, id_to_range)
+        conic_edge = ConicEdge(
+            conic_tail,
+            conic_head,
+            size,
+            id_to_range,
+            conic_program.binary_variable)
 
         # Reorder matrices and extend them with zeros according to the new
         # id_to_range dictionary.

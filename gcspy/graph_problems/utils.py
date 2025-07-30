@@ -3,14 +3,14 @@ import numpy as np
 
 def define_variables(conic_graph, binary):
 
-    # binary variables
+    # Binary variables.
     yv = cp.Variable(conic_graph.num_vertices(), boolean=binary)
     ye = cp.Variable(conic_graph.num_edges(), boolean=binary)
     
-    # function that allows to add variables of size zero
+    # Function that allows adding variables of zero size.
     safe_variable = lambda size: cp.Variable(size) if size > 0 else np.array([])
 
-    # auxiliary continuous varibales
+    # Auxiliary continuous varibales.
     zv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
     ze = np.array([safe_variable(edge.slack_size) for edge in conic_graph.edges])
     ze_tail = np.array([cp.Variable(edge.tail.size) for edge in conic_graph.edges])
@@ -20,7 +20,7 @@ def define_variables(conic_graph, binary):
 
 def enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head):
 
-    # edge costs and constraints
+    # Edge costs and constraints.
     cost = 0
     constraints = []
     for k, edge in enumerate(conic_graph.edges):
@@ -33,34 +33,21 @@ def enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head):
 
 def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
 
-    # if problem is not solved to optimality
-    if prob.status != "optimal":
-        xv_value = np.full(conic_graph.num_vertices(), None)
-        xe_value = np.full(conic_graph.num_edges(), None)
-        yv_value = xv_value
-        ye_value = xe_value
+    # Set vertex variable values.
+    for vertex, y, z in zip(conic_graph.vertices, yv, zv):
+        vertex.binary_variable.value = y.value
+        if y.value is not None and y.value > tol:
+            vertex.x.value = z.value / y.value
+        else:
+            vertex.x.value = None
 
-    # if problem is solved to optimality
-    else:
+    # set edge variable values
+    for edge, y, z in zip(conic_graph.edges, ye, ze):
+        edge.binary_variable.value = y.value
+        if y.value is not None and y.value > tol:
+            edge.x.value = np.concatenate((
+                edge.tail.x.value,
+                edge.head.x.value,
+                z.value / y.value))
 
-        # set edge variable values
-        ye_value = ye.value
-        xe_value = []
-        for z, y_value in zip(ze, ye_value):
-            if y_value < tol:
-                xe_value.append(None)
-            elif z.size == 0:
-                xe_value.append(np.array([]))
-            else:
-                xe_value.append(z.value / y_value)
-        
-        # set vertex variable values
-        yv_value = yv.value
-        xv_value = []
-        for z, y_value in zip(zv, yv_value):
-            if y_value < tol:
-                xv_value.append(None)
-            else:
-                xv_value.append(z.value / y_value)
-                
-    return prob, xv_value, yv_value, xe_value, ye_value
+    return prob

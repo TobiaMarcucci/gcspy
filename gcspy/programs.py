@@ -4,14 +4,20 @@ from numbers import Number
 
 class ConicProgram:
 
-    def __init__(self, size, id_to_range=None):
+    def __init__(self, size, id_to_range=None, binary_variable=None):
+
+        # Matrices of conic program.
         self.size = size
         self.c = np.zeros(size)
         self.d = 0
         self.A = np.zeros((0, size))
         self.b = np.zeros(0)
         self.K = []
+
+        # Variables and data from the convex program.
         self.id_to_range = id_to_range
+        self.x = cp.Variable(size)
+        self.binary_variable = cp.Variable() if binary_variable is None else binary_variable
 
     def add_cost(self, ci, di):
         if not isinstance(di, Number):
@@ -103,16 +109,15 @@ class ConicProgram:
         mat_value.T[np.triu_indices(n)] = value
         return mat_value
     
-    def solve(self, **kwargs):
-        """
-        This method is only used for testing, it is not used in the library.
-        """
-        x = cp.Variable(self.size)
-        cost = self.evaluate_cost(x)
-        constraints = self.constraint_homogenization(x, 1)
-        prob = cp.Problem(cp.Minimize(cost), constraints)
-        prob.solve(**kwargs)
-        return prob.value, x.value
+    # def solve(self, **kwargs):
+    #     """
+    #     This method is only used for testing, it is not used in the library.
+    #     """
+    #     cost = self.evaluate_cost(self.x)
+    #     constraints = self.constraint_homogenization(self.x, 1)
+    #     prob = cp.Problem(cp.Minimize(cost), constraints)
+    #     prob.solve(**kwargs)
+    #     return prob.value
 
 class ConvexProgram:
 
@@ -176,7 +181,7 @@ class ConvexProgram:
         
         # Deal with corner case with constant cost and no constraints.
         if isinstance(self.cost, Number) and len(self.constraints) == 0:
-            conic_program = ConicProgram(0)
+            conic_program = ConicProgram(0, binary_variable=self.binary_variable)
             conic_program.add_cost([], self.cost)
             return conic_program
 
@@ -198,7 +203,7 @@ class ConvexProgram:
             id_to_range[variable.id] = range(start, stop)
 
         # Initialize empty conic program.
-        conic_program = ConicProgram(cp_conic.x.size, id_to_range)
+        conic_program = ConicProgram(cp_conic.x.size, id_to_range, self.binary_variable)
 
         # Define cost of conic program.
         cd = cp_conic.c.toarray().flatten()
@@ -219,5 +224,4 @@ class ConvexProgram:
         """
         prob = cp.Problem(cp.Minimize(self.cost), self.constraints)
         prob.solve(**kwargs)
-        variable_values = [variable.value for variable in self.variables]
-        return prob.value, variable_values
+        return prob.value

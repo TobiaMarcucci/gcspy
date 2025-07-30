@@ -148,6 +148,18 @@ class Graph:
         Return number of edges in the graph.
         """
         return len(self.edges)
+    
+    def vertex_binaries(self):
+        return np.array([vertex.binary_variable for vertex in self.vertices])
+
+    def edge_binaries(self):
+        return np.array([edge.binary_variable for edge in self.edges])
+    
+    def vertex_binary_values(self):
+        return np.array([vertex.binary_variable.value for vertex in self.vertices])
+
+    def edge_binary_values(self):
+        return np.array([edge.binary_variable.value for edge in self.edges])
 
     def add_disjoint_subgraph(self, graph):
         for vertex in graph.vertices:
@@ -201,18 +213,6 @@ class GraphOfConvexSets(Graph):
         edge = ConvexEdge(tail, head)
         self.edges.append(edge)
         return edge
-    
-    def vertex_binaries(self):
-        return np.array([vertex.binary_variable for vertex in self.vertices])
-
-    def edge_binaries(self):
-        return np.array([edge.binary_variable for edge in self.edges])
-    
-    def vertex_binary_values(self):
-        return np.array([vertex.binary_variable.value for vertex in self.vertices])
-
-    def edge_binary_values(self):
-        return np.array([edge.binary_variable.value for edge in self.edges])
 
     def to_conic(self):
 
@@ -233,55 +233,51 @@ class GraphOfConvexSets(Graph):
 
         return conic_graph
 
-    def _set_variable_values(self, conic_graph, xv, yv, xe, ye):
+    def _set_variable_values(self, conic_graph):
 
         # Set value of vertex variables for convex program.
-        for convex_vertex, x, y in zip(self.vertices, xv, yv):
-            convex_vertex.binary_variable.value = y
-            if x is None:
+        for convex_vertex, conic_vertex in zip(self.vertices, conic_graph.vertices):
+            if conic_vertex.x.value is None:
                 for variable in convex_vertex.variables:
                     variable.value = None
             else:
-                conic_vertex = conic_graph.get_vertex(convex_vertex.name)
                 for variable in convex_vertex.variables:
-                    variable.value = conic_vertex.get_convex_variable_value(variable, x)
+                    variable.value = conic_vertex.get_convex_variable_value(variable, conic_vertex.x.value)
 
         # Set value of edge variables for convex program.
-        for convex_edge, x, y in zip(self.edges, xe, ye):
-            convex_edge.binary_variable.value = y
-            if x is None:
+        for convex_edge, conic_edge in zip(self.edges, conic_graph.edges):
+            if conic_edge.x.value is None:
                 for variable in convex_edge.variables:
                     variable.value = None
             else:
-                conic_edge = conic_graph.get_edge(*convex_edge.name)
-                x_tail = xv[self.vertex_index(convex_edge.tail)]
-                x_head = xv[self.vertex_index(convex_edge.head)]
-                x_extended = np.concatenate((x_tail, x_head, x))
                 for variable in convex_edge.variables:
-                    variable.value = conic_edge.get_convex_variable_value(variable, x_extended)
+                    variable.value = conic_edge.get_convex_variable_value(variable, conic_edge.x.value)
     
     def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = conic_graph.solve_shortest_path(source, target, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        conic_source = conic_graph.get_vertex(source.name)
+        conic_target = conic_graph.get_vertex(target.name)
+        prob = conic_graph.solve_shortest_path(conic_source, conic_target, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
         return prob
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        prob = conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
         return prob
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = conic_graph.solve_facility_location(binary, tol, **kwargs)
-        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        prob = conic_graph.solve_facility_location(binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
         return prob
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = conic_graph.solve_spanning_tree(root, subtour_elimination, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        conic_root = conic_graph.get_vertex(root.name)
+        prob = conic_graph.solve_spanning_tree(conic_root, subtour_elimination, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
         return prob
     
     # TODO: try to reuse the following method for all the graph problems.
@@ -294,11 +290,9 @@ class GraphOfConvexSets(Graph):
     
     # TODO: move the following method to the conic graph.
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
-        convex_yv = self.vertex_binaries()
-        convex_ye = self.edge_binaries()
         conic_graph = self.to_conic()
-        prob, xv, yv, xe, ye = from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph, xv, yv, xe, ye)
+        prob = from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
         return prob
 
     def solve_convex_restriction(self, vertices, edges):
