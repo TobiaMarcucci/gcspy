@@ -20,28 +20,28 @@ class ConicEdge(ConicProgram):
         self.head = head
         self.name = (tail.name, head.name)
 
-    def check_vector_sizes(self, xv, xw, xe):
-        xs = [xv, xw, xe]
-        sizes = [self.tail.size, self.head.size, self.slack_size]
-        for x, size in zip(xs, sizes):
-            if x.size != size:
-                ValueError(
-                    f"Size mismatch: x.size = {x.size}.  Expected size {size}.")
+    def _check_vector_sizes(self, xv, xw, xe):
+        sizes = (xv.size, xw.size, xe.size)
+        expected_sizes = (self.tail.size, self.head.size, self.slack_size)
+        if sizes != expected_sizes:
+            ValueError(
+                f"Size mismatch. Got vectors of size {sizes}. Expected vectors "
+                f"of size {expected_sizes}.")
                 
-    def stack_variables(self, xv, xw, xe):
+    def _concatenate(self, xv, xw, xe):
         if self.slack_size == 0:
             return cp.hstack((xv, xw))
         else:
             return cp.hstack((xv, xw, xe))
 
     def cost_homogenization(self, xv, xw, xe, y):
-        self.check_vector_sizes(xv, xw, xe)
-        x = self.stack_variables(xv, xw, xe)
+        self._check_vector_sizes(xv, xw, xe)
+        x = self._concatenate(xv, xw, xe)
         return super().cost_homogenization(x, y)
         
     def constraint_homogenization(self, xv, xw, xe, y):
-        self.check_vector_sizes(xv, xw, xe)
-        x = self.stack_variables(xv, xw, xe)
+        self._check_vector_sizes(xv, xw, xe)
+        x = self._concatenate(xv, xw, xe)
         return super().constraint_homogenization(x, y)
     
 class ConvexEdge(ConvexProgram):
@@ -93,6 +93,6 @@ class ConvexEdge(ConvexProgram):
         conic_edge.add_constraints(A, conic_program.b, conic_program.K)
         return conic_edge
 
-    def check_variables_are_defined(self, variables):
+    def _check_variables_are_defined(self, variables):
         defined_variables = self.variables + self.tail.variables + self.head.variables
-        super().check_variables_are_defined(variables, defined_variables)
+        super()._check_variables_are_defined(variables, defined_variables)

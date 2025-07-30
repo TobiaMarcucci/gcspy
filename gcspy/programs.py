@@ -27,9 +27,9 @@ class ConicProgram:
         self.d += di
 
     def add_constraint(self, Ai, bi, Ki):
-        if len(set(Ai.shape[0], bi.size, Ki[1])) != 1:
+        if len({Ai.shape[0], bi.size, Ki[1]}) != 1:
             raise ValueError(
-                "Matrix Ai, vector bi, and cone Ki must have coherent size."
+                "Matrix Ai, vector bi, and cone Ki must have coherent size. "
                 f"Got Ai of shape {Ai.shape}, bi of size {bi.size}, and K of "
                 f"size {Ki[1]}.")
         self.A = np.vstack((self.A, Ai))
@@ -56,13 +56,13 @@ class ConicProgram:
         start = 0
         for cone_type, cone_size in self.K:
             stop = start + cone_size
-            constraint = self.constrain_in_cone(z[start:stop], cone_type)
+            constraint = self._constrain_in_cone(z[start:stop], cone_type)
             constraints.append(constraint)
             start = stop
         return constraints
     
     @staticmethod
-    def constrain_in_cone(z, K):
+    def _constrain_in_cone(z, K):
 
         # Linear constraints.
         if K in [cp.Zero, cp.NonNeg]:
@@ -141,7 +141,7 @@ class ConvexProgram:
         self.variables.append(variable)
         return variable
     
-    def check_variables_are_defined(self, variables, defined_variables=None):
+    def _check_variables_are_defined(self, variables, defined_variables=None):
         if defined_variables is None:
             defined_variables = self.variables
         defined_ids = [variable.id for variable in defined_variables]
@@ -151,11 +151,11 @@ class ConvexProgram:
     
     def add_cost(self, cost):
         if not isinstance(cost, Number):
-            self.check_variables_are_defined(cost.variables())
+            self._check_variables_are_defined(cost.variables())
         self.cost += cost
 
     def add_constraint(self, constraint):
-        self.check_variables_are_defined(constraint.variables())
+        self._check_variables_are_defined(constraint.variables())
         self.constraints.append(constraint)
 
     def add_constraints(self, constraints):

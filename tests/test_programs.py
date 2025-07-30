@@ -3,6 +3,170 @@ import numpy as np
 import cvxpy as cp
 from gcspy.programs import ConicProgram, ConvexProgram
 
+class TestConicProgram(unittest.TestCase):
+
+    def setUp(self):
+
+        # Linear program
+        #   minimize x1 + 2 * x2 + 3 * x3 + 4 * x4 + 1
+        # subject to xi >= 1,  i = 1, 2, 3, 4
+        #            x1 + x2 + x3 + x4 <= 6
+        #            x4 = 2
+        self.lp = ConicProgram(4)
+        c = np.arange(4) + 1
+        d = 1
+        self.lp.add_cost(c, d)
+        I = np.eye(4)
+        A = np.vstack((I, np.ones((1, 4)), I[-1:]))
+        b = - np.array([1, 1, 1, 1, 6, 2])
+        K = [(cp.constraints.NonNeg, 4), (cp.constraints.NonPos, 1), (cp.constraints.Zero, 1)]
+        self.lp.add_constraints(A, b, K)
+
+        # Second order cone program
+        #   minimize sqrt(2) * x1 + 2
+        # subject to x1^2 >= x1^2 + x2^2
+        #            x1 >= x2
+        #            x2 >= x3
+        #            x3 >= 1
+        self.socp = ConicProgram(3)
+        c = np.array([np.sqrt(2), 0, 0])
+        d = 2
+        self.socp.add_cost(c, d)
+        A = np.vstack((
+            np.eye(3),
+            np.array([[1, -1, 0], [0, 1, -1], [0, 0, 1]])
+            ))
+        b = np.array([0] * 5 + [-1])
+        K = [(cp.constraints.SOC, 3), (cp.constraints.NonNeg, 3)]
+        self.socp.add_constraints(A, b, K)
+
+        # Semidefinite program equal to the previous SOCP. For translation, see
+        # https://people.eecs.berkeley.edu/~elghaoui/Teaching/EE227A/lecture6.pdf
+        #   minimize sqrt(2) * x1 + 2
+        # subject to [x1, x2, x3]
+        #            [x2, x1,  0] >> 0
+        #            [x3,  0, x1]
+        #            x1 >= x2
+        #            x2 >= x3
+        #            x3 >= 1
+        self.sdp = ConicProgram(3)
+        self.sdp.add_cost(c, d)
+        A = np.array([
+            [1, 0, 0], # entry 00
+            [0, 1, 0], # entry 10
+            [0, 0, 1], # entry 20
+            [0, 1, 0], # entry 01
+            [1, 0, 0], # entry 11
+            [0, 0, 0], # entry 21
+            [0, 0, 1], # entry 02
+            [0, 0, 0], # entry 12
+            [1, 0, 0], # entry 22
+            [1, -1, 0],
+            [0, 1, -1],
+            [0, 0, 1],
+            ])
+        b = np.array([0] * 11 + [-1])
+        K = [(cp.constraints.PSD, 9), (cp.constraints.NonNeg, 3)]
+        self.sdp.add_constraints(A, b, K)
+
+    def test_add_cost(self):
+
+        # Create empty program.
+        size = 4
+        prog = ConicProgram(size)
+
+        # Add a valid cost.
+        c = np.ones(4)
+        d = 3
+        prog.add_cost(c, d)
+        np.testing.assert_array_almost_equal(prog.c, c)
+        self.assertAlmostEqual(prog.d, d)
+
+        # Vector c has wrong size.
+        c = np.ones(2)
+        d = 3
+        self.assertRaises(ValueError, prog.add_cost, c, d)
+
+        # d is not a scalar.
+        c = np.ones(4)
+        d = np.ones(3)
+        self.assertRaises(ValueError, prog.add_cost, c, d)
+
+    def test_add_constraint(self):
+
+        # Create empty program.
+        size = 4
+        prog = ConicProgram(size)
+
+        # Add a valid constraint.
+        A = np.eye(4)
+        b = np.ones(4)
+        K = (cp.constraints.Zero, 4)
+        prog.add_constraint(A, b, K)
+        np.testing.assert_array_almost_equal(prog.A, A)
+        np.testing.assert_array_almost_equal(prog.b, b)
+        self.assertEqual(len(prog.K), 1)
+        self.assertEqual(prog.K[0], K)
+
+        # Add valid constraints.
+        new_K = [(cp.constraints.Zero, 2), (cp.constraints.Zero, 2)]
+        prog.add_constraints(A, b, new_K)
+        np.testing.assert_array_almost_equal(prog.A, np.vstack((A, A)))
+        np.testing.assert_array_almost_equal(prog.b, np.concatenate((b, b)))
+        self.assertEqual(len(prog.K), 3)
+        self.assertEqual(prog.K[0], K)
+        self.assertEqual(prog.K[1], new_K[0])
+        self.assertEqual(prog.K[2], new_K[1])
+
+        # Matrix A has incorrect number of columns.
+        A = np.eye(8)
+        b = np.ones(8)
+        K = (cp.constraints.Zero, 8)
+        self.assertRaises(ValueError, prog.add_constraint, A, b, K)
+
+        # A, b, and K have incoherent sizes.
+        A = np.eye(4)
+        b = np.ones(5)
+        K = (cp.constraints.Zero, 4)
+        Ks = [(cp.constraints.Zero, 2), (cp.constraints.Zero, 2)]
+        self.assertRaises(ValueError, prog.add_constraint, A, b, K)
+        self.assertRaises(ValueError, prog.add_constraints, A, b, Ks)
+        b = np.ones(4)
+        K = (cp.constraints.Zero, 5)
+        Ks = [(cp.constraints.Zero, 2), (cp.constraints.Zero, 3)]
+        self.assertRaises(ValueError, prog.add_constraint, A, b, K)
+        self.assertRaises(ValueError, prog.add_constraints, A, b, Ks)
+        K = (cp.constraints.Zero, 4)
+        Ks = [(cp.constraints.Zero, 2), (cp.constraints.Zero, 2)]
+        A = np.eye(5)
+        self.assertRaises(ValueError, prog.add_constraint, A, b, K)
+        self.assertRaises(ValueError, prog.add_constraints, A, b, Ks)
+
+    def test_cost_homogenization(self):
+
+        # Tested only for linear program since unaffected by cones.
+        x = [np.zeros(4), np.ones(4), np.arange(4)]
+        costs = [1, 11, 21]
+        for xi, cost in zip(x, costs):
+            self.assertAlmostEqual(self.lp.cost_homogenization(xi, 1), cost)
+
+    def test_solve(self):
+
+        # linear program
+        cost = self.lp.solve()
+        self.assertAlmostEqual(cost, 15, places=4)
+        np.testing.assert_array_almost_equal(self.lp.x.value, [1, 1, 1, 2], decimal=4)
+
+        # second order cone program
+        cost = self.socp.solve()
+        self.assertAlmostEqual(cost, 4, places=4)
+        np.testing.assert_array_almost_equal(self.socp.x.value, [np.sqrt(2), 1, 1], decimal=4)
+
+        # semidefinite program
+        cost = self.sdp.solve()
+        self.assertAlmostEqual(cost, 4, places=4)
+        np.testing.assert_array_almost_equal(self.sdp.x.value, [np.sqrt(2), 1, 1], decimal=4)
+
 class TestConvexProgram(unittest.TestCase):
 
     def setUp(self):
@@ -160,7 +324,7 @@ class TestConvexProgram(unittest.TestCase):
         prog.add_constraint(x <= -1)
         programs.append(prog)
 
-        # Infeasible program with two variables.
+        # Infeasible program with multiple variables.
         prog = ConvexProgram()
         x = prog.add_variable(4, nonneg=True)
         y = prog.add_variable(2)
@@ -209,6 +373,8 @@ class TestConvexProgram(unittest.TestCase):
                 else:
                     conic_value = conic_prog.get_convex_variable_value(variable)
                     np.testing.assert_array_almost_equal(variable.value, conic_value, decimal=4)
+
+    def test_to_conic_corner_cases(self):
 
         # Program with constant cost.
         convex_prog = ConvexProgram()
