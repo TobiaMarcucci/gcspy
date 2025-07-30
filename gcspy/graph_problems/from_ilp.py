@@ -7,17 +7,20 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 
     # Put given constraints in conic form.
     convex_ilp = ConvexProgram()
-
     # Next lines are not nice but I cannot use convex_ilp.add_variables.
-    convex_ilp.variables.extend(conic_graph.vertex_binaries())
-    convex_ilp.variables.extend(conic_graph.edge_binaries())
+    vertex_binaries = conic_graph.vertex_binaries()
+    edge_binaries = conic_graph.edge_binaries()
+    convex_ilp.variables.extend(vertex_binaries)
+    convex_ilp.variables.extend(edge_binaries)
     convex_ilp.add_constraints(ilp_constraints)
     conic_ilp = convex_ilp.to_conic()
 
     # Indices of vertex and edge binaries in conic program. Use the fact that
-    # the binaries are scalars.
-    idx_v = [conic_ilp.id_to_range[y.id].start for y in conic_graph.vertex_binaries()]
-    idx_e = [conic_ilp.id_to_range[y.id].start for y in conic_graph.edge_binaries()]
+    # binaries are scalars.
+    vertex_indices = [conic_ilp.id_to_range[y.id].start for y in vertex_binaries]
+    edge_indices = [conic_ilp.id_to_range[y.id].start for y in edge_binaries]
+    Av = conic_ilp.A[:, vertex_indices]
+    Ae = conic_ilp.A[:, edge_indices]
 
     # Define variables of GCS problem.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
@@ -55,10 +58,9 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
         for j in range(start, stop):
 
             # Evaluate linear constraint using the problem binaries.
-            Aj = conic_ilp.A[j]
+            av = Av[j]
+            ae = Ae[j]
             bj = conic_ilp.b[j]
-            av = Aj[idx_v]
-            ae = Aj[idx_e]
             lhs = av @ yv + ae @ ye + bj
 
             # If there are no shared vertices, just enforce scalar constraint.
@@ -87,8 +89,8 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
                     constraints += vertex.constraint_homogenization(-vector_lhs, -lhs)
                 else:
                     raise ValueError(
-                        f"Got cone of type {type(K)}. All the constraints "
-                        "of the ILP must be linear.")
+                        "All the constraints of ILP must be affine. Got cone "
+                        f"of type {type(K)}.")
                 
         # Shift row indices.
         start = stop
