@@ -89,10 +89,14 @@ class ConicProgram:
         else:
             raise NotImplementedError
         
-    def get_convex_variable_value(self, convex_variable, conic_x):
+    def get_convex_variable_value(self, convex_variable, x=None):
 
         # Retrieve value.
-        value = conic_x[self.id_to_range[convex_variable.id]]
+        if x is None:
+            x = self.x.value
+        if x is None:
+            return None
+        value = x[self.id_to_range[convex_variable.id]]
 
         # One dimensional vector.
         if len(convex_variable.shape) == 1:
@@ -109,15 +113,15 @@ class ConicProgram:
         mat_value.T[np.triu_indices(n)] = value
         return mat_value
     
-    # def solve(self, **kwargs):
-    #     """
-    #     This method is only used for testing, it is not used in the library.
-    #     """
-    #     cost = self.evaluate_cost(self.x)
-    #     constraints = self.constraint_homogenization(self.x, 1)
-    #     prob = cp.Problem(cp.Minimize(cost), constraints)
-    #     prob.solve(**kwargs)
-    #     return prob.value
+    def solve(self, **kwargs):
+        """
+        This method is only used for testing, it is not used in the library.
+        """
+        cost = self.cost_homogenization(self.x, 1)
+        constraints = self.constraint_homogenization(self.x, 1)
+        prob = cp.Problem(cp.Minimize(cost), constraints)
+        prob.solve(**kwargs)
+        return prob.value
 
 class ConvexProgram:
 
