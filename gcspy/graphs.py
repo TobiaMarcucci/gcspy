@@ -198,6 +198,9 @@ class GraphOfConicSets(Graph):
     
     def solve_spanning_tree(self, root, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         return spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
+    
+    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
+        return from_ilp(self, ilp_constraints, binary, tol, **kwargs)
 
 class GraphOfConvexSets(Graph):
 
@@ -280,6 +283,12 @@ class GraphOfConvexSets(Graph):
         self._set_variable_values(conic_graph)
         return prob
     
+    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
+        conic_graph = self.to_conic()
+        prob = conic_graph.solve_from_ilp(ilp_constraints, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
+        return prob
+    
     # TODO: try to reuse the following method for all the graph problems.
     # TODO: move the following method to the conic graph.
     def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
@@ -287,13 +296,6 @@ class GraphOfConvexSets(Graph):
         relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
         restriction = rounding_fn(self, source, target)
         return relaxation, restriction
-    
-    # TODO: move the following method to the conic graph.
-    def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
-        conic_graph = self.to_conic()
-        prob = from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
 
     def solve_convex_restriction(self, vertices, edges):
         """
