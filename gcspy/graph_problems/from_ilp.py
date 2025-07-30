@@ -5,39 +5,41 @@ from gcspy.graph_problems.utils import define_variables, get_solution
 
 def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **kwargs):
 
-    # put given constraints in conic form
+    # Put given constraints in conic form.
     convex_ilp = ConvexProgram()
-    # next line is not elegant but I cannot use convex_ilp.add_variables
+
+    # Next line is not nice but I cannot use convex_ilp.add_variables.
     convex_ilp.variables = [y for y in convex_yv] + [y for y in convex_ye]
     convex_ilp.add_constraints(ilp_constraints)
     conic_ilp = convex_ilp.to_conic()
 
-    # indices of vertex and edge binaries in conic program, uses the fact that
-    # the binaries are scalars
-    idx_v = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_yv]
-    idx_e = [conic_ilp.convex_id_to_conic_idx[y.id].start for y in convex_ye]
+    # Indices of vertex and edge binaries in conic program. Use the fact that
+    # the binaries are scalars.
+    idx_v = [conic_ilp.id_to_range[y.id].start for y in convex_yv]
+    idx_e = [conic_ilp.id_to_range[y.id].start for y in convex_ye]
 
-    # define variables
+    # Define variables of GCS problem.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
     xv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
 
-    # vertex costs and constraints
+    # Vertex costs.
     cost = 0
     constraints = []
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], yv[i])
-        # enforce spatial constration implied by 0 <= yv <= 1 (letting the user
-        # decide when to enforce them them is error very prone)
+
+        # Enforce spatial constration implied by 0 <= yv <= 1. Letting the user
+        # decide when to enforce them them is error very prone.
         constraints += vertex.constraint_homogenization(zv[i], yv[i])
         constraints += vertex.constraint_homogenization(xv[i] - zv[i], 1 - yv[i])
 
-    # edge costs and constraints
+    # Edge costs and constraints.
     for k, edge in enumerate(conic_graph.edges):
         cost += edge.cost_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
         constraints += edge.constraint_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
 
-        # enforce spatial constration implied by 0 <= ye <= 1 (letting the user
-        # decide when to enforce them them is error very prone)
+        # Enforce spatial constration implied by 0 <= ye <= 1. Letting the user
+        # decide when to enforce them them is error very prone.
         constraints += edge.tail.constraint_homogenization(ze_tail[k], ye[k])
         constraints += edge.head.constraint_homogenization(ze_head[k], ye[k])
         x_tail = xv[conic_graph.vertex_index(edge.tail)]
@@ -45,25 +47,31 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
         constraints += edge.tail.constraint_homogenization(x_tail - ze_tail[k], 1 - ye[k])
         constraints += edge.head.constraint_homogenization(x_head - ze_head[k], 1 - ye[k])
 
-    # check each line of each conic constraint
-    for A, b, K in zip(conic_ilp.A, conic_ilp.b, conic_ilp.K):
-        for Aj, bj in zip(A, b):
+    # Check each line of each conic constraint.
+    # for A, b, K in zip(conic_ilp.A, conic_ilp.b, conic_ilp.K):
+    #     for Aj, bj in zip(A, b):
+    start = 0
+    for K, size in conic_ilp.K:
+        stop = start + size
+        for j in range(start, stop):
 
-            # evaluate linear constraint using the problem binaries
+            # Evaluate linear constraint using the problem binaries.
+            Aj = conic_ilp.A[j]
+            bj = conic_ilp.b[j]
             av = Aj[idx_v]
             ae = Aj[idx_e]
             lhs = av @ yv + ae @ ye + bj
 
-            # if there are no shared vertices just enforce the scalar constraint
+            # If there are no shared vertices, just enforce scalar constraint.
             shared_vertices = find_shared_vertices(conic_graph, av, ae)
             if not shared_vertices:
                 constraints.append(K(lhs))
 
-            # if there are shared vertices, apply Lemma 5.1 from thesis to
-            # each linear constraint
+            # If there are shared vertices, apply Lemma 5.1 from thesis to
+            # each linear constraint.
             for vertex in shared_vertices:
 
-                # assemble spatial constraints
+                # Assemble spatial constraints.
                 i = conic_graph.vertex_index(vertex)
                 inc = conic_graph.incoming_edge_indices(vertex)
                 out = conic_graph.outgoing_edge_indices(vertex)
@@ -71,7 +79,7 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
                 vector_lhs += sum(ae[inc] * ze_head[inc])
                 vector_lhs += sum(ae[out] * ze_tail[out])
 
-                # enforce implied constraints
+                # Enforce spatial constraints.
                 if K == cp.Zero:
                     constraints += [lhs == 0, vector_lhs == 0]
                 elif K == cp.NonNeg:
@@ -83,7 +91,10 @@ def from_ilp(conic_graph, convex_yv, convex_ye, ilp_constraints, binary, tol, **
                         f"Got cone of type {type(K)}. All the constraints "
                         "of the ILP must be linear.")
                 
-    # solve problem
+        # Shift row indices.
+        start = stop
+                
+    # Solve problem.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
 
@@ -102,23 +113,23 @@ def find_shared_vertices(conic_graph, av, ae):
     a decomposition.
     """
 
-    # extract nonzero vertices and edges
+    # Extract nonzero vertices and edges.
     nonzero_vertices = [conic_graph.vertices[i] for i in np.nonzero(av)[0]]
     nonzero_edges = [conic_graph.edges[k] for k in np.nonzero(ae)[0]]
 
-    # compute shared vertices among all edges
+    # Compute shared vertices among all edges.
     tails_and_heads = [{edge.tail, edge.head} for edge in nonzero_edges]
     shared_vertices = set.intersection(*tails_and_heads) if tails_and_heads else set()
 
-    # if av is zero, return all the vertices shared by the edges
+    # If av is zero, return all the vertices shared by the edges.
     if not nonzero_vertices:
         return list(shared_vertices)
     
-    # if av has one nonzero entry, there is only one candidate vertex, and
-    # no other shared vertex can be different from it
+    # If av has one nonzero entry, there is only one candidate vertex, and
+    # no other shared vertex can be different from it.
     elif len(nonzero_vertices) == 1 and shared_vertices <= set(nonzero_vertices):
         return nonzero_vertices
 
-    # in all other cases, the decomposition is impossible
+    # In all other cases, the decomposition is not possible.
     else:
         return []
