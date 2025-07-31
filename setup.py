@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name='gcspy',
     version='0.1.0',
-    description="Library based on CVXPY to solve optimization problems in Graphs of Convex Sets (GCS). The techniques implemented here are based on the paper Shortest Paths in Graphs of Convex Sets by Tobia Marcucci, Jack Umenberger, Pablo A. Parrilo, and Russ Tedrake.",
+    description="Library based on CVXPY to solve optimization problems in Graphs of Convex Sets (GCS). The techniques implemented here are based on the PhD thesis "Graphs of Convex Sets with Applications to Optimal Control and Motion Planning" by Tobia Marcucci.",
     author="Tobia Marcucci",
     packages=find_packages(),
     install_requires=[
