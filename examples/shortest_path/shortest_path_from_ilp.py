@@ -16,8 +16,6 @@ yv = graph.vertex_binaries()
 ye = graph.edge_binaries()
 
 # Vertex constraints.
-s_index = graph.vertex_index(s)
-t_index = graph.vertex_index(t)
 ilp_constraints = []
 for i, v in enumerate(graph.vertices):
     is_source = 1 if v == s else 0
