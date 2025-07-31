@@ -7,6 +7,8 @@ setup(
     author="Tobia Marcucci",
     packages=find_packages(),
     install_requires=[
-        "cvxpy >= 1.5"
+        "numpy",
+        "cvxpy >= 1.5",
+        "pytest",
     ],
 )
