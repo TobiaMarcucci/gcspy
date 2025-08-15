@@ -44,10 +44,11 @@ def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
     # set edge variable values
     for edge, y, z in zip(conic_graph.edges, ye, ze):
         edge.binary_variable.value = y.value
+        z_value = z.value if z.size > 0 else np.array([])
         if y.value is not None and y.value > tol:
             edge.x.value = np.concatenate((
                 edge.tail.x.value,
                 edge.head.x.value,
-                z.value / y.value))
+                z_value / y.value))
 
     return prob
