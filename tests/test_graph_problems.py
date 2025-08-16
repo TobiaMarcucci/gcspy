@@ -93,6 +93,55 @@ class TestGraphProblems(unittest.TestCase):
             expected_value = 2.2284271247532996
             self.assertAlmostEqual(prob.value, expected_value, places=4)
 
+    def test_solve_shortest_path_without_edge_costs(self):
+
+        # Initialize graph.
+        graph = GraphOfConvexSets()
+
+        # Add vertices, variables, and costs.
+        v = [graph.add_vertex(i) for i in range(4)]
+        x = [vi.add_variable((2, 2)) for vi in v]
+        for vi, xi in zip(v, x):
+            vi.add_cost(cp.norm2(xi[1] - xi[0]))
+
+        # Add vertex constraints.
+        v[0].add_constraints([x[0] >= [0, 0], x[0] <= [3, 3]])
+        v[1].add_constraints([x[1] >= [2, 2.1], x[1] <= [5, 5.1]])
+        v[2].add_constraints([x[2] >= [2, -2], x[2] <= [5, 1]])
+        v[3].add_constraints([x[3] >= [4, 0], x[3] <= [7, 3]])
+
+        # Add start and goal points.
+        v[0].add_constraints([x[0][0] == [1.5, 1.5]])
+        v[3].add_constraints([x[3][1] == [5.5, 1.5]])
+
+        # Add edges.
+        edges = [graph.add_edge(v[0], v[1]),
+                 graph.add_edge(v[0], v[2]),
+                 graph.add_edge(v[1], v[3]),
+                 graph.add_edge(v[2], v[3])]
+
+        # Add edge constraints.
+        for e in edges:
+            end_tail = e.tail.variables[0][1]
+            start_head = e.head.variables[0][0]
+            e.add_constraint(end_tail == start_head) 
+
+        # Solve problem.
+        prob = graph.solve_shortest_path(v[0], v[3])
+        
+        # Check optimal value.
+        expected_value = 2 * np.sqrt(1.5 ** 2 + .5 ** 2) + 1
+        self.assertAlmostEqual(prob.value, expected_value, places=4)
+
+        # Check optimal solution.
+        x0 = np.array([[1.5, 1.5], [3, 1]])
+        x2 = np.array([[3, 1], [4, 1]])
+        x3 = np.array([[4, 1], [5.5, 1.5]])
+        np.testing.assert_array_almost_equal(x[0].value, x0, decimal=4)
+        np.testing.assert_array_almost_equal(x[2].value, x2, decimal=4)
+        np.testing.assert_array_almost_equal(x[3].value, x3, decimal=4)
+        self.assertIsNone(x[1].value)
+
     def test_solve_shortest_path_from_ilp(self):
 
         # Repeat for convex and conic graph.
