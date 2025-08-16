@@ -126,8 +126,8 @@ class TestGraphProblems(unittest.TestCase):
             start_head = e.head.variables[0][0]
             e.add_constraint(end_tail == start_head) 
 
-        # Solve problem.
-        prob = graph.solve_shortest_path(v[0], v[3])
+        # Solve problem relaxation (which for this problem is exact).
+        prob = graph.solve_shortest_path(v[0], v[3], binary=False)
         
         # Check optimal value.
         expected_value = 2 * np.sqrt(1.5 ** 2 + .5 ** 2) + 1
