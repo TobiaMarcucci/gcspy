@@ -5,9 +5,9 @@ from gcspy.graph_problems.utils import define_variables, get_solution
 
 def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 
-    # Put given constraints in conic form.
+    # Put given constraints in conic form. Next lines are not nice but I cannot
+    # use convex_ilp.add_variables.
     convex_ilp = ConvexProgram()
-    # Next lines are not nice but I cannot use convex_ilp.add_variables.
     vertex_binaries = conic_graph.vertex_binaries()
     edge_binaries = conic_graph.edge_binaries()
     convex_ilp.variables.extend(vertex_binaries)
@@ -15,41 +15,35 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
     convex_ilp.add_constraints(ilp_constraints)
     conic_ilp = convex_ilp.to_conic()
 
-    # Indices of vertex and edge binaries in conic program. Use the fact that
+    # Indices of vertex and edge binaries in conic program. Uses the fact that
     # binaries are scalars.
     vertex_indices = [conic_ilp.id_to_range[y.id].start for y in vertex_binaries]
     edge_indices = [conic_ilp.id_to_range[y.id].start for y in edge_binaries]
     Av = conic_ilp.A[:, vertex_indices]
     Ae = conic_ilp.A[:, edge_indices]
 
-    # Define variables of GCS problem.
+    # Variables of MICP. Note that xv and xe can always be omitted.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
-    xv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
 
-    # Vertex costs.
+    # Vertex costs and constraints.
     cost = 0
-    constraints = []
+    constraints = [yv <= 1]
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], yv[i])
-
-        # Enforce spatial constration implied by 0 <= yv <= 1. Letting the user
-        # decide when to enforce them them is error very prone.
-        constraints += vertex.constraint_homogenization(zv[i], yv[i])
-        constraints += vertex.constraint_homogenization(xv[i] - zv[i], 1 - yv[i])
 
     # Edge costs and constraints.
     for k, edge in enumerate(conic_graph.edges):
         cost += edge.cost_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
         constraints += edge.constraint_homogenization(ze_tail[k], ze_head[k], ze[k], ye[k])
 
-        # Enforce spatial constration implied by 0 <= ye <= 1. Letting the user
-        # decide when to enforce them them is error very prone.
+        # Enforce constraint implied by the subgraph polytope: 0 <= ye <= yv.
+        # Letting the user decide when to enforce these is error prone.
         constraints += edge.tail.constraint_homogenization(ze_tail[k], ye[k])
         constraints += edge.head.constraint_homogenization(ze_head[k], ye[k])
-        x_tail = xv[conic_graph.vertex_index(edge.tail)]
-        x_head = xv[conic_graph.vertex_index(edge.head)]
-        constraints += edge.tail.constraint_homogenization(x_tail - ze_tail[k], 1 - ye[k])
-        constraints += edge.head.constraint_homogenization(x_head - ze_head[k], 1 - ye[k])
+        i = conic_graph.vertex_index(edge.tail)
+        j = conic_graph.vertex_index(edge.head)
+        constraints += edge.tail.constraint_homogenization(zv[i] - ze_tail[k], yv[i] - ye[k])
+        constraints += edge.head.constraint_homogenization(zv[j] - ze_head[k], yv[j] - ye[k])
 
     # Check each line of each conic constraint.
     start = 0
@@ -57,36 +51,42 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
         stop = start + size
         for j in range(start, stop):
 
-            # Evaluate linear constraint using the problem binaries.
+            # Evaluate affine constraint using the problem binaries.
             av = Av[j]
             ae = Ae[j]
             bj = conic_ilp.b[j]
-            lhs = av @ yv + ae @ ye + bj
 
             # If there are no shared vertices, just enforce scalar constraint.
             shared_vertices = find_shared_vertices(conic_graph, av, ae)
             if not shared_vertices:
-                constraints.append(K(lhs))
+                constraints.append(K(av @ yv + ae @ ye + bj))
 
-            # If there are shared vertices, apply Lemma 5.1 from thesis to
-            # each linear constraint.
+            # If there are shared vertices, apply constraint-generation lemma to
+            # each affine constraint.
             for vertex in shared_vertices:
 
-                # Assemble spatial constraints.
+                # Assemble implied constraint.
                 i = conic_graph.vertex_index(vertex)
                 inc = conic_graph.incoming_edge_indices(vertex)
                 out = conic_graph.outgoing_edge_indices(vertex)
-                vector_lhs = bj * xv[i] + av[i] * zv[i]
+                lhs = (bj + av[i]) * yv[i] + ae @ ye
+                vector_lhs = (bj + av[i]) * zv[i]
                 vector_lhs += sum(ae[inc] * ze_head[inc])
                 vector_lhs += sum(ae[out] * ze_tail[out])
 
-                # Enforce spatial constraints.
+                # Enforce implied constraints.
                 if K == cp.Zero:
                     constraints += [lhs == 0, vector_lhs == 0]
+                    if not np.isclose(bj, 0):
+                        constraints.append(yv[i] == 1)
                 elif K == cp.NonNeg:
                     constraints += vertex.constraint_homogenization(vector_lhs, lhs)
+                    if bj < 0:
+                        constraints.append(yv[i] == 1)
                 elif K == cp.NonPos:
                     constraints += vertex.constraint_homogenization(-vector_lhs, -lhs)
+                    if bj > 0:
+                        constraints.append(yv[i] == 1)
                 else:
                     raise ValueError(
                         "All the constraints of ILP must be affine. Got cone "
