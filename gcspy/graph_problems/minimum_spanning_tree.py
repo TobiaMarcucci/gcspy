@@ -4,16 +4,21 @@ from itertools import combinations
 from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
 def minimum_spanning_tree(conic_graph, root, subtour_elimination, binary, tol, **kwargs):
+    """
+    See ILP formulation from https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15850-f20/www/notes/lec2.pdf
+    """
 
-    # define variables
+    # Define variables.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-    # edge costs and constraints
+    # Edge basic costs and constraints.
     cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
-    # constraints on the vertices
+    # Cost and constraints on the vertices.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
+
+        # Constraints on incoming edges.
         inc = conic_graph.incoming_edge_indices(vertex)
         if vertex.name == root.name:
             constraints += vertex.constraint_homogenization(zv[i], 1)
@@ -22,13 +27,12 @@ def minimum_spanning_tree(conic_graph, root, subtour_elimination, binary, tol, *
         else:
             constraints += [sum(ye[inc]) == 1, sum(ze_head[inc]) == zv[i]]
 
-    # constraints on the edges
-    for k, edge in enumerate(conic_graph.edges):
-        z_tail = zv[conic_graph.vertex_index(edge.tail)]
-        constraints += edge.tail.constraint_homogenization(z_tail - ze_tail[k], 1 - ye[k])
+        # Constraints on outgoing edges.
+        for k in conic_graph.outgoing_edge_indices(vertex):
+            constraints += vertex.constraint_homogenization(zv[i] - ze_tail[k], 1 - ye[k])
 
-    # subtour elimination constraints for all subsets of vertices with
-    # cardinality between 2 and num_vertices - 1
+    # Subtour elimination constraints for all subsets of vertices with
+    # cardinality between 2 and num_vertices - 1.
     if subtour_elimination:
         root = conic_graph.get_vertex(root.name)
         i = conic_graph.vertex_index(root)
@@ -38,11 +42,11 @@ def minimum_spanning_tree(conic_graph, root, subtour_elimination, binary, tol, *
                 inc = conic_graph.incoming_edge_indices(vertices)
                 constraints.append(sum(ye[inc]) >= 1)
 
-    # solve problem
+    # Solve problem.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
 
-    # set value of vertex binaries
+    # Set value of vertex binaries.
     if prob.status == "optimal":
         yv.value = np.ones(conic_graph.num_vertices())
 
