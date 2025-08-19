@@ -9,23 +9,25 @@ from gcspy.graph_problems.facility_location import facility_location
 from gcspy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 from gcspy.graph_problems.from_ilp import from_ilp
 
-# TODO: add support for undirected graphs.
-
 class Graph:
     """
     Base class that contains the method that are common to GraphOfConicSets
     and GraphOfConvexSets.
     """
 
-    def __init__(self):
+    def __init__(self, directed=True):
         self.vertices = []
         self.edges = []
+        self.directed = directed
 
     def has_vertex(self, name):
         return name in [vertex.name for vertex in self.vertices]
     
     def has_edge(self, name):
-        return name in [edge.name for edge in self.edges]
+        if self.directed:
+            return name in [edge.name for edge in self.edges]
+        else:
+            return set(name) in [set(edge.name) for edge in self.edges]
 
     def ensure_vertex_name_available(self, name):
         if self.has_vertex(name):
@@ -76,22 +78,30 @@ class Graph:
 
     def get_edge(self, tail_name, head_name):
         name = (tail_name, head_name)
+        if not self.directed:
+            name_set = set(name)
         for edge in self.edges:
-            if edge.name == name:
-                return edge
-        raise ValueError(f"There is no edge with name {name}.")
+            if self.directed:
+                if edge.name == name:
+                    return edge
+            else:
+                if set(edge.name) == name_set:
+                    return edge
+        raise ValueError(f"No edge found with name {name}.")
 
     def vertex_index(self, vertex):
         return self.vertices.index(vertex)
 
     def edge_index(self, edge):
         return self.edges.index(edge)
-
+    
     def incoming_edge_indices(self, vertices):
         """
         Return indices of edges that are incoming to `vertices` (i.e., edges
         whose head is in `vertices` but tail is not).
         """
+        if not self.directed:
+            raise ValueError("Incoming indices cannot be computed for undirected graphs.")
         if not isinstance(vertices, Iterable):
             vertices = [vertices]
         def is_incoming(edge, vertices):
@@ -103,6 +113,8 @@ class Graph:
         Return indices of edges that are outgoing from `vertices` (i.e., edges
         whose tail is in `vertices` but head is not).
         """
+        if not self.directed:
+            raise ValueError("Outgoing indices cannot be computed for undirected graphs.")
         if not isinstance(vertices, Iterable):
             vertices = [vertices]
         def is_outgoing(edge, vertices):
@@ -114,13 +126,19 @@ class Graph:
         Return indices of edges that are incident with `vertices` (either
         incoming or outgoing).
         """
-        return self.incoming_edge_indices(vertices) + self.outgoing_edge_indices(vertices)
+        if not isinstance(vertices, Iterable):
+            vertices = [vertices]
+        def is_incident(edge, vertices):
+            return edge.tail in vertices ^ edge.head in vertices # xor
+        return [k for k, edge in enumerate(self.edges) if is_incident(edge, vertices)]
 
     def incoming_edges(self, vertices):
         """
         Return edges that are incoming to `vertices` (i.e., edges whose head is
         in `vertices` but tail is not).
         """
+        if not self.directed:
+            raise ValueError("Incoming edges cannot be computed for undirected graphs.")
         return [self.edges[k] for k in self.incoming_edge_indices(vertices)]
         
     def outgoing_edges(self, vertices):
@@ -128,6 +146,8 @@ class Graph:
         Return edges that are outgoing from `vertices` (i.e., edges whose tail
         is in `vertices` but head is not).
         """
+        if not self.directed:
+            raise ValueError("Outgoing edges cannot be computed for undirected graphs.")
         return [self.edges[k] for k in self.outgoing_edge_indices(vertices)]
         
     def incident_edges(self, vertices):
@@ -188,19 +208,34 @@ class GraphOfConicSets(Graph):
         return edge
     
     def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
-        return shortest_path(self, source, target, binary, tol, **kwargs)
+        if self.directed:
+            return shortest_path(self, source, target, binary, tol, **kwargs)
+        else:
+            raise NotImplementedError
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
-        return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
+        if self.directed:
+            return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
+        else:
+            raise NotImplementedError
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
-        return facility_location(self, binary, tol, **kwargs)
+        if self.directed:
+            return facility_location(self, binary, tol, **kwargs)
+        else:
+            raise NotImplementedError
     
     def solve_minimum_spanning_tree(self, root, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
-        return minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
+        if self.directed:
+            return minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
+        else:
+            raise NotImplementedError
     
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
-        return from_ilp(self, ilp_constraints, binary, tol, **kwargs)
+        if self.directed:
+            return from_ilp(self, ilp_constraints, binary, tol, **kwargs)
+        else:
+            raise NotImplementedError
 
 class GraphOfConvexSets(Graph):
 
@@ -220,7 +255,7 @@ class GraphOfConvexSets(Graph):
     def to_conic(self):
 
         # Initialize empty conic graph.
-        conic_graph = GraphOfConicSets()
+        conic_graph = GraphOfConicSets(directed=self.directed)
 
         # Add one vertex at the time.
         for convex_vertex in self.vertices:
@@ -290,7 +325,7 @@ class GraphOfConvexSets(Graph):
         return prob
     
     # TODO: try to reuse the following method for all the graph problems.
-    # TODO: move the following method to the conic graph.
+    # TODO: add the following method also to the conic graph.
     def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
         binary = False
         relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
