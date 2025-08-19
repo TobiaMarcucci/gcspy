@@ -41,7 +41,7 @@ def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
         else:
             vertex.x.value = None
 
-    # set edge variable values
+    # Set edge variable values.
     for edge, y, z in zip(conic_graph.edges, ye, ze):
         edge.binary_variable.value = y.value
         z_value = z.value if z.size > 0 else np.array([])
