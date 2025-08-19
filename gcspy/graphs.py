@@ -129,7 +129,7 @@ class Graph:
         if not isinstance(vertices, Iterable):
             vertices = [vertices]
         def is_incident(edge, vertices):
-            return edge.tail in vertices ^ edge.head in vertices # xor
+            return (edge.tail in vertices) ^ (edge.head in vertices) # xor
         return [k for k, edge in enumerate(self.edges) if is_incident(edge, vertices)]
 
     def incoming_edges(self, vertices):
@@ -193,9 +193,8 @@ class Graph:
 
 class GraphOfConicSets(Graph):
 
-    def __init__(self):
-        self.vertices = []
-        self.edges = []
+    def __init__(self, directed=True):
+        super().__init__(directed)
 
     def _add_vertex(self, name, size, id_to_range=None):
         vertex = ConicVertex(name, size, id_to_range)
@@ -239,8 +238,8 @@ class GraphOfConicSets(Graph):
 
 class GraphOfConvexSets(Graph):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, directed=True):
+        super().__init__(directed)
         
     def _add_vertex(self, name):
         vertex = ConvexVertex(name)
