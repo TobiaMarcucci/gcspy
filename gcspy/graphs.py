@@ -5,6 +5,7 @@ from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.shortest_path import shortest_path
 from gcspy.graph_problems.traveling_salesman import traveling_salesman
+from gcspy.graph_problems.traveling_salesman_gurobipy import traveling_salesman_gurobipy
 from gcspy.graph_problems.facility_location import facility_location
 from gcspy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 from gcspy.graph_problems.from_ilp import from_ilp
@@ -145,8 +146,6 @@ class Graph:
         Return edges that are incoming to `vertices` (i.e., edges whose head is
         in `vertices` but tail is not).
         """
-        if not self.directed:
-            raise ValueError("Incoming edges cannot be computed for undirected graphs.")
         return [self.edges[k] for k in self.incoming_edge_indices(vertices)]
         
     def outgoing_edges(self, vertices):
@@ -154,8 +153,6 @@ class Graph:
         Return edges that are outgoing from `vertices` (i.e., edges whose tail
         is in `vertices` but head is not).
         """
-        if not self.directed:
-            raise ValueError("Outgoing edges cannot be computed for undirected graphs.")
         return [self.edges[k] for k in self.outgoing_edge_indices(vertices)]
         
     def incident_edges(self, vertices):
@@ -165,12 +162,22 @@ class Graph:
         """
         return [self.edges[k] for k in self.incident_edge_indices(vertices)]
     
-        
     def induced_edges(self, vertices):
         """
         Return edges that have both ends in `vertices`.
         """
         return [self.edges[k] for k in self.induced_edge_indices(vertices)]
+    
+    def in_neighbors(self, vertices):
+        return [edge.tail for edge in self.incoming_edges(vertices)]
+    
+    def out_neighbors(self, vertices):
+        return [edge.head for edge in self.outgoing_edges(vertices)]
+
+    def neighbors(self, vertices):
+        if not isinstance(vertices, Iterable):
+            vertices = [vertices]
+        return [edge.head if edge.tail in vertices else edge.tail for edge in self.incident_edges(vertices)]
 
     def num_vertices(self):
         """
@@ -195,7 +202,7 @@ class Graph:
 
     def edge_binary_values(self):
         return np.array([edge.binary_variable.value for edge in self.edges])
-
+    
     def add_disjoint_subgraph(self, graph):
         for vertex in graph.vertices:
             self.append_vertex(vertex)
@@ -229,6 +236,9 @@ class GraphOfConicSets(Graph):
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
+    
+    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        return traveling_salesman_gurobipy(self, lazy_constraints, binary, tol, gurobi_parameters)
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         if self.directed:
@@ -315,6 +325,12 @@ class GraphOfConvexSets(Graph):
         prob = conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
         self._set_variable_values(conic_graph)
         return prob
+    
+    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        conic_graph = self.to_conic()
+        model = conic_graph.solve_traveling_salesman_gurobipy(binary, lazy_constraints, tol, gurobi_parameters)
+        self._set_variable_values(conic_graph)
+        return model
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
