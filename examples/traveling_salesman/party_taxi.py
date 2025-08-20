@@ -22,14 +22,15 @@ l = np.min(positions, axis=0)
 u = np.max(positions, axis=0)
 
 # Initialize empty graph.
-graph = GraphOfConvexSets(directed=False)
+directed = False # Both directed and undirected work.
+graph = GraphOfConvexSets(directed=directed)
 
 # Vertex for every guest.
 for i, position in enumerate(guest_positions):
     guest = graph.add_vertex(f"guest_{i}")
     x = guest.add_variable(2)
     guest.add_constraints([x >= l, x <= u])
-    guest.add_cost(cp.norm1(x - position)) # Manhattan distance traveled by the guest
+    guest.add_cost(cp.norm1(x - position)) # L1 distance traveled by guest
 
 # Vertex for the party location.
 party = graph.add_vertex("party")
@@ -38,19 +39,19 @@ party.add_constraint(x == party_position)
 
 # Edge between every pair of distinct positions.
 for i, tail in enumerate(graph.vertices):
-    for head in graph.vertices[i + 1:]:
+    heads = graph.vertices[i + 1:]
+    if directed:
+        heads += graph.vertices[:i]
+    for head in heads:
         edge = graph.add_edge(tail, head)
         x_tail = tail.variables[0]
         x_head = head.variables[0]
-        edge.add_cost(cp.norm1(x_tail - x_head)) # Manhattan distance traveled by the driver
+        edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by driver
 
 # Solve problem.
-from time import time
-tic = time()
 prob = graph.solve_traveling_salesman()
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
-print(time() - tic)
 
 # Helper function that draws an L1 arrow between two points.
 def l1_arrow(tail, head, color):
@@ -82,7 +83,8 @@ for vertex, position in zip(graph.vertices, guest_positions):
     plt.scatter(*position, fc='white', ec='black', zorder=3)
     
 # Party position.
-plt.scatter(*party_position, marker='*', fc='yellow', ec='black', zorder=3, s=200, label="party")
+plt.scatter(*party_position, marker='*', fc='yellow', ec='black', zorder=3,
+            s=200, label="party")
 
 # Adds empty plots for clean legend.
 nans = np.full((2, 2), np.nan)

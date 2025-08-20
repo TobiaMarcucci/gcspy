@@ -3,7 +3,7 @@ import numpy as np
 from gcspy import GraphOfConvexSets
 
 # Initialize empty graph.
-directed = True # Both directed and undirected work.
+directed = False # Both directed and undirected work.
 graph = GraphOfConvexSets(directed)
 
 # Vertex 0.
@@ -40,8 +40,11 @@ c4 = np.array([.3, .3]) # center of the set
 v4.add_constraint(cp.norm1(x4 - c4) <= 1)
 
 # Add an edge between every pair of distinct vertices.
-for tail in graph.vertices:
-    for head in graph.vertices:
+for i, tail in enumerate(graph.vertices):
+    heads = graph.vertices[i + 1:]
+    if directed:
+        heads += graph.vertices[:i]
+    for head in heads:
         if tail != head:
             if directed or tail.name < head.name:
                 edge = graph.add_edge(tail, head)
