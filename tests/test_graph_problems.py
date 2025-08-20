@@ -120,176 +120,176 @@ class TestGraphProblems(unittest.TestCase):
         e1.add_cost(cp.sum_squares(z2 - z1))
 
         # Solve problem and check result.
-        prob = graph.solve_shortest_path(v0, v2)
+        prob = graph.solve_shortest_path(v0, v2, binary=self.binary)
         self.assertAlmostEqual(prob.value, 8, places=4)
         self.assertAlmostEqual(x0.value[0], 2, places=3)
-        np.testing.assert_array_almost_equal(z1.value, [2, 2], decimal=3)
         self.assertAlmostEqual(x2.value[0], 2, places=3)
+        np.testing.assert_array_almost_equal(z1.value, [2, 2], decimal=3)
         for yv in graph.vertex_binaries():
             self.assertAlmostEqual(yv.value, 1, places=4)
         for ye in graph.edge_binaries():
             self.assertAlmostEqual(ye.value, 1, places=4)
 
-    # def test_solve_shortest_path_without_edge_costs(self):
+    def test_solve_shortest_path_without_edge_costs(self):
 
-    #     # Initialize graph.
-    #     graph = GraphOfConvexSets()
+        # Initialize graph.
+        graph = GraphOfConvexSets()
 
-    #     # Add vertices, variables, and costs.
-    #     v = [graph.add_vertex(i) for i in range(4)]
-    #     x = [vi.add_variable((2, 2)) for vi in v]
-    #     for vi, xi in zip(v, x):
-    #         vi.add_cost(cp.norm2(xi[1] - xi[0]))
+        # Add vertices, variables, and costs.
+        v = [graph.add_vertex(i) for i in range(4)]
+        x = [vi.add_variable((2, 2)) for vi in v]
+        for vi, xi in zip(v, x):
+            vi.add_cost(cp.norm2(xi[1] - xi[0]))
 
-    #     # Add vertex constraints.
-    #     def constrain_in_box(v, x, l, u):
-    #         for xi in x:
-    #             v.add_constraints([xi >= l, xi <= u])
-    #     constrain_in_box(v[0], x[0], [0, 0], [3, 3])
-    #     constrain_in_box(v[1], x[1], [2, 2.1], [5, 5.1])
-    #     constrain_in_box(v[2], x[2], [2, -2], [5, 1])
-    #     constrain_in_box(v[3], x[3], [4, 0], [7, 3])
+        # Add vertex constraints.
+        def constrain_in_box(v, x, l, u):
+            for xi in x:
+                v.add_constraints([xi >= l, xi <= u])
+        constrain_in_box(v[0], x[0], [0, 0], [3, 3])
+        constrain_in_box(v[1], x[1], [2, 2.1], [5, 5.1])
+        constrain_in_box(v[2], x[2], [2, -2], [5, 1])
+        constrain_in_box(v[3], x[3], [4, 0], [7, 3])
 
-    #     # Add start and goal points.
-    #     v[0].add_constraints([x[0][0] == [1.5, 1.5]])
-    #     v[3].add_constraints([x[3][1] == [5.5, 1.5]])
+        # Add start and goal points.
+        v[0].add_constraints([x[0][0] == [1.5, 1.5]])
+        v[3].add_constraints([x[3][1] == [5.5, 1.5]])
 
-    #     # Add edges.
-    #     edges = [graph.add_edge(v[0], v[1]),
-    #              graph.add_edge(v[0], v[2]),
-    #              graph.add_edge(v[1], v[3]),
-    #              graph.add_edge(v[2], v[3])]
+        # Add edges.
+        edges = [graph.add_edge(v[0], v[1]),
+                 graph.add_edge(v[0], v[2]),
+                 graph.add_edge(v[1], v[3]),
+                 graph.add_edge(v[2], v[3])]
 
-    #     # Add edge constraints.
-    #     for e in edges:
-    #         end_tail = e.tail.variables[0][1]
-    #         start_head = e.head.variables[0][0]
-    #         e.add_constraint(end_tail == start_head) 
+        # Add edge constraints.
+        for e in edges:
+            end_tail = e.tail.variables[0][1]
+            start_head = e.head.variables[0][0]
+            e.add_constraint(end_tail == start_head) 
 
-    #     # Solve problem relaxation (which for this problem is exact).
-    #     prob = graph.solve_shortest_path(v[0], v[3], binary=False)
+        # Solve problem relaxation (which for this problem is exact).
+        prob = graph.solve_shortest_path(v[0], v[3], binary=False)
         
-    #     # Check optimal value.
-    #     expected_value = 2 * np.sqrt(1.5 ** 2 + .5 ** 2) + 1
-    #     self.assertAlmostEqual(prob.value, expected_value, places=4)
+        # Check optimal value.
+        expected_value = 2 * np.sqrt(1.5 ** 2 + .5 ** 2) + 1
+        self.assertAlmostEqual(prob.value, expected_value, places=4)
 
-    #     # Check optimal solution.
-    #     x0 = np.array([[1.5, 1.5], [3, 1]])
-    #     x2 = np.array([[3, 1], [4, 1]])
-    #     x3 = np.array([[4, 1], [5.5, 1.5]])
-    #     np.testing.assert_array_almost_equal(x[0].value, x0, decimal=4)
-    #     np.testing.assert_array_almost_equal(x[2].value, x2, decimal=4)
-    #     np.testing.assert_array_almost_equal(x[3].value, x3, decimal=4)
-    #     self.assertIsNone(x[1].value)
+        # Check optimal solution.
+        x0 = np.array([[1.5, 1.5], [3, 1]])
+        x2 = np.array([[3, 1], [4, 1]])
+        x3 = np.array([[4, 1], [5.5, 1.5]])
+        np.testing.assert_array_almost_equal(x[0].value, x0, decimal=4)
+        np.testing.assert_array_almost_equal(x[2].value, x2, decimal=4)
+        np.testing.assert_array_almost_equal(x[3].value, x3, decimal=4)
+        self.assertIsNone(x[1].value)
 
-    # def test_solve_shortest_path_from_ilp(self):
+    def test_solve_shortest_path_from_ilp(self):
 
-    #     # Repeat for convex and conic graph.
-    #     graphs = [self.get_conic_graph(), self.get_convex_graph()]
-    #     for graph in graphs:
+        # Repeat for convex and conic graph.
+        graphs = [self.get_conic_graph(), self.get_convex_graph()]
+        for graph in graphs:
 
-    #         # Binary variables.
-    #         yv = graph.vertex_binaries()
-    #         ye = graph.edge_binaries()
+            # Binary variables.
+            yv = graph.vertex_binaries()
+            ye = graph.edge_binaries()
 
-    #         # Vertex constraints.
-    #         source = graph.vertices[0]
-    #         target = graph.vertices[-1]
-    #         ilp_constraints = []
-    #         for i, vertex in enumerate(graph.vertices):
-    #             is_source = 1 if vertex == source else 0
-    #             is_target = 1 if vertex == target else 0
-    #             inc = graph.incoming_edge_indices(vertex)
-    #             out = graph.outgoing_edge_indices(vertex)
-    #             ilp_constraints += [
-    #                 yv[i] == sum(ye[inc]) + is_source,
-    #                 yv[i] == sum(ye[out]) + is_target]
+            # Vertex constraints.
+            source = graph.vertices[0]
+            target = graph.vertices[-1]
+            ilp_constraints = []
+            for i, vertex in enumerate(graph.vertices):
+                is_source = 1 if vertex == source else 0
+                is_target = 1 if vertex == target else 0
+                inc = graph.incoming_edge_indices(vertex)
+                out = graph.outgoing_edge_indices(vertex)
+                ilp_constraints += [
+                    yv[i] == sum(ye[inc]) + is_source,
+                    yv[i] == sum(ye[out]) + is_target]
 
-    #         # Solve problem and check optimal value.
-    #         prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
-    #         expected_value = 2.2284271247532996
-    #         self.assertAlmostEqual(prob.value, expected_value, places=4)
+            # Solve problem and check optimal value.
+            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            expected_value = 2.2284271247532996
+            self.assertAlmostEqual(prob.value, expected_value, places=4)
 
-    # def test_solve_traveling_salesman(self):
+    def test_solve_traveling_salesman(self):
 
-    #     # Repeat for convex and conic graph.
-    #     graphs = [self.get_conic_graph(), self.get_convex_graph()]
-    #     for graph in graphs:
+        # Repeat for convex and conic graph.
+        graphs = [self.get_conic_graph(), self.get_convex_graph()]
+        for graph in graphs:
 
-    #         # Solve problem and check optimal value.
-    #         prob = graph.solve_traveling_salesman(binary=self.binary)
-    #         expected_value = 6.718354360344848 if self.binary else 4.014213562373667
-    #         self.assertAlmostEqual(prob.value, expected_value, places=4)
+            # Solve problem and check optimal value.
+            prob = graph.solve_traveling_salesman(binary=self.binary)
+            expected_value = 6.718354360344848 if self.binary else 4.014213562373667
+            self.assertAlmostEqual(prob.value, expected_value, places=4)
 
-    # def test_solve_traveling_salesman_from_ilp(self):
+    def test_solve_traveling_salesman_from_ilp(self):
             
-    #     # Repeat for convex and conic graph.
-    #     graphs = [self.get_conic_graph(), self.get_convex_graph()]
-    #     for graph in graphs:
+        # Repeat for convex and conic graph.
+        graphs = [self.get_conic_graph(), self.get_convex_graph()]
+        for graph in graphs:
 
-    #         # Binary variables.
-    #         yv = graph.vertex_binaries()
-    #         ye = graph.edge_binaries()
+            # Binary variables.
+            yv = graph.vertex_binaries()
+            ye = graph.edge_binaries()
 
-    #         # Vertex constraints.
-    #         ilp_constraints = []
-    #         for i, vertex in enumerate(graph.vertices):
-    #             inc = graph.incoming_edge_indices(vertex)
-    #             out = graph.outgoing_edge_indices(vertex)
-    #             ilp_constraints += [yv[i] == 1, sum(ye[out]) == 1, sum(ye[inc]) == 1]
+            # Vertex constraints.
+            ilp_constraints = []
+            for i, vertex in enumerate(graph.vertices):
+                inc = graph.incoming_edge_indices(vertex)
+                out = graph.outgoing_edge_indices(vertex)
+                ilp_constraints += [yv[i] == 1, sum(ye[out]) == 1, sum(ye[inc]) == 1]
 
-    #         # Subtour elimnation constraints.
-    #         for subtour_size in range(2, graph.num_vertices() - 1):
-    #             for vertices in combinations(graph.vertices, subtour_size):
-    #                 out = graph.outgoing_edge_indices(vertices)
-    #                 ilp_constraints.append(sum(ye[out]) >= 1)
+            # Subtour elimnation constraints.
+            for subtour_size in range(2, graph.num_vertices() - 1):
+                for vertices in combinations(graph.vertices, subtour_size):
+                    out = graph.outgoing_edge_indices(vertices)
+                    ilp_constraints.append(sum(ye[out]) >= 1)
 
-    #         # Solve problem and check optimal value.
-    #         prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
-    #         expected_value = 6.718354360344848 if self.binary else 4.014213562373667
-    #         self.assertAlmostEqual(prob.value, expected_value, places=4)
+            # Solve problem and check optimal value.
+            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            expected_value = 6.718354360344848 if self.binary else 4.014213562373667
+            self.assertAlmostEqual(prob.value, expected_value, places=4)
 
-    # def test_solve_spanning_tree(self):
+    def test_solve_spanning_tree(self):
         
-    #     # Repeat for convex and conic graph.
-    #     graphs = [self.get_conic_graph(), self.get_convex_graph()]
-    #     for graph in graphs:
+        # Repeat for convex and conic graph.
+        graphs = [self.get_conic_graph(), self.get_convex_graph()]
+        for graph in graphs:
         
-    #         # Solve problem and check optimal value.
-    #         root = graph.vertices[0]
-    #         prob = graph.solve_minimum_spanning_tree(root, binary=self.binary)
-    #         expected_value = 5.273360961108411 if self.binary else 3.2
-    #         self.assertAlmostEqual(prob.value, expected_value, places=4)
+            # Solve problem and check optimal value.
+            root = graph.vertices[0]
+            prob = graph.solve_minimum_spanning_tree(root, binary=self.binary)
+            expected_value = 5.273360961108411 if self.binary else 3.2
+            self.assertAlmostEqual(prob.value, expected_value, places=4)
 
-    # def test_solve_spanning_tree_from_ilp(self):
+    def test_solve_spanning_tree_from_ilp(self):
             
-    #     # Repeat for convex and conic graph.
-    #     graphs = [self.get_conic_graph(), self.get_convex_graph()]
-    #     for graph in graphs:
+        # Repeat for convex and conic graph.
+        graphs = [self.get_conic_graph(), self.get_convex_graph()]
+        for graph in graphs:
 
-    #         # Binary variables.
-    #         yv = graph.vertex_binaries()
-    #         ye = graph.edge_binaries()
+            # Binary variables.
+            yv = graph.vertex_binaries()
+            ye = graph.edge_binaries()
 
-    #         # Vertex constraints.
-    #         root = graph.vertices[0]
-    #         ilp_constraints = []
-    #         root_index = graph.vertex_index(root)
-    #         for i, vertex in enumerate(graph.vertices):
-    #             inc = graph.incoming_edge_indices(vertex)
-    #             inc_flow = 0 if i == root_index else 1
-    #             ilp_constraints += [yv[i] == 1, sum(ye[inc]) == inc_flow]
+            # Vertex constraints.
+            root = graph.vertices[0]
+            ilp_constraints = []
+            root_index = graph.vertex_index(root)
+            for i, vertex in enumerate(graph.vertices):
+                inc = graph.incoming_edge_indices(vertex)
+                inc_flow = 0 if i == root_index else 1
+                ilp_constraints += [yv[i] == 1, sum(ye[inc]) == inc_flow]
 
-    #         # Subtour elimnation constraints.
-    #         for subtour_size in range(2, graph.num_vertices()):
-    #             for vertices in combinations(graph.vertices[1:], subtour_size):
-    #                 inc = graph.incoming_edge_indices(vertices)
-    #                 ilp_constraints.append(sum(ye[inc]) >= 1)
+            # Subtour elimnation constraints.
+            for subtour_size in range(2, graph.num_vertices()):
+                for vertices in combinations(graph.vertices[1:], subtour_size):
+                    inc = graph.incoming_edge_indices(vertices)
+                    ilp_constraints.append(sum(ye[inc]) >= 1)
 
-    #         # Solve problem and check optimal value.
-    #         prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
-    #         expected_value = 5.273360961108411 if self.binary else 3.2
-    #         self.assertAlmostEqual(prob.value, expected_value, places=4)
+            # Solve problem and check optimal value.
+            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            expected_value = 5.273360961108411 if self.binary else 3.2
+            self.assertAlmostEqual(prob.value, expected_value, places=4)
 
 if __name__ == '__main__':
     unittest.main()
