@@ -22,7 +22,7 @@ l = np.min(positions, axis=0)
 u = np.max(positions, axis=0)
 
 # Initialize empty graph.
-graph = GraphOfConvexSets()
+graph = GraphOfConvexSets(directed=False)
 
 # Vertex for every guest.
 for i, position in enumerate(guest_positions):
@@ -37,13 +37,12 @@ x = party.add_variable(2)
 party.add_constraint(x == party_position)
 
 # Edge between every pair of distinct positions.
-for tail in graph.vertices:
-    for head in graph.vertices:
-        if tail != head:
-            edge = graph.add_edge(tail, head)
-            x_tail = tail.variables[0]
-            x_head = head.variables[0]
-            edge.add_cost(cp.norm1(x_tail - x_head)) # Manhattan distance traveled by the driver
+for i, tail in enumerate(graph.vertices):
+    for head in graph.vertices[i + 1:]:
+        edge = graph.add_edge(tail, head)
+        x_tail = tail.variables[0]
+        x_head = head.variables[0]
+        edge.add_cost(cp.norm1(x_tail - x_head)) # Manhattan distance traveled by the driver
 
 # Solve problem.
 from time import time
