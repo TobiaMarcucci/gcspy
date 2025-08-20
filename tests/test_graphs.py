@@ -36,6 +36,9 @@ class TestGraphs(unittest.TestCase):
         self.assertEqual(graph.outgoing_edge_indices(graph.vertices[-2]), [n_vertices - 2])
         self.assertEqual(graph.incident_edge_indices(graph.vertices[0]), [0])
         self.assertEqual(graph.incident_edge_indices(graph.vertices[1]), [0, 1])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:1]), [])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:2]), [0])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:3]), [0, 1])
         self.assertEqual(graph.num_vertices(), n_vertices)
         self.assertEqual(graph.num_edges(), n_vertices - 1)
 
@@ -71,6 +74,9 @@ class TestGraphs(unittest.TestCase):
         self.assertRaises(ValueError, graph.outgoing_edge_indices, graph.vertices[0])
         self.assertEqual(graph.incident_edge_indices(graph.vertices[0]), [0])
         self.assertEqual(graph.incident_edge_indices(graph.vertices[1]), [0, 1])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:1]), [])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:2]), [0])
+        self.assertEqual(graph.induced_edge_indices(graph.vertices[:3]), [0, 1])
         self.assertEqual(graph.num_vertices(), n_vertices)
         self.assertEqual(graph.num_edges(), n_vertices - 1)
 

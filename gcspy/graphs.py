@@ -131,6 +131,14 @@ class Graph:
         def is_incident(edge, vertices):
             return (edge.tail in vertices) ^ (edge.head in vertices) # xor
         return [k for k, edge in enumerate(self.edges) if is_incident(edge, vertices)]
+    
+    def induced_edge_indices(self, vertices):
+        """
+        Return indices of edges that have both ends in `vertices`.
+        """
+        def is_induced(edge, vertices):
+            return (edge.tail in vertices) and (edge.head in vertices)
+        return [k for k, edge in enumerate(self.edges) if is_induced(edge, vertices)]
 
     def incoming_edges(self, vertices):
         """
@@ -156,6 +164,13 @@ class Graph:
         outgoing).
         """
         return [self.edges[k] for k in self.incident_edge_indices(vertices)]
+    
+        
+    def induced_edges(self, vertices):
+        """
+        Return edges that have both ends in `vertices`.
+        """
+        return [self.edges[k] for k in self.induced_edge_indices(vertices)]
 
     def num_vertices(self):
         """
