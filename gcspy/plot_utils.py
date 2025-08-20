@@ -36,11 +36,14 @@ def plot_2d_vertex(vertex, n=50, tol=1e-4, **kwargs):
     else:
         plt.fill(*vertices.T, **options, zorder=0)
     
-def plot_2d_edge(edge, endpoints=None, **kwargs):
+def plot_2d_edge(edge, endpoints=None, directed=True, **kwargs):
     for variables in [edge.tail.variables, edge.head.variables]:
         if variables[0].size != 2:
             raise ValueError("Can only plot 2D sets.")
-    arrowstyle = "->, head_width=3, head_length=8"
+    if directed:
+        arrowstyle = "->, head_width=3, head_length=8"
+    else:
+        arrowstyle = "-"
     options = dict(zorder=2, arrowstyle=arrowstyle)
     options.update(kwargs)
     if endpoints is None:
@@ -68,7 +71,7 @@ def plot_2d_graph(graph, n=50):
             raise ValueError("Can only plot 2D sets.")
         plot_2d_vertex(vertex, n)
     for edge in graph.edges:
-        plot_2d_edge(edge, color='grey')
+        plot_2d_edge(edge, directed=graph.directed, color='grey')
 
 def plot_2d_solution(graph, tol=1e-4):
     for vertex in graph.vertices:
@@ -80,14 +83,17 @@ def plot_2d_solution(graph, tol=1e-4):
             tail = edge.tail.variables[0].value
             head = edge.head.variables[0].value
             endpoints = (tail, head)
-            plot_2d_edge(edge, endpoints, color='blue')
+            plot_2d_edge(edge, endpoints, directed=graph.directed, color='blue')
 
 def graphviz_graph(graph, vertex_labels=None, edge_labels=None):
     if vertex_labels is None:
         vertex_labels = [vertex.name for vertex in graph.vertices]
     if edge_labels is None:
         edge_labels = [''] * graph.num_edges()
-    dot = gv.Digraph()
+    if graph.directed:
+        dot = gv.Digraph()
+    else:
+        dot = gv.Graph()
     for label in vertex_labels:
         dot.node(str(label))
     for edge, label in zip(graph.edges, edge_labels):

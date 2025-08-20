@@ -14,6 +14,8 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
     # Vertex costs and constraints.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
+
+        # Directed graphs.
         if conic_graph.directed:
             inc = conic_graph.incoming_edge_indices(vertex)
             out = conic_graph.outgoing_edge_indices(vertex)
@@ -22,6 +24,8 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
                 sum(ye[out]) == 1,
                 sum(ze_head[inc]) == zv[i],
                 sum(ze_tail[out]) == zv[i]]
+            
+        # Undirected graphs graphs.
         else:
             incident = conic_graph.incident_edge_indices(vertex)
             inc = [k for k in incident if conic_graph.edges[k].head == vertex]
@@ -29,11 +33,15 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
             constraints += [
                 sum(ye[incident]) == 2,
                 sum(ze_head[inc]) + sum(ze_tail[out]) == 2 * zv[i]]
+            for k in inc:
+                constraints += vertex.constraint_homogenization(zv[i] - ze_head[k], 1 - ye[k])
+            for k in out:
+                constraints += vertex.constraint_homogenization(zv[i] - ze_tail[k], 1 - ye[k])
 
-    # Subtour elimination constraints for all subsets of vertices with
-    # cardinality between 2 and num_vertices - 2.
+    # Exponentially many subtour elimination constraints.
     if subtour_elimination:
-        for n_vertices in range(2, conic_graph.num_vertices() - 1):
+        start = 2 if conic_graph.directed else 3
+        for n_vertices in range(start, conic_graph.num_vertices() - 1):
             for vertices in combinations(conic_graph.vertices, n_vertices):
                 ind = conic_graph.induced_edge_indices(vertices)
                 constraints.append(sum(ye[ind]) <= n_vertices - 1)

@@ -228,10 +228,7 @@ class GraphOfConicSets(Graph):
             raise NotImplementedError
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
-        if self.directed:
-            return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
-        else:
-            raise NotImplementedError
+        return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         if self.directed:

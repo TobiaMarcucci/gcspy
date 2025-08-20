@@ -134,4 +134,6 @@ dmypy.json
 # graphviz
 Digraph.gv
 Digraph.gv.pdf
+Graph.gv
+Graph.gv.pdf
 explorations/
