@@ -93,6 +93,43 @@ class TestGraphProblems(unittest.TestCase):
             expected_value = 2.2284271247532996
             self.assertAlmostEqual(prob.value, expected_value, places=4)
 
+        # Problem where vertex variables have different dimensions.
+        graph = GraphOfConvexSets()
+
+        # 1d vertex.
+        v0 = graph.add_vertex(0)
+        x0 = v0.add_variable(1)
+        v0.add_constraints([x0 >= 0, x0 <= 2])
+        z0 = cp.hstack([x0, 0])
+
+        # 2d vertex.
+        v1 = graph.add_vertex(1)
+        z1 = v1.add_variable(2)
+        v1.add_constraints([z1 >= 1, z1 <= 3])
+
+        # 1d vertex.
+        v2 = graph.add_vertex(2)
+        x2 = v2.add_variable(1)
+        v2.add_constraints([x2 >= 2, x2 <= 4])
+        z2 = cp.hstack([x2, 4])
+
+        # Two edges.
+        e0 = graph.add_edge(v0, v1)
+        e0.add_cost(cp.norm2(z1 - z0))
+        e1 = graph.add_edge(v1, v2)
+        e1.add_cost(cp.norm2(z2 - z1))
+
+        # Solve problem and check result.
+        prob = graph.solve_shortest_path(v0, v2)
+        self.assertAlmostEqual(prob.value, 4, places=4)
+        self.assertAlmostEqual(x0.value[0], 2, places=3)
+        self.assertAlmostEqual(z0.value[0], 2, places=3)
+        self.assertAlmostEqual(x2.value[0], 2, places=3)
+        for yv in graph.vertex_binaries():
+            self.assertAlmostEqual(yv.value, 1, places=4)
+        for ye in graph.edge_binaries():
+            self.assertAlmostEqual(ye.value, 1, places=4)
+
     def test_solve_shortest_path_without_edge_costs(self):
 
         # Initialize graph.
@@ -105,10 +142,13 @@ class TestGraphProblems(unittest.TestCase):
             vi.add_cost(cp.norm2(xi[1] - xi[0]))
 
         # Add vertex constraints.
-        v[0].add_constraints([x[0] >= [0, 0], x[0] <= [3, 3]])
-        v[1].add_constraints([x[1] >= [2, 2.1], x[1] <= [5, 5.1]])
-        v[2].add_constraints([x[2] >= [2, -2], x[2] <= [5, 1]])
-        v[3].add_constraints([x[3] >= [4, 0], x[3] <= [7, 3]])
+        def constrain_in_box(v, x, l, u):
+            for xi in x:
+                v.add_constraints([xi >= l, xi <= u])
+        constrain_in_box(v[0], x[0], [0, 0], [3, 3])
+        constrain_in_box(v[1], x[1], [2, 2.1], [5, 5.1])
+        constrain_in_box(v[2], x[2], [2, -2], [5, 1])
+        constrain_in_box(v[3], x[3], [4, 0], [7, 3])
 
         # Add start and goal points.
         v[0].add_constraints([x[0][0] == [1.5, 1.5]])
