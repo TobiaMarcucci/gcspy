@@ -1,9 +1,17 @@
-import gurobipy as gp
-from gurobipy import GRB
 from itertools import combinations
-from gcspy.graph_problems.utils_gurobipy import define_variables, enforce_edge_programs, cost_homogenization, constraint_homogenization, get_solution
+try:
+    import gurobipy as gp
+    from gurobipy import GRB
+    from gcspy.graph_problems.utils_gurobipy import (define_variables,
+        enforce_edge_programs, cost_homogenization, constraint_homogenization,
+        get_solution)
+    has_gurobi = True
+except ModuleNotFoundError:
+    has_gurobi = False
 
 def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
+    if not has_gurobi:
+        raise ImportError("Gurobi is not installed. Install gurobipy to use this method.")
 
     # Create environment.
     env = gp.Env()
