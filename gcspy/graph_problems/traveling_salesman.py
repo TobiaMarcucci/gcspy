@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
-from itertools import combinations
-from gcspy.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
+from gcspy.graph_problems.utils import (define_variables, enforce_edge_programs,
+    get_solution, subtour_elimination_constraints)
 
 def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=None, **kwargs):
 
@@ -40,11 +40,7 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
 
     # Exponentially many subtour elimination constraints.
     if subtour_elimination:
-        start = 2 if conic_graph.directed else 3
-        for n_vertices in range(start, conic_graph.num_vertices() - 1):
-            for vertices in combinations(conic_graph.vertices, n_vertices):
-                ind = conic_graph.induced_edge_indices(vertices)
-                constraints.append(sum(ye[ind]) <= n_vertices - 1)
+        constraints += subtour_elimination_constraints(conic_graph, ye)
 
     # Solve problem.
     prob = cp.Problem(cp.Minimize(cost), constraints)

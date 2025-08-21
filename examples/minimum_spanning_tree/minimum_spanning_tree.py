@@ -3,10 +3,11 @@ import numpy as np
 from itertools import product
 from gcspy import GraphOfConvexSets
 
-# initialize empty graph
-graph = GraphOfConvexSets()
+# Initialize empty graph.
+directed = False # Both directed and undirected work.
+graph = GraphOfConvexSets(directed=directed)
 
-# create vertices on a grid
+# Create vertices on a grid.
 grid_sides = (3, 3)
 grid_points = [(i, j) for i in range(grid_sides[0]) for j in range(grid_sides[1])]
 radius = .25
@@ -16,38 +17,34 @@ for i, j in grid_points:
     center = np.array([i, j])
     v.add_constraint(cp.norm2(x - center) <= radius)
 
-# root of the spanning tree
-root = graph.vertices[0]
-
-# add edges between neighboring vertices
+# Add edges between neighboring vertices.
 for i, j in grid_points:
     for k, l in grid_points:
         distance = abs(k - i) + abs(l - j)
         if distance > 0 and distance <= 1:
             tail = graph.get_vertex((i, j))
             head = graph.get_vertex((k, l))
-            edge = graph.add_edge(tail, head)
+            if directed or not graph.has_edge((tail.name, head.name)):
+                edge = graph.add_edge(tail, head)
 
-            # edge cost is Euclidean distance
-            x_tail = tail.variables[0]
-            x_head = head.variables[0]
-            edge.add_cost(cp.norm2(x_head - x_tail))
+                # Edge cost is Euclidean distance.
+                x_tail = tail.variables[0]
+                x_head = head.variables[0]
+                edge.add_cost(cp.norm2(x_head - x_tail))
 
-# run followin code only if this file is executed directly, and not when it is
-# imported by other files
+# Run following code only if this file is executed directly, and not when it is
+# imported by other files.
 if __name__ == "__main__":
 
-    # solve minimum spanning tree problem using Dantzig–Fulkerson–Johnson
-    # formulation all the subtour elimination constraints are included
-    prob = graph.solve_minimum_spanning_tree(root)
-    print("Problem status:", prob.status)
-    print("Optimal value:", prob.value)
+    # Solve minimum spanning tree problem using exponential-size formulation.
+    root = graph.vertices[0] # Root of the spanning tree if directed.
+    prob = graph.solve_minimum_spanning_tree(root) # root ignored if undirected.
 
-    # show graph using graphviz (requires graphviz)
+    # Show graph using graphviz (requires graphviz).
     dot = graph.graphviz()
     dot.view()
 
-    # plot optimal solution (requires matplotlib)
+    # Plot optimal solution (requires matplotlib).
     import matplotlib.pyplot as plt
     plt.figure()
     plt.axis("equal")

@@ -1,5 +1,6 @@
 import cvxpy as cp
 import numpy as np
+from itertools import combinations
 
 def define_variables(conic_graph, binary):
 
@@ -30,6 +31,19 @@ def enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head):
         constraints += edge.head.constraint_homogenization(ze_head[k], ye[k])
 
     return cost, constraints
+
+def subtour_elimination_constraints(conic_graph, ye):
+    """
+    Subtour elimination constraints for all subsets of vertices with
+    cardinality between 2 and num_vertices - 1.
+    """
+    constraints = []
+    start = 2 if conic_graph.directed else 3
+    for n_vertices in range(start, conic_graph.num_vertices() - 1):
+        for vertices in combinations(conic_graph.vertices, n_vertices):
+            ind = conic_graph.induced_edge_indices(vertices)
+            constraints.append(sum(ye[ind]) <= n_vertices - 1)
+    return constraints
 
 def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
 
