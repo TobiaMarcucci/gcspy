@@ -10,14 +10,13 @@ n_guests = 10
 party_position = np.array([45, 7])
 guest_positions = np.random.randint([38, 0], [53, 15], (n_guests, 2))
 
-# Compute bounding box for all positions.
+# Bounding box for all positions.
 positions = np.vstack((party_position, guest_positions))
 l = np.min(positions, axis=0)
 u = np.max(positions, axis=0)
 
 # Initialize empty graph.
-directed = False # Both directed and undirected work.
-graph = GraphOfConvexSets(directed=directed)
+graph = GraphOfConvexSets(directed=False)
 
 # Vertex for every guest.
 for i, position in enumerate(guest_positions):
@@ -38,19 +37,19 @@ party.add_constraint(x == party_position)
 
 # Edge between every pair of distinct positions.
 for i, tail in enumerate(graph.vertices):
-    heads = graph.vertices[i + 1:]
-    if directed:
-        heads += graph.vertices[:i]
-    for head in heads:
+    for head in graph.vertices[i + 1:]:
         edge = graph.add_edge(tail, head)
         x_tail = tail.variables[0]
         x_head = head.variables[0]
         edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by driver.
 
-# Solve problem using gurobipy. If gurobipy is not available, the next line can
-# be replaced with the less performant
-# prob = graph.solve_traveling_salesman()
-prob = graph.solve_traveling_salesman_gurobipy()
+# Solve problem using gurobipy if possible (uses lazy constraints and is much
+# faster). Otherwise use exponential formulation and default cvxpy solver.
+import importlib.util
+if importlib.util.find_spec("gurobipy"):
+    prob = graph.solve_traveling_salesman_gurobipy()
+else:
+    prob = graph.solve_traveling_salesman()
 
 # Helper function that draws an L1 arrow between two points.
 def l1_arrow(tail, head, color):
