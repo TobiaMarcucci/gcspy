@@ -5,16 +5,10 @@ import matplotlib.patches as patches
 from gcspy import GraphOfConvexSets
 
 # Problem data.
+np.random.seed(0)
+n_guests = 10
 party_position = np.array([45, 7])
-guest_positions = np.array([
-    [47, 9],
-    [52, 4],
-    [52, 8],
-    [47, 5],
-    [48, 11],
-    [43, 10],
-    [42, 6],
-    [44, 4]])
+guest_positions = np.random.randint([38, 0], [53, 15], (n_guests, 2))
 
 # Compute bounding box for all positions.
 positions = np.vstack((party_position, guest_positions))
@@ -29,8 +23,13 @@ graph = GraphOfConvexSets(directed=directed)
 for i, position in enumerate(guest_positions):
     guest = graph.add_vertex(f"guest_{i}")
     x = guest.add_variable(2)
-    guest.add_constraints([x >= l, x <= u])
-    guest.add_cost(cp.norm1(x - position)) # L1 distance traveled by guest
+    d = guest.add_variable(1)[0] # L1 distance traveled by guest.
+    guest.add_constraints([
+        x >= l,
+        x <= u,
+        d >= cp.norm1(x - position),
+        d <= cp.norm1(party_position - position)])
+    guest.add_cost(d) 
 
 # Vertex for the party location.
 party = graph.add_vertex("party")
@@ -46,12 +45,12 @@ for i, tail in enumerate(graph.vertices):
         edge = graph.add_edge(tail, head)
         x_tail = tail.variables[0]
         x_head = head.variables[0]
-        edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by driver
+        edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by driver.
 
-# Solve problem.
-prob = graph.solve_traveling_salesman()
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+# Solve problem using gurobipy. If gurobipy is not available, the next line can
+# be replaced with the less performant
+# prob = graph.solve_traveling_salesman()
+prob = graph.solve_traveling_salesman_gurobipy()
 
 # Helper function that draws an L1 arrow between two points.
 def l1_arrow(tail, head, color):
