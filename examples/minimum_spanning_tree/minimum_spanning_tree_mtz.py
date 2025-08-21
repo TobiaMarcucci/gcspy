@@ -9,7 +9,7 @@ print("Optimal value:", prob.value)
 # formulation.
 
 # for each vertex we add a continuous variable that represents how many vertices
-# are visited by the tree befors this one
+# are visited by the tree before this one
 for vertex in graph.vertices:
     count = vertex.add_variable(1)
     if vertex == root:

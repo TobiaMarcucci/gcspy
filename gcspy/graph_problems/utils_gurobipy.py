@@ -1,7 +1,9 @@
 import numpy as np
 import cvxpy as cp
+import networkx as nx
 import gurobipy as gp
 from gurobipy import GRB
+from itertools import combinations
 
 def constrain_in_cone(model, z, K):
 
@@ -86,3 +88,75 @@ def get_solution(conic_graph, zv, ye, ze, tol):
                 edge.tail.x.value,
                 edge.head.x.value,
                 z.X / y.X))
+            
+class SubtourEliminationCallback:
+    """
+    Adapted from https://docs.gurobi.com/projects/examples/en/current/examples/python/tsp.html.
+    """
+
+    def __init__(self, conic_graph, ye):
+        self.conic_graph = conic_graph
+        self.ye = ye
+
+    def __call__(self, model, where):
+        if where == GRB.Callback.MIPSOL:
+            ye = model.cbGetSolution(self.ye)
+            edges = [self.conic_graph.edges[k] for k, y in enumerate(ye) if y > 0.5]
+            tour = self.shortest_subtour(edges)
+            if tour and len(tour) < self.conic_graph.num_vertices():
+                self.cut(model, tour)
+                
+    def cut(self, model, tour):
+        induced_edges = [k for k, edge in enumerate(self.conic_graph.edges) if edge.tail in tour and edge.head in tour]
+        model.cbLazy(gp.quicksum(self.ye[k] for k in induced_edges) <= len(tour) - 1)
+
+    # def shortest_subtour(self, edges):
+    #     """
+    #     The edges here are only the ones that have binary equal to one. It is
+    #     assumed there is exactly one incoming edge and one outgoing edge for
+    #     every vertex represented in the edge list.
+    #     """
+
+    #     # Create a mapping from each vertex to its neighbors. Do not use the
+    #     # neighbors method provided by the graph since it would also add
+    #     # neighbors connected by edges with binary equal to zero.
+    #     vertex_neighbors = {}
+    #     for edge in edges:
+    #         vertex_neighbors.setdefault(edge.tail, []).append(edge.head)
+    #         if not self.conic_graph.directed:
+    #             vertex_neighbors.setdefault(edge.head, []).append(edge.tail)
+
+    #     # Follow edges to find cycles. Each time a new cycle is found, keep track
+    #     # of the shortest cycle found so far and restart from an unvisited vertex.
+    #     unvisited = set(vertex_neighbors)
+    #     shortest = None
+    #     while unvisited:
+    #         cycle = []
+    #         neighbors = list(unvisited)
+    #         while neighbors:
+    #             current = neighbors.pop()
+    #             cycle.append(current)
+    #             unvisited.remove(current)
+    #             neighbors = [vertex for vertex in vertex_neighbors[current] if vertex in unvisited]
+    #         if shortest is None or len(cycle) < len(shortest):
+    #             shortest = cycle
+
+    #     return shortest
+
+    @staticmethod
+    def shortest_subtour(edges):
+        G = nx.Graph()
+        G.add_edges_from([(e.tail, e.head) for e in edges])
+        length = nx.girth(G)
+        tours = list(nx.simple_cycles(G, length))
+        return tours[0] if tours else None
+
+def subtour_elimination_constraints(model, conic_graph, ye):
+    """
+    Subtour elimination constraints for all subsets of vertices.
+    """
+    start = 2 if conic_graph.directed else 3
+    for n_vertices in range(start, conic_graph.num_vertices() - 1):
+        for vertices in combinations(conic_graph.vertices, n_vertices):
+            ind = conic_graph.induced_edge_indices(vertices)
+            model.addConstr(sum(ye[ind]) <= n_vertices - 1)

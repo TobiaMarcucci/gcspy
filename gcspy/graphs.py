@@ -5,9 +5,10 @@ from gcspy.vertices import ConicVertex, ConvexVertex
 from gcspy.edges import ConicEdge, ConvexEdge
 from gcspy.graph_problems.shortest_path import shortest_path
 from gcspy.graph_problems.traveling_salesman import traveling_salesman
-from gcspy.graph_problems.traveling_salesman_gurobipy import traveling_salesman_gurobipy
 from gcspy.graph_problems.facility_location import facility_location
 from gcspy.graph_problems.minimum_spanning_tree import directed_minimum_spanning_tree, undirected_minimum_spanning_tree
+from gcspy.graph_problems.traveling_salesman_gurobipy import traveling_salesman_gurobipy
+from gcspy.graph_problems.minimum_spanning_tree_gurobipy import undirected_minimum_spanning_tree_gurobipy
 from gcspy.graph_problems.from_ilp import from_ilp
 
 class Graph:
@@ -237,9 +238,6 @@ class GraphOfConicSets(Graph):
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         return traveling_salesman(self, subtour_elimination, binary, tol, **kwargs)
     
-    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
-        return traveling_salesman_gurobipy(self, lazy_constraints, binary, tol, gurobi_parameters)
-    
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         if self.directed:
             return facility_location(self, binary, tol, **kwargs)
@@ -260,6 +258,12 @@ class GraphOfConicSets(Graph):
             return from_ilp(self, ilp_constraints, binary, tol, **kwargs)
         else:
             raise NotImplementedError
+        
+    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        return traveling_salesman_gurobipy(self, lazy_constraints, binary, tol, gurobi_parameters)
+    
+    def solve_undirected_minimum_spanning_tree_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        return undirected_minimum_spanning_tree_gurobipy(self, lazy_constraints, binary, tol, gurobi_parameters)
 
 class GraphOfConvexSets(Graph):
 
@@ -329,12 +333,6 @@ class GraphOfConvexSets(Graph):
         self._set_variable_values(conic_graph)
         return prob
     
-    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
-        conic_graph = self.to_conic()
-        model = conic_graph.solve_traveling_salesman_gurobipy(binary, lazy_constraints, tol, gurobi_parameters)
-        self._set_variable_values(conic_graph)
-        return model
-    
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
         prob = conic_graph.solve_facility_location(binary, tol, **kwargs)
@@ -354,6 +352,18 @@ class GraphOfConvexSets(Graph):
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
         prob = conic_graph.solve_from_ilp(ilp_constraints, binary, tol, **kwargs)
+        self._set_variable_values(conic_graph)
+        return prob
+    
+    def solve_traveling_salesman_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        conic_graph = self.to_conic()
+        model = conic_graph.solve_traveling_salesman_gurobipy(lazy_constraints, binary, tol, gurobi_parameters)
+        self._set_variable_values(conic_graph)
+        return model
+    
+    def solve_undirected_minimum_spanning_tree_gurobipy(self, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        conic_graph = self.to_conic()
+        prob = conic_graph.solve_undirected_minimum_spanning_tree_gurobipy(lazy_constraints, binary, tol, gurobi_parameters)
         self._set_variable_values(conic_graph)
         return prob
     

@@ -8,9 +8,11 @@ try:
 except ModuleNotFoundError:
     has_gurobi = False
 
-def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
+def undirected_minimum_spanning_tree_gurobipy(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
     if not has_gurobi:
         raise ImportError("Gurobi is not installed. Install gurobipy to use this method.")
+    if conic_graph.directed:
+        raise ValueError("Function applicable only to undirected graphs.")
 
     # Create environment.
     env = gp.Env()
@@ -28,30 +30,26 @@ def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, guro
     # Edge costs and constraints.
     cost = enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head)
 
-    # Vertex costs and constraints.
+    # Number of edges in the tree.
+    model.addConstr(sum(ye) == conic_graph.num_vertices() - 1)
+
+    # Vertex costs.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += cost_homogenization(vertex, zv[i], 1)
 
-        # Directed graphs.
-        if conic_graph.directed:
-            inc = conic_graph.incoming_edge_indices(vertex)
-            out = conic_graph.outgoing_edge_indices(vertex)
-            model.addConstr(sum(ye[inc]) == 1)
-            model.addConstr(sum(ye[out]) == 1)
-            model.addConstr(sum(ze_head[inc]) == zv[i])
-            model.addConstr(sum(ze_tail[out]) == zv[i])
-            
-        # Undirected graphs graphs.
-        else:
-            incident = conic_graph.incident_edge_indices(vertex)
-            inc = [k for k in incident if conic_graph.edges[k].head == vertex]
-            out = [k for k in incident if conic_graph.edges[k].tail == vertex]
-            model.addConstr(sum(ye[incident]) == 2)
-            model.addConstr(sum(ze_head[inc]) + sum(ze_tail[out]) == 2 * zv[i])
-            for k in inc:
-                constraint_homogenization(model, vertex, zv[i] - ze_head[k], 1 - ye[k])
-            for k in out:
-                constraint_homogenization(model, vertex, zv[i] - ze_tail[k], 1 - ye[k])
+        # Cutset constraints for one vertex only.
+        incident = conic_graph.incident_edge_indices(vertex)
+        inc = [k for k in incident if conic_graph.edges[k].head == vertex]
+        out = [k for k in incident if conic_graph.edges[k].tail == vertex]
+        constraint_homogenization(model, vertex,
+            sum(ze_head[inc]) + sum(ze_tail[out]) - zv[i],
+            sum(ye[incident]) - 1)
+        
+        # Constraints implied by ye <= 1.
+        for k in inc:
+            constraint_homogenization(model, vertex, zv[i] - ze_head[k], 1 - ye[k])
+        for k in out:
+            constraint_homogenization(model, vertex, zv[i] - ze_tail[k], 1 - ye[k])
 
     # Set objective.
     model.setObjective(cost, GRB.MINIMIZE)
