@@ -9,13 +9,13 @@ def define_variables(conic_graph, binary):
     ye = cp.Variable(conic_graph.num_edges(), boolean=binary)
     
     # Function that allows adding variables of zero size.
-    safe_variable = lambda size: cp.Variable(size) if size > 0 else np.array([])
+    add_var = lambda size: cp.Variable(size) if size > 0 else np.array([])
 
     # Auxiliary continuous varibales.
-    zv = np.array([cp.Variable(vertex.size) for vertex in conic_graph.vertices])
-    ze = np.array([safe_variable(edge.slack_size) for edge in conic_graph.edges])
-    ze_tail = np.array([cp.Variable(edge.tail.size) for edge in conic_graph.edges])
-    ze_head = np.array([cp.Variable(edge.head.size) for edge in conic_graph.edges])
+    zv = np.array([add_var(vertex.size) for vertex in conic_graph.vertices])
+    ze = np.array([add_var(edge.slack_size) for edge in conic_graph.edges])
+    ze_tail = np.array([add_var(edge.tail.size) for edge in conic_graph.edges])
+    ze_head = np.array([add_var(edge.head.size) for edge in conic_graph.edges])
 
     return yv, zv, ye, ze, ze_tail, ze_head
 

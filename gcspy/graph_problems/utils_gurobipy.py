@@ -56,9 +56,11 @@ def define_variables(model, conic_graph, binary):
     # Binary variables.
     vtype = GRB.BINARY if binary else GRB.CONTINUOUS
     ye = model.addMVar(conic_graph.num_edges(), vtype=vtype)
+
+    # Function that allows adding variables of zero size.
+    add_var = lambda size: model.addMVar(size, lb=-np.inf) if size > 0 else np.array([])
     
     # Auxiliary continuous varibales.
-    add_var = lambda n : model.addMVar(n, lb=-np.inf)
     zv = np.array([add_var(vertex.size) for vertex in conic_graph.vertices])
     ze = np.array([add_var(edge.slack_size) for edge in conic_graph.edges])
     ze_tail = np.array([add_var(edge.tail.size) for edge in conic_graph.edges])
@@ -88,13 +90,14 @@ def get_solution(conic_graph, zv, ye, ze, tol):
     # Set edge variable values.
     for edge, y, z in zip(conic_graph.edges, ye, ze):
         edge.binary_variable.value = y.X
+        z_value = z.X if z.size > 0 else np.array([])
         if y.X is not None and y.X > tol:
             edge.x.value = np.concatenate((
                 edge.tail.x.value,
                 edge.head.x.value,
-                z.X / y.X))
+                z_value / y.X))
             
-class SubtourEliminationCallback:
+class Callback:
     """
     Usable for the TSP and the MSTP.
     """
@@ -110,14 +113,21 @@ class SubtourEliminationCallback:
             tour = self.shortest_subtour(edges)
             if tour and len(tour) < self.conic_graph.num_vertices():
                 self.cut(model, tour)
-            # for tour in self.shortest_subtour(edges):
-            #     if len(tour) < self.conic_graph.num_vertices():
-            #         self.cut(model, tour)
-                
-    def cut(self, model, tour):
-        induced_edges = [k for k, edge in enumerate(self.conic_graph.edges) if edge.tail in tour and edge.head in tour]
-        model.cbLazy(gp.quicksum(self.ye[k] for k in induced_edges) <= len(tour) - 1)
 
+    def shortest_subtour(self, edges):
+        if self.conic_graph.directed:
+            G = nx.DiGraph()
+        else:
+            G = nx.Graph()
+        G.add_edges_from([(e.tail, e.head) for e in edges])
+        if self.conic_graph.directed:
+            tours = list(nx.simple_cycles(G))
+            tours.sort(key=len)
+        else:
+            tours = list(nx.simple_cycles(G, nx.girth(G)))
+        if tours:
+            return tours[0]
+            
     # def shortest_subtour(self, edges):
     #     """
     #     The edges here are only the ones that have binary equal to one. It is
@@ -151,16 +161,6 @@ class SubtourEliminationCallback:
 
     #     return shortest
 
-    @staticmethod
-    def shortest_subtour(edges):
-        G = nx.Graph()
-        G.add_edges_from([(e.tail, e.head) for e in edges])
-        shortest_tour_length = nx.girth(G)
-        tours = list(nx.simple_cycles(G, shortest_tour_length))
-        if tours:
-            return tours[0]
-        # return tours
-
 def subtour_elimination_constraints(model, conic_graph, ye):
     """
     Subtour elimination constraints for all subsets of vertices.
@@ -170,3 +170,15 @@ def subtour_elimination_constraints(model, conic_graph, ye):
         for vertices in combinations(conic_graph.vertices, n_vertices):
             ind = conic_graph.induced_edge_indices(vertices)
             model.addConstr(sum(ye[ind]) <= n_vertices - 1)
+
+class SubtourEliminationCallback(Callback):
+
+    def cut(self, model, tour):
+        ind = self.conic_graph.induced_edge_indices(tour)
+        model.cbLazy(sum(self.ye[ind]) <= len(tour) - 1)
+
+class CutsetCallback(Callback):
+
+    def cut(self, model, tour):
+        inc = self.conic_graph.incoming_edge_indices(tour)
+        model.cbLazy(sum(self.ye[inc]) >= 1)
