@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcspy import GraphOfConvexSets
+from gcs import GraphOfConvexSets
 
 # Initialize empty graph.
 graph = GraphOfConvexSets()

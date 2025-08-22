@@ -1,5 +1,5 @@
 import unittest
-from gcspy import GraphOfConvexSets
+from gcs import GraphOfConvexSets
 
 class TestGraphs(unittest.TestCase):
 

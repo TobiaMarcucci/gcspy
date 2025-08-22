@@ -1,15 +1,15 @@
 import numpy as np
 import cvxpy as cp
 from collections.abc import Iterable
-from gcspy.vertices import ConicVertex, ConvexVertex
-from gcspy.edges import ConicEdge, ConvexEdge
-from gcspy.graph_problems.shortest_path import shortest_path
-from gcspy.graph_problems.traveling_salesman import traveling_salesman
-from gcspy.graph_problems.facility_location import facility_location
-from gcspy.graph_problems.minimum_spanning_tree import directed_minimum_spanning_tree, undirected_minimum_spanning_tree
-from gcspy.graph_problems.traveling_salesman_gurobipy import traveling_salesman_gurobipy
-from gcspy.graph_problems.minimum_spanning_tree_gurobipy import directed_minimum_spanning_tree_gurobipy, undirected_minimum_spanning_tree_gurobipy
-from gcspy.graph_problems.from_ilp import from_ilp
+from gcs.vertices import ConicVertex, ConvexVertex
+from gcs.edges import ConicEdge, ConvexEdge
+from gcs.graph_problems.shortest_path import shortest_path
+from gcs.graph_problems.traveling_salesman import traveling_salesman
+from gcs.graph_problems.facility_location import facility_location
+from gcs.graph_problems.minimum_spanning_tree import directed_minimum_spanning_tree, undirected_minimum_spanning_tree
+from gcs.graph_problems.traveling_salesman_gurobipy import traveling_salesman_gurobipy
+from gcs.graph_problems.minimum_spanning_tree_gurobipy import directed_minimum_spanning_tree_gurobipy, undirected_minimum_spanning_tree_gurobipy
+from gcs.graph_problems.from_ilp import from_ilp
 
 class Graph:
     """
@@ -211,7 +211,7 @@ class Graph:
             self.append_edge(edge)
     
     def graphviz(self):
-        from gcspy.plot_utils import graphviz_graph
+        from gcs.plot_utils import graphviz_graph
         return graphviz_graph(self)
 
 class GraphOfConicSets(Graph):
@@ -431,9 +431,9 @@ class GraphOfConvexSets(Graph):
         return prob
 
     def plot_2d(self, **kwargs):
-        from gcspy.plot_utils import plot_2d_graph
+        from gcs.plot_utils import plot_2d_graph
         return plot_2d_graph(self, **kwargs)
 
     def plot_2d_solution(self):
-        from gcspy.plot_utils import plot_2d_solution
+        from gcs.plot_utils import plot_2d_solution
         return plot_2d_solution(self)

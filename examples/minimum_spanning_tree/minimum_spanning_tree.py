@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 from itertools import product
-from gcspy import GraphOfConvexSets
+from gcs import GraphOfConvexSets
 
 # Initialize empty graph.
 directed = False # Both directed and undirected work.

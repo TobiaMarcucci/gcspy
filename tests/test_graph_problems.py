@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import cvxpy as cp
-from gcspy import GraphOfConicSets, GraphOfConvexSets
+from gcs import GraphOfConicSets, GraphOfConvexSets
 from itertools import product, combinations
 
 class TestGraphProblems(unittest.TestCase):

@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
-from gcspy.programs import ConvexProgram
-from gcspy.graph_problems.utils import define_variables, get_solution
+from gcs.programs import ConvexProgram
+from gcs.graph_problems.utils import define_variables, get_solution
 
 def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 

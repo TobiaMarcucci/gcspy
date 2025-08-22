@@ -2,7 +2,7 @@ import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
 from maze_utils import Maze
-from gcspy import GraphOfConvexSets
+from gcs import GraphOfConvexSets
 
 # Create maze.
 maze_side = 12

@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from gcspy import GraphOfConvexSets
+from gcs import GraphOfConvexSets
 
 # random points to be clustered
 num_clusters = 3

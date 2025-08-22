@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import cvxpy as cp
-from gcspy.programs import ConicProgram, ConvexProgram
+from gcs.programs import ConicProgram, ConvexProgram
 
 class TestConicProgram(unittest.TestCase):
 

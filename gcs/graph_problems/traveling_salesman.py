@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcspy.graph_problems.utils import (define_variables, enforce_edge_programs,
+from gcs.graph_problems.utils import (define_variables, enforce_edge_programs,
     get_solution, subtour_elimination_constraints)
 
 def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=None, **kwargs):
