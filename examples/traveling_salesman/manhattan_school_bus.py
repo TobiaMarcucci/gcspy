@@ -6,34 +6,34 @@ from gcspy import GraphOfConvexSets
 
 # Problem data.
 np.random.seed(0)
-n_guests = 10
-party_position = np.array([45, 7])
-guest_positions = np.random.randint([38, 0], [53, 15], (n_guests, 2))
+n_kids = 10
+school_position = np.array([45, 7])
+kid_positions = np.random.randint([38, 0], [53, 15], (n_kids, 2))
 
 # Bounding box for all positions.
-positions = np.vstack((party_position, guest_positions))
+positions = np.vstack((school_position, kid_positions))
 l = np.min(positions, axis=0)
 u = np.max(positions, axis=0)
 
 # Initialize empty graph.
 graph = GraphOfConvexSets(directed=False)
 
-# Vertex for every guest.
-for i, position in enumerate(guest_positions):
-    guest = graph.add_vertex(f"guest_{i}")
-    x = guest.add_variable(2)
-    d = guest.add_variable(1)[0] # L1 distance traveled by guest.
-    guest.add_constraints([
+# Vertex for every kid.
+for i, position in enumerate(kid_positions):
+    kid = graph.add_vertex(f"kid_{i}")
+    x = kid.add_variable(2)
+    d = kid.add_variable(1)[0] # L1 distance traveled by kid i.
+    kid.add_constraints([
         x >= l,
         x <= u,
         d >= cp.norm1(x - position),
-        d <= cp.norm1(party_position - position)])
-    guest.add_cost(d) 
+        d <= cp.norm1(school_position - position)])
+    kid.add_cost(d) 
 
-# Vertex for the party location.
-party = graph.add_vertex("party")
-x = party.add_variable(2)
-party.add_constraint(x == party_position)
+# Vertex for the school location.
+school = graph.add_vertex("school")
+x = school.add_variable(2)
+school.add_constraint(x == school_position)
 
 # Edge between every pair of distinct positions.
 for i, tail in enumerate(graph.vertices):
@@ -41,7 +41,7 @@ for i, tail in enumerate(graph.vertices):
         edge = graph.add_edge(tail, head)
         x_tail = tail.variables[0]
         x_head = head.variables[0]
-        edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by driver.
+        edge.add_cost(cp.norm1(x_tail - x_head)) # L1 distance traveled by bus.
 
 # Solve problem using gurobipy if possible (uses lazy constraints and is much
 # faster). Otherwise use exponential formulation and default cvxpy solver.
@@ -66,30 +66,30 @@ def l1_arrow(tail, head, color):
 plt.figure()
 plt.grid()
 
-# Path of the taxi driver.
+# Bus path.
 for edge in graph.edges:
     if np.isclose(edge.binary_variable.value, 1):
         tail = edge.tail.variables[0].value
         head = edge.head.variables[0].value
-        l1_arrow(tail, head, 'blue')
+        l1_arrow(tail, head, "blue")
 
-# Paths of the guests.
-for vertex, position in zip(graph.vertices, guest_positions):
+# Kid paths.
+for vertex, position in zip(graph.vertices, kid_positions):
     xv = vertex.variables[0].value
-    l1_arrow(position, xv, 'black')
-    plt.scatter(*xv, c='green', marker='x', zorder=3)
-    plt.scatter(*position, fc='white', ec='black', zorder=3)
+    l1_arrow(position, xv, "black")
+    plt.scatter(*xv, c="green", marker="x", zorder=3)
+    plt.scatter(*position, fc="white", ec="black", zorder=3)
     
-# Party position.
-plt.scatter(*party_position, marker='*', fc='yellow', ec='black', zorder=3,
-            s=200, label="party")
+# School position.
+plt.scatter(*school_position, marker="*", fc="yellow", ec="black", zorder=3,
+            s=200, label="school")
 
 # Adds empty plots for clean legend.
 nans = np.full((2, 2), np.nan)
-plt.scatter(*nans[0], fc='white', ec='black', label='guest initial')
-plt.scatter(*nans[0], c='green', marker='x', label='guest optimal')
-plt.plot(*nans, c='black', label='guest motion')
-plt.plot(*nans, c='blue', label='host motion')
+plt.scatter(*nans[0], fc="white", ec="black", label="kid's home")
+plt.scatter(*nans[0], c="green", marker="x", label="kid's pickup")
+plt.plot(*nans, c="black", label="kid motion")
+plt.plot(*nans, c="blue", label="bus motion")
 
 # Additional settings.
 plt.xticks(range(l[0] - 1, u[0] + 2))
