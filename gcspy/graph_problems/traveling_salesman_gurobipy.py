@@ -1,8 +1,8 @@
 try:
     import gurobipy as gp
     from gurobipy import GRB
-    from gcspy.graph_problems.utils_gurobipy import (define_variables,
-        enforce_edge_programs, cost_homogenization, constraint_homogenization,
+    from gcspy.graph_problems.utils_gurobipy import (create_environment, define_variables,
+        enforce_edge_programs, constraint_homogenization,
         get_solution, SubtourEliminationCallback, subtour_elimination_constraints)
     has_gurobi = True
 except ModuleNotFoundError:
@@ -12,14 +12,8 @@ def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, guro
     if not has_gurobi:
         raise ImportError("Gurobi is not installed. Install gurobipy to use this method.")
 
-    # Create environment.
-    env = gp.Env()
-    gurobi_parameters = dict(gurobi_parameters or {})
-    gurobi_parameters.setdefault("OutputFlag", 0)
-    for key, value in gurobi_parameters.items():
-        env.setParam(key, value)
-
     # Inialize model.
+    env = create_environment(gurobi_parameters)
     model = gp.Model(env=env)
 
     # Define variables.
@@ -30,7 +24,7 @@ def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, guro
 
     # Vertex costs and constraints.
     for i, vertex in enumerate(conic_graph.vertices):
-        cost += cost_homogenization(vertex, zv[i], 1)
+        cost += vertex.cost_homogenization(zv[i], 1)
 
         # Directed graphs.
         if conic_graph.directed:

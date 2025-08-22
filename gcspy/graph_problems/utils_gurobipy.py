@@ -5,6 +5,14 @@ import gurobipy as gp
 from gurobipy import GRB
 from itertools import combinations
 
+def create_environment(gurobi_parameters=None):
+    env = gp.Env()
+    gurobi_parameters = dict(gurobi_parameters or {})
+    gurobi_parameters.setdefault("OutputFlag", 1)
+    for key, value in gurobi_parameters.items():
+        env.setParam(key, value)
+    return env
+
 def constrain_in_cone(model, z, K):
 
     # Linear constraints.
@@ -21,12 +29,9 @@ def constrain_in_cone(model, z, K):
         model.addConstr(z[0] == s)
         model.addConstr(z[1:] @ z[1:] <= s ** 2) # Convex for gurobi.
 
-    # TODO: support all cone constraints.
+    # There are no other constraints we can support for MICPs.
     else:
         raise NotImplementedError
-
-def cost_homogenization(prog, x, y):
-    return prog.c @ x + prog.d * y
 
 def constraint_homogenization(model, prog, x, y):
     z = prog.A @ x + prog.b * y
@@ -39,7 +44,7 @@ def constraint_homogenization(model, prog, x, y):
 def edge_cost_homogenization(edge, xv, xw, xe, y):
     edge._check_vector_sizes(xv, xw, xe)
     x = gp.concatenate((xv, xw, xe))
-    return cost_homogenization(edge, x, y)
+    return edge.c @ x + edge.d * y
     
 def edge_constraint_homogenization(model, edge, xv, xw, xe, y):
     edge._check_vector_sizes(xv, xw, xe)
@@ -91,7 +96,7 @@ def get_solution(conic_graph, zv, ye, ze, tol):
             
 class SubtourEliminationCallback:
     """
-    Adapted from https://docs.gurobi.com/projects/examples/en/current/examples/python/tsp.html.
+    Usable for the TSP and the MSTP.
     """
 
     def __init__(self, conic_graph, ye):
@@ -105,6 +110,9 @@ class SubtourEliminationCallback:
             tour = self.shortest_subtour(edges)
             if tour and len(tour) < self.conic_graph.num_vertices():
                 self.cut(model, tour)
+            # for tour in self.shortest_subtour(edges):
+            #     if len(tour) < self.conic_graph.num_vertices():
+            #         self.cut(model, tour)
                 
     def cut(self, model, tour):
         induced_edges = [k for k, edge in enumerate(self.conic_graph.edges) if edge.tail in tour and edge.head in tour]
@@ -147,9 +155,11 @@ class SubtourEliminationCallback:
     def shortest_subtour(edges):
         G = nx.Graph()
         G.add_edges_from([(e.tail, e.head) for e in edges])
-        length = nx.girth(G)
-        tours = list(nx.simple_cycles(G, length))
-        return tours[0] if tours else None
+        shortest_tour_length = nx.girth(G)
+        tours = list(nx.simple_cycles(G, shortest_tour_length))
+        if tours:
+            return tours[0]
+        # return tours
 
 def subtour_elimination_constraints(model, conic_graph, ye):
     """
