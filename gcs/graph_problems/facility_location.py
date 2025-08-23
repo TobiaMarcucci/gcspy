@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcs.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
+from gcsopt.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
 def facility_location(conic_graph, binary, tol, **kwargs):
 

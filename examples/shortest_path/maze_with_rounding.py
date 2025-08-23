@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from maze import maze, graph, source, target
-from gcs.graph_problems.rounding.shortest_path import randomized_dfs
+from gcsopt.graph_problems.rounding.shortest_path import randomized_dfs
 
 # solve problem with mixed integer programming
 mip = graph.solve_shortest_path(source, target)

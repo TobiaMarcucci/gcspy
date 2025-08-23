@@ -1,4 +1,4 @@
-from gcs.programs import ConicProgram, ConvexProgram
+from gcsopt.programs import ConicProgram, ConvexProgram
 
 class ConicVertex(ConicProgram):
 

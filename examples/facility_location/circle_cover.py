@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from gcs import GraphOfConvexSets
+from gcsopt import GraphOfConvexSets
 
 # triangular mesh for 2d robot link
 mesh = np.array([
@@ -29,7 +29,7 @@ circle_cost = 0 # fixed cost of using a circle
 num_circles = 5 # maximum number of circles
 
 # initialize empty graph
-gcs = GraphOfConvexSets()
+graph = GraphOfConvexSets()
 
 # compute bounding box for entire mesh
 l = np.min(np.vstack(mesh), axis=0)
@@ -41,7 +41,7 @@ max_radius = np.linalg.norm(u - l) / 2
 # add all circles (facilities)
 circles = []
 for i in range(num_circles):
-    circle = gcs.add_vertex(f"c{i}")
+    circle = graph.add_vertex(f"c{i}")
     center = circle.add_variable(2)
     radius = circle.add_variable(1)
     circle.add_constraints([center >= l, center <= u])
@@ -52,7 +52,7 @@ for i in range(num_circles):
 # add all triangles (clients)
 triangles = []
 for i in range(len(mesh)):
-    triangle = gcs.add_vertex(f"t{i}")
+    triangle = graph.add_vertex(f"t{i}")
     slack = triangle.add_variable(1) # necessary to add at least one variable
     triangle.add_constraint(slack == 0)
     triangles.append(triangle)
@@ -61,12 +61,12 @@ for i in range(len(mesh)):
 for circle in circles:
     center, radius = circle.variables
     for points, triangle in zip(mesh, triangles):
-        edge = gcs.add_edge(circle, triangle)
+        edge = graph.add_edge(circle, triangle)
         for point in points:
             edge.add_constraint(cp.norm2(point - center) <= radius)
 
 # solve problem
-prob = gcs.solve_facility_location()
+prob = graph.solve_facility_location()
 print('Problem status:', prob.status)
 print('Optimal value:', prob.value)
 

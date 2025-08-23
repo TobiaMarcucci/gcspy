@@ -1,7 +1,7 @@
 import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
-from gcs import GraphOfConvexSets
+from gcsopt import GraphOfConvexSets
 
 # problem data
 num_islands = 20 # number of islands

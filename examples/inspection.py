@@ -2,7 +2,7 @@ import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from gcs import GraphOfConvexSets
+from gcsopt import GraphOfConvexSets
 
 # all the rooms in the floor plant
 # each room is described by a triplet (index, lower corner, upper corner)

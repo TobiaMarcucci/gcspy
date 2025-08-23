@@ -1,6 +1,6 @@
 import cvxpy as cp
 import numpy as np
-from gcs import GraphOfConvexSets
+from gcsopt import GraphOfConvexSets
 
 # Initialize empty graph.
 directed = False # Both directed and undirected work.

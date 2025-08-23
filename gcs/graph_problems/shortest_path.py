@@ -1,5 +1,5 @@
 import cvxpy as cp
-from gcs.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
+from gcsopt.graph_problems.utils import define_variables, enforce_edge_programs, get_solution
 
 def shortest_path(conic_graph, source, target, binary, tol, **kwargs):
 
