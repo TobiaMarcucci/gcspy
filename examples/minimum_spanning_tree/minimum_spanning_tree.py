@@ -4,7 +4,7 @@ from itertools import product
 from gcs import GraphOfConvexSets
 
 # Initialize empty graph.
-directed = False # Both directed and undirected work.
+directed = True # Both directed and undirected work.
 graph = GraphOfConvexSets(directed=directed)
 
 # Create vertices on a grid.
@@ -32,12 +32,14 @@ for i, j in grid_points:
                 x_head = head.variables[0]
                 edge.add_cost(cp.norm2(x_head - x_tail))
 
+# Root of the spanning tree if directed.
+root = graph.vertices[0]
+
 # Run following code only if this file is executed directly, and not when it is
 # imported by other files.
 if __name__ == "__main__":
 
     # Solve minimum spanning tree problem using exponential-size formulation.
-    root = graph.vertices[0] # Root of the spanning tree if directed.
     prob = graph.solve_minimum_spanning_tree(root) # root ignored if undirected.
 
     # Show graph using graphviz (requires graphviz).
