@@ -1,6 +1,6 @@
 # GCSOPT
 
-Python library based on [CVXPY](https://www.cvxpy.org) to solve optimization problems in Graphs of Convex Sets (GCS).
+Python library to solve optimization problems in Graphs of Convex Sets (GCS).
 For a detailed description of the algorithms implemented implemented in this library see the PhD thesis [Graphs of Convex Sets with Applications to Optimal Control and Motion Planning
 ](https://dspace.mit.edu/handle/1721.1/156598?show=full).
 (Please note that the library recently changed name, and in the thesis it is called `gcspy`.)
@@ -8,7 +8,7 @@ For a detailed description of the algorithms implemented implemented in this lib
 ## Main features
 
 - Uses the syntax of [CVXPY](https://www.cvxpy.org) for describing convex sets and convex functions.
-- Provides a simple intefact for assemblying your graphs.
+- Provides a simple interface for assembling your graphs.
 - Interface with state-of-the-art solvers via [CVXPY](https://www.cvxpy.org/).
 
 ## Installation
@@ -19,16 +19,17 @@ pip install gcsopt
 ```
 
 To install from source:
-````bash
-git clone https://github.com/<your-username>/gcsopt.git
+```bash
+git clone https://github.com/TobiaMarcucci/gcsopt.git
 cd gcsopt
 pip install .
 ```
 
+
 ## Example
 Here is a minimal example of how to use gcsopt:
 
-```python3
+```python
 import cvxpy as cp
 import gcsopt as gcs
 
@@ -38,12 +39,13 @@ G = GraphOfConvexSets(directed=True)
 # Add source vertex with circular set.
 s = G.add_vertex("s")
 xs = s.add_variable(2)
-cs = [-2, 0] # Center of the set.
+cs = [-2, 0] # Center of the source circle.
 s.add_constraint(cp.norm2(xs - cs) <= 1)
 
 # Add target vertex with circular set.
+t = G.add_vertex("t")
 xt = t.add_variable(2)
-ct = [2, 0]
+ct = [2, 0] # Center of the target circle.
 t.add_constraint(cp.norm2(xt - ct) <= 1)
 
 # Add edge from source to target.
@@ -51,7 +53,7 @@ e = G.add_edge(s, t)
 e.add_cost(cp.sum_squares(xt - xs))
 
 # Solve shortest path problem from source to target.
-prob = graph.solve_shortest_path(s, t)
+prob = G.solve_shortest_path(s, t)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 ```
