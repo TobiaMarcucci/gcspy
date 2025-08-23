@@ -81,22 +81,46 @@ def enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head):
 
     return cost
 
-def get_solution(conic_graph, zv, ye, ze, tol):
+def set_solution(model, conic_graph, ye, ze, zv, tol):
+
+    # Set problem value and stats.
+    conic_graph.value = model.ObjVal
+    if model.status == 2:
+        conic_graph.status = "optimal"
+    elif model.status == 3:
+        conic_graph.status = "infeasible"
+    elif model.status == 4:
+        conic_graph.status = "infeasible_or_unbounded"
+    elif model.status == 5:
+        conic_graph.status = "unbounded"
+    else:
+        conic_graph.status = model.status
+    conic_graph.solver_stats = cp.problems.problem.SolverStats(
+        solver_name = 'GUROBI',
+        solve_time = model.Runtime)
 
     # Set vertex variable values.
     for vertex, z in zip(conic_graph.vertices, zv):
-        vertex.binary_variable.value = 1
-        vertex.x.value = z.X
+        if model.status == 2:
+            vertex.binary_variable.value = 1
+            vertex.x.value = z.X
+        else:
+            vertex.binary_variable.value = None
+            vertex.x.value = None
 
     # Set edge variable values.
     for edge, y, z in zip(conic_graph.edges, ye, ze):
-        edge.binary_variable.value = y.X
-        z_value = z.X if z.size > 0 else np.array([])
-        if y.X is not None and y.X > tol:
-            edge.x.value = np.concatenate((
-                edge.tail.x.value,
-                edge.head.x.value,
-                z_value / y.X))
+        if model.status == 2:
+            edge.binary_variable.value = y.X
+            z_value = z.X if z.size > 0 else np.array([])
+            if y.X is not None and y.X > tol:
+                edge.x.value = np.concatenate((
+                    edge.tail.x.value,
+                    edge.head.x.value,
+                    z_value / y.X))
+        else:
+            edge.binary_variable.value = None
+            edge.x.value = None
             
 class Callback:
     """

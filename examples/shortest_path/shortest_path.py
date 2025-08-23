@@ -63,9 +63,9 @@ for edge in graph.edges:
 if __name__ == "__main__":
 
     # Solve shortest path problem.
-    prob = graph.solve_shortest_path(s, t)
-    print("Problem status:", prob.status)
-    print("Optimal value:", prob.value)
+    graph.solve_shortest_path(s, t)
+    print("Problem status:", graph.status)
+    print("Optimal value:", graph.value)
 
     # Show graph using graphviz (requires graphviz).
     dot = graph.graphviz()

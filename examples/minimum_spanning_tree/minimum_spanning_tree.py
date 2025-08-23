@@ -40,7 +40,7 @@ root = graph.vertices[0]
 if __name__ == "__main__":
 
     # Solve minimum spanning tree problem using exponential-size formulation.
-    prob = graph.solve_minimum_spanning_tree(root) # root ignored if undirected.
+    graph.solve_minimum_spanning_tree(root) # root ignored if undirected.
 
     # Show graph using graphviz (requires graphviz).
     dot = graph.graphviz()

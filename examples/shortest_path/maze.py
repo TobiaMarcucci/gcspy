@@ -5,7 +5,7 @@ from maze_utils import Maze
 from gcsopt import GraphOfConvexSets
 
 # Create maze.
-maze_side = 12
+maze_side = 10
 knock_downs = 10
 random_seed = 0
 maze = Maze(maze_side, maze_side, random_seed)
@@ -65,9 +65,9 @@ target = graph.get_vertex((maze_side - 1, maze_side - 1))
 if __name__ == "__main__":
 
     # Solve problem.
-    prob = graph.solve_shortest_path(source, target)
-    print("Problem status:", prob.status)
-    print("Optimal value:", prob.value)
+    graph.solve_shortest_path(source, target)
+    print("Problem status:", graph.status)
+    print("Optimal value:", graph.value)
 
     # Plot optimal trajectory.
     plt.figure()

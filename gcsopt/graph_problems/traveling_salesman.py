@@ -1,17 +1,17 @@
 import cvxpy as cp
 import numpy as np
-from gcsopt.graph_problems.utils import (define_variables, enforce_edge_programs,
-    get_solution, subtour_elimination_constraints)
+from gcsopt.graph_problems.utils import (define_variables,
+    enforce_edge_programs, set_solution, subtour_elimination_constraints)
 
 def traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs):
 
     # Define variables.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-    # Edge costs and constraints.
+    # Enforce edge costs and constraints.
     cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
-    # Vertex costs and constraints.
+    # Enforce vertex costs and constraints.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
 
@@ -42,12 +42,9 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs):
     if subtour_elimination:
         constraints += subtour_elimination_constraints(conic_graph, ye)
 
-    # Solve problem.
+    # Solve problem and set solution.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
-
-    # Set value of vertex binaries.
     if prob.status == "optimal":
         yv.value = np.ones(conic_graph.num_vertices())
-
-    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)
+    set_solution(conic_graph, prob, ye, ze, yv, zv, tol)

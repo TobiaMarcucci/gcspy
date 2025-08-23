@@ -1,7 +1,7 @@
 import cvxpy as cp
 import numpy as np
 from gcsopt.programs import ConvexProgram
-from gcsopt.graph_problems.utils import define_variables, get_solution
+from gcsopt.graph_problems.utils import define_variables, set_solution
 
 def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 
@@ -95,11 +95,10 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
         # Shift row indices.
         start = stop
                 
-    # Solve problem.
+    # Solve problem and set solution.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
-
-    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)
+    set_solution(conic_graph, prob, ye, ze, yv, zv, tol)
     
 def find_shared_vertices(conic_graph, av, ae):
     """

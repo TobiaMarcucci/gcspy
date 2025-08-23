@@ -89,9 +89,9 @@ class TestGraphProblems(unittest.TestCase):
             # Solve problem and check optimal value.
             source = graph.vertices[0]
             target = graph.vertices[-1]
-            prob = graph.solve_shortest_path(source, target, binary=self.binary)
+            graph.solve_shortest_path(source, target, binary=self.binary)
             expected_value = 2.2284271247532996
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
         # Problem where vertex variables have different dimensions.
         graph = GraphOfConvexSets()
@@ -120,8 +120,8 @@ class TestGraphProblems(unittest.TestCase):
         e1.add_cost(cp.sum_squares(z2 - z1))
 
         # Solve problem and check result.
-        prob = graph.solve_shortest_path(v0, v2, binary=self.binary)
-        self.assertAlmostEqual(prob.value, 8, places=4)
+        graph.solve_shortest_path(v0, v2, binary=self.binary)
+        self.assertAlmostEqual(graph.value, 8, places=4)
         self.assertAlmostEqual(x0.value[0], 2, places=3)
         self.assertAlmostEqual(x2.value[0], 2, places=3)
         np.testing.assert_array_almost_equal(z1.value, [2, 2], decimal=3)
@@ -167,11 +167,11 @@ class TestGraphProblems(unittest.TestCase):
             e.add_constraint(end_tail == start_head) 
 
         # Solve problem relaxation (which for this problem is exact).
-        prob = graph.solve_shortest_path(v[0], v[3], binary=False)
+        graph.solve_shortest_path(v[0], v[3], binary=False)
         
         # Check optimal value.
         expected_value = 2 * np.sqrt(1.5 ** 2 + .5 ** 2) + 1
-        self.assertAlmostEqual(prob.value, expected_value, places=4)
+        self.assertAlmostEqual(graph.value, expected_value, places=4)
 
         # Check optimal solution.
         x0 = np.array([[1.5, 1.5], [3, 1]])
@@ -206,9 +206,9 @@ class TestGraphProblems(unittest.TestCase):
                     yv[i] == sum(ye[out]) + is_target]
 
             # Solve problem and check optimal value.
-            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            graph.solve_from_ilp(ilp_constraints, binary=self.binary)
             expected_value = 2.2284271247532996
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
     def test_solve_traveling_salesman(self):
 
@@ -217,9 +217,9 @@ class TestGraphProblems(unittest.TestCase):
         for graph in graphs:
 
             # Solve problem and check optimal value.
-            prob = graph.solve_traveling_salesman(binary=self.binary)
+            graph.solve_traveling_salesman(binary=self.binary)
             expected_value = 6.718354360344848 if self.binary else 4.014213562373667
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
     def test_solve_traveling_salesman_from_ilp(self):
             
@@ -245,9 +245,9 @@ class TestGraphProblems(unittest.TestCase):
                     ilp_constraints.append(sum(ye[out]) >= 1)
 
             # Solve problem and check optimal value.
-            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            graph.solve_from_ilp(ilp_constraints, binary=self.binary)
             expected_value = 6.718354360344848 if self.binary else 4.014213562373667
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
     def test_solve_spanning_tree(self):
         
@@ -257,9 +257,9 @@ class TestGraphProblems(unittest.TestCase):
         
             # Solve problem and check optimal value.
             root = graph.vertices[0]
-            prob = graph.solve_minimum_spanning_tree(root, binary=self.binary)
+            graph.solve_minimum_spanning_tree(root, binary=self.binary)
             expected_value = 5.273360961108411 if self.binary else 3.2
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
     def test_solve_spanning_tree_from_ilp(self):
             
@@ -287,9 +287,9 @@ class TestGraphProblems(unittest.TestCase):
                     ilp_constraints.append(sum(ye[inc]) >= 1)
 
             # Solve problem and check optimal value.
-            prob = graph.solve_from_ilp(ilp_constraints, binary=self.binary)
+            graph.solve_from_ilp(ilp_constraints, binary=self.binary)
             expected_value = 5.273360961108411 if self.binary else 3.2
-            self.assertAlmostEqual(prob.value, expected_value, places=4)
+            self.assertAlmostEqual(graph.value, expected_value, places=4)
 
 if __name__ == '__main__':
     unittest.main()

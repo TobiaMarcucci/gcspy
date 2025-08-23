@@ -48,9 +48,9 @@ for i, tail in enumerate(graph.vertices):
 import importlib.util
 if importlib.util.find_spec("gurobipy"):
     from gcsopt.gurobipy.graph_problems.traveling_salesman import traveling_salesman
-    prob = traveling_salesman(graph)
+    traveling_salesman(graph)
 else:
-    prob = graph.solve_traveling_salesman()
+    graph.solve_traveling_salesman()
 
 # Helper function that draws an L1 arrow between two points.
 def l1_arrow(tail, head, color):
@@ -63,7 +63,7 @@ def l1_arrow(tail, head, color):
         arrow = patches.FancyArrowPatch((head[0], tail[1]), head, **options)
         plt.gca().add_patch(arrow)
 
-# Plot solution,
+# Plot solution.
 plt.figure()
 plt.grid()
 

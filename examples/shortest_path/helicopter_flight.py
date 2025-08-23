@@ -74,9 +74,9 @@ for i, (center_i, radius_i) in enumerate(zip(centers, radii)):
 # solve shortest path problem from start to goal points
 source = graph.vertices[0]
 target = graph.vertices[-1]
-prob = graph.solve_shortest_path(source, target)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+graph.solve_shortest_path(source, target)
+print("Problem status:", graph.status)
+print("Optimal value:", graph.value)
 
 # plot optimal flight trajectory
 plt.figure()

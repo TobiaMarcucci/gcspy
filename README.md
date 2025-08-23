@@ -28,7 +28,6 @@ pip install .
 
 ## Example
 Here is a minimal example of how to use gcsopt:
-
 ```python
 import cvxpy as cp
 from gcsopt import GraphOfConvexSets
@@ -53,9 +52,21 @@ e = G.add_edge(s, t)
 e.add_cost(cp.sum_squares(xt - xs))
 
 # Solve shortest path problem from source to target.
-prob = G.solve_shortest_path(s, t)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+G.solve_shortest_path(s, t)
+print("Problem status:", G.status)
+print("Optimal value:", G.value)
+print("Optimal solution:")
+print("xs =", xs.value)
+print("xt =",xt.value)
+```
+
+The otput of this script is:
+```bash
+Problem status: optimal
+Optimal value: 4.0
+Optimal solution:
+xs = [-1.  0.]
+xt = [1. 0.]
 ```
 
 ## License

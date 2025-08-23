@@ -1,9 +1,9 @@
 from shortest_path import graph, s, t
 
 # Solve problem using built-in method.
-prob = graph.solve_shortest_path(s, t)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+graph.solve_shortest_path(s, t)
+print("Problem status:", graph.status)
+print("Optimal value:", graph.value)
 
 # If the method solve_shortest_path was not implemented, we could still solve
 # the problem by passing the constraints of its integer linear programming (ILP)
@@ -28,6 +28,6 @@ for i, v in enumerate(graph.vertices):
 
 # Solve probelm from ILP constraints. Check that optimal value is equal to the
 # one above.
-prob = graph.solve_from_ilp(ilp_constraints)
-print("Problem status from ILP:", prob.status)
-print("Optimal value from ILP:", prob.value)
+graph.solve_from_ilp(ilp_constraints)
+print("Problem status from ILP:", graph.status)
+print("Optimal value from ILP:", graph.value)

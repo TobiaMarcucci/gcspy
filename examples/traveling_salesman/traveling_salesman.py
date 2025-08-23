@@ -3,7 +3,7 @@ import numpy as np
 from gcsopt import GraphOfConvexSets
 
 # Initialize empty graph.
-directed = False # Both directed and undirected work.
+directed = True # Both directed and undirected work.
 graph = GraphOfConvexSets(directed)
 
 # Vertex 0.
@@ -60,9 +60,9 @@ if __name__ == "__main__":
 
     # Solve traveling salesman problem using Dantzig–Fulkerson–Johnson
     # formulation. All the subtour elimination constraints are included.
-    prob = graph.solve_traveling_salesman(subtour_elimination=True)
-    print("Problem status:", prob.status)
-    print("Optimal value:", prob.value)
+    graph.solve_traveling_salesman(subtour_elimination=True)
+    print("Problem status:", graph.status)
+    print("Optimal value:", graph.value)
 
     # Show graph using graphviz (requires graphviz).
     dot = graph.graphviz()

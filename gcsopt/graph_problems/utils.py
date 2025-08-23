@@ -45,7 +45,12 @@ def subtour_elimination_constraints(conic_graph, ye):
             constraints.append(sum(ye[ind]) <= n_vertices - 1)
     return constraints
 
-def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
+def set_solution(conic_graph, prob, ye, ze, yv, zv, tol):
+
+    # Set problem value and stats.
+    conic_graph.value = prob.value
+    conic_graph.status = prob.status
+    conic_graph.solver_stats = prob.solver_stats
 
     # Set vertex variable values.
     for vertex, y, z in zip(conic_graph.vertices, yv, zv):
@@ -64,5 +69,3 @@ def get_solution(conic_graph, prob, ye, ze, yv, zv, tol):
                 edge.tail.x.value,
                 edge.head.x.value,
                 z_value / y.value))
-
-    return prob

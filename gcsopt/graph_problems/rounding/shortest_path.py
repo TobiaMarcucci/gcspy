@@ -50,7 +50,7 @@ def solve_path_convex_restriction(graph, path):
         path_edges.append(edge)
 
     # solve convex restriction for given subgraph
-    return graph.solve_convex_restriction(path, path_edges)
+    graph.solve_convex_restriction(path, path_edges)
 
 def randomized_dfs(graph, source, target, num_paths=5, max_trials=100):
     """
@@ -60,7 +60,7 @@ def randomized_dfs(graph, source, target, num_paths=5, max_trials=100):
 
     # try to find num_paths distinct paths within max_trials trials
     paths = []
-    for trial in range(max_trials):
+    for _ in range(max_trials):
         if len(paths) == num_paths:
             break
         path = single_dfs(graph, source, target)
@@ -70,13 +70,11 @@ def randomized_dfs(graph, source, target, num_paths=5, max_trials=100):
     # solve convex restriction for each different path and keep best solution
     best_value = np.inf
     for path in paths:
-        prob = solve_path_convex_restriction(graph, path)
-        if prob.value < best_value:
+        solve_path_convex_restriction(graph, path)
+        if graph.value is not None and graph.value < best_value:
             best_path = path
-            best_value = prob.value
+            best_value = graph.value
 
     # solve problem another time if optimal solution has been overwritten
-    if num_paths > 1 and not np.isinf(best_value) and best_value != prob.value:
-        prob = solve_path_convex_restriction(graph, best_path)
-
-    return prob
+    if num_paths > 1 and not np.isinf(best_value) and best_value != graph.value:
+        solve_path_convex_restriction(graph, best_path)

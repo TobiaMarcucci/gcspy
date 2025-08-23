@@ -2,9 +2,9 @@ from itertools import combinations
 from minimum_spanning_tree import graph, root
 
 # Solve problem using built-in method.
-prob = graph.solve_minimum_spanning_tree(root)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.value)
+graph.solve_minimum_spanning_tree(root)
+print("Problem status:", graph.status)
+print("Optimal value:", graph.value)
 
 # If the method solve_minimum_spanning_tree was not implemented, we could still solve
 # the problem by passing the constraints of its integer linear programming (ILP)
@@ -32,6 +32,6 @@ for subtour_size in range(2, graph.num_vertices()):
 
 # Solve probelm from ILP constraints. Check that optimal value is equal to the
 # one above.
-prob = graph.solve_from_ilp(ilp_constraints)
-print("Problem status from ILP:", prob.status)
-print("Optimal value from ILP:", prob.value)
+graph.solve_from_ilp(ilp_constraints)
+print("Problem status from ILP:", graph.status)
+print("Optimal value from ILP:", graph.value)

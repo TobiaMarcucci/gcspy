@@ -40,9 +40,9 @@ assert importlib.util.find_spec("gurobipy")
 from gcsopt.gurobipy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 root = graph.vertices[main_room]
 params = {"OutputFlag": 1}
-prob = minimum_spanning_tree(graph, root, gurobi_parameters=params)
-print("Problem status:", prob.status)
-print("Optimal value:", prob.ObjVal)
+minimum_spanning_tree(graph, root, gurobi_parameters=params)
+print("Problem status:", graph.status)
+print("Optimal value:", graph.ObjVal)
 
 # Plot rooms and optimal spanning tree.
 import matplotlib.pyplot as plt

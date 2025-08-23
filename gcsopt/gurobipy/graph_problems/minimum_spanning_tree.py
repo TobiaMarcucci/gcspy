@@ -3,7 +3,7 @@ from gurobipy import GRB
 from itertools import combinations
 from gcsopt.gurobipy.graph_problems.utils import (create_environment,
     define_variables, enforce_edge_programs, constraint_homogenization,
-    get_solution, SubtourEliminationCallback, CutsetCallback,
+    set_solution, SubtourEliminationCallback, CutsetCallback,
     subtour_elimination_constraints)
 
 def _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
@@ -53,11 +53,8 @@ def _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol
         subtour_elimination_constraints(model, conic_graph, ye)
         model.optimize()
 
-    # Set value of vertex binaries.
-    if model.status == 2:
-        get_solution(conic_graph, zv, ye, ze, tol)
-
-    return model
+    # Set solution.
+    set_solution(model, conic_graph, ye, ze, zv, tol)
 
 def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, binary, tol, gurobi_parameters=None):
 
@@ -112,20 +109,17 @@ def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, b
                 model.addConstr(sum(ye[inc]) >= 1)
         model.optimize()
 
-    # Set value of vertex binaries.
-    if model.status == 2:
-        get_solution(conic_graph, zv, ye, ze, tol)
-
-    return model
+    # Set solution.
+    set_solution(model, conic_graph, ye, ze, zv, tol)
         
 def minimum_spanning_tree_conic(conic_graph, root=None, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
     """
     Parameter root is ignored for undirected graphs.
     """
     if conic_graph.directed:
-        return _directed_minimum_spanning_tree(conic_graph, root, lazy_constraints, binary, tol, gurobi_parameters)
+        _directed_minimum_spanning_tree(conic_graph, root, lazy_constraints, binary, tol, gurobi_parameters)
     else:
-        return _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
+        _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
 
 def minimum_spanning_tree(convex_graph, root=None, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
     """
@@ -133,7 +127,5 @@ def minimum_spanning_tree(convex_graph, root=None, lazy_constraints=True, binary
     """
     conic_graph = convex_graph.to_conic()
     conic_root = conic_graph.get_vertex(root.name) if root else None
-    model = minimum_spanning_tree_conic(conic_graph, conic_root, lazy_constraints, binary, tol, gurobi_parameters)
-    convex_graph._set_variable_values(conic_graph)
-    return model
-    
+    minimum_spanning_tree_conic(conic_graph, conic_root, lazy_constraints, binary, tol, gurobi_parameters)
+    convex_graph._set_solution(conic_graph) 

@@ -1,8 +1,8 @@
 import cvxpy as cp
 import numpy as np
 from itertools import combinations
-from gcsopt.graph_problems.utils import (define_variables, enforce_edge_programs,
-    get_solution, subtour_elimination_constraints)
+from gcsopt.graph_problems.utils import (define_variables,
+    enforce_edge_programs, subtour_elimination_constraints, set_solution)
 
 def undirected_minimum_spanning_tree(conic_graph, subtour_elimination, binary, tol, **kwargs):
     """
@@ -16,13 +16,13 @@ def undirected_minimum_spanning_tree(conic_graph, subtour_elimination, binary, t
     # Define variables.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-    # Edge costs and constraints.
+    # Enforce edge costs and constraints.
     cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
     # Number of edges in the tree.
     constraints.append(sum(ye) == conic_graph.num_vertices() - 1)
 
-    # Vertex costs.
+    # Enforce vertex costs and constraints.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
 
@@ -44,15 +44,12 @@ def undirected_minimum_spanning_tree(conic_graph, subtour_elimination, binary, t
     if subtour_elimination:
         constraints += subtour_elimination_constraints(conic_graph, ye)
 
-    # Solve problem.
+    # Solve problem and set solution.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
-
-    # Set value of vertex binaries.
     if prob.status == "optimal":
         yv.value = np.ones(conic_graph.num_vertices())
-
-    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)
+    set_solution(conic_graph, prob, ye, ze, yv, zv, tol)
 
 def directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination, binary, tol, **kwargs):
     """
@@ -68,10 +65,10 @@ def directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination,
     # Define variables.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
 
-    # Edge basic costs and constraints.
+    # Enforce edge costs and constraints.
     cost, constraints = enforce_edge_programs(conic_graph, ye, ze, ze_tail, ze_head)
 
-    # Cost and constraints on the vertices.
+     # Enforce vertex costs and constraints.
     for i, vertex in enumerate(conic_graph.vertices):
         cost += vertex.cost_homogenization(zv[i], 1)
 
@@ -88,8 +85,7 @@ def directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination,
         for k in conic_graph.outgoing_edge_indices(vertex):
             constraints += vertex.constraint_homogenization(zv[i] - ze_tail[k], 1 - ye[k])
 
-    # Cutset constraints for all subsets of vertices with cardinality between
-    # 2 and num_vertices - 1.
+    # Cutset constraints.
     if subtour_elimination:
         i = conic_graph.vertex_index(conic_root)
         subvertices = conic_graph.vertices[:i] + conic_graph.vertices[i+1:]
@@ -98,12 +94,9 @@ def directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination,
                 inc = conic_graph.incoming_edge_indices(vertices)
                 constraints.append(sum(ye[inc]) >= 1)
 
-    # Solve problem.
+    # Solve problem and set solution.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
-
-    # Set value of vertex binaries.
     if prob.status == "optimal":
         yv.value = np.ones(conic_graph.num_vertices())
-
-    return get_solution(conic_graph, prob, ye, ze, yv, zv, tol)
+    set_solution(conic_graph, prob, ye, ze, yv, zv, tol)

@@ -147,9 +147,9 @@ for room in visit_rooms[1:]:
     ilp_constraints.append(flow == 1)
 
 # solve problem (this will take a very long time)
-prob = graph.solve_from_ilp(ilp_constraints)
-print('Problem status:', prob.status)
-print('Optimal value:', prob.value)
+graph.solve_from_ilp(ilp_constraints)
+print('Problem status:', graph.status)
+print('Optimal value:', graph.value)
 
 # plot solution
 plt.figure()
@@ -182,5 +182,4 @@ for vertex in graph.vertices:
         x1, x2 = vertex.variables
         values = np.array([x1.value, x2.value]).T
         plt.plot(*values, c="b", linestyle="--")
-    
 plt.show()

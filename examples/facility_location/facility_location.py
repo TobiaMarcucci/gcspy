@@ -51,9 +51,9 @@ for facility in facilities:
 if __name__ == "__main__":
 
     # solve problem
-    prob = graph.solve_facility_location()
-    print("Problem status:", prob.status)
-    print("Optimal value:", prob.value)
+    graph.solve_facility_location()
+    print("Problem status:", graph.status)
+    print("Optimal value:", graph.value)
 
     # show graph using graphviz (requires graphviz)
     dot = graph.graphviz()

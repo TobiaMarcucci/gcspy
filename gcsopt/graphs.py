@@ -19,6 +19,9 @@ class Graph:
         self.vertices = []
         self.edges = []
         self.directed = directed
+        self.value = None
+        self.status = None
+        self.solver_stats = None
 
     def has_vertex(self, name):
         return name in [vertex.name for vertex in self.vertices]
@@ -229,7 +232,7 @@ class GraphOfConicSets(Graph):
     
     def solve_shortest_path(self, source, target, binary=True, tol=1e-4, **kwargs):
         if self.directed:
-            return shortest_path(self, source, target, binary, tol, **kwargs)
+            shortest_path(self, source, target, binary, tol, **kwargs)
         else:
             raise NotImplementedError
 
@@ -238,7 +241,7 @@ class GraphOfConicSets(Graph):
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         if self.directed:
-            return facility_location(self, binary, tol, **kwargs)
+            facility_location(self, binary, tol, **kwargs)
         else:
             raise NotImplementedError
     
@@ -247,14 +250,15 @@ class GraphOfConicSets(Graph):
         Parameter root is ignored for undirected graphs.
         """
         if self.directed:
-            return directed_minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
+            directed_minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
         else:
-            return undirected_minimum_spanning_tree(self, subtour_elimination, binary, tol, **kwargs)
+            undirected_minimum_spanning_tree(self, subtour_elimination, binary, tol, **kwargs)
     
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
         if self.directed:
-            return from_ilp(self, ilp_constraints, binary, tol, **kwargs)
+            from_ilp(self, ilp_constraints, binary, tol, **kwargs)
         else:
+            # TODO: this one should be straightforward.
             raise NotImplementedError
 
 class GraphOfConvexSets(Graph):
@@ -291,7 +295,12 @@ class GraphOfConvexSets(Graph):
 
         return conic_graph
 
-    def _set_variable_values(self, conic_graph):
+    def _set_solution(self, conic_graph):
+
+        # Set problem value and stats.
+        self.value = conic_graph.value
+        self.status = conic_graph.status
+        self.solver_stats = conic_graph.solver_stats
 
         # Set value of vertex variables for convex program.
         for convex_vertex, conic_vertex in zip(self.vertices, conic_graph.vertices):
@@ -315,21 +324,18 @@ class GraphOfConvexSets(Graph):
         conic_graph = self.to_conic()
         conic_source = conic_graph.get_vertex(source.name)
         conic_target = conic_graph.get_vertex(target.name)
-        prob = conic_graph.solve_shortest_path(conic_source, conic_target, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
+        conic_graph.solve_shortest_path(conic_source, conic_target, binary, tol, **kwargs)
+        self._set_solution(conic_graph)
 
     def solve_traveling_salesman(self, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob = conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
+        conic_graph.solve_traveling_salesman(subtour_elimination, binary, tol, **kwargs)
+        self._set_solution(conic_graph)
     
     def solve_facility_location(self, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob = conic_graph.solve_facility_location(binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
+        conic_graph.solve_facility_location(binary, tol, **kwargs)
+        self._set_solution(conic_graph)
     
     def solve_minimum_spanning_tree(self, root=None, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         """
@@ -337,23 +343,21 @@ class GraphOfConvexSets(Graph):
         """
         conic_graph = self.to_conic()
         conic_root = conic_graph.get_vertex(root.name)
-        prob = conic_graph.solve_minimum_spanning_tree(conic_root, subtour_elimination, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
+        conic_graph.solve_minimum_spanning_tree(conic_root, subtour_elimination, binary, tol, **kwargs)
+        self._set_solution(conic_graph)
     
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
         conic_graph = self.to_conic()
-        prob = conic_graph.solve_from_ilp(ilp_constraints, binary, tol, **kwargs)
-        self._set_variable_values(conic_graph)
-        return prob
+        conic_graph.solve_from_ilp(ilp_constraints, binary, tol, **kwargs)
+        self._set_solution(conic_graph)
 
     # TODO: try to reuse the following method for all the graph problems.
     # TODO: add the following method also to the conic graph.
     def solve_shortest_path_with_rounding(self, source, target, rounding_fn, tol=1e-4, **kwargs):
         binary = False
-        relaxation = self.solve_shortest_path(source, target, binary, tol, **kwargs)
+        self.solve_shortest_path(source, target, binary, tol, **kwargs)
         restriction = rounding_fn(self, source, target)
-        return relaxation, restriction
+        return restriction
 
     def solve_convex_restriction(self, vertices, edges):
         """
@@ -383,6 +387,11 @@ class GraphOfConvexSets(Graph):
         prob = cp.Problem(cp.Minimize(cost), constraints)
         prob.solve()
 
+        # Set problem value and stats.
+        self.value = prob.value
+        self.status = prob.status
+        self.solver_stats = prob.solver_stats
+
         # Set vertex variable values.
         for vertex in self.vertices:
             if vertex in vertices:
@@ -400,8 +409,6 @@ class GraphOfConvexSets(Graph):
                 edge.binary_variable.value = 0
                 for variable in edge.variables:
                     variable.value = None
-
-        return prob
 
     def plot_2d(self, **kwargs):
         from gcsopt.plot_utils import plot_2d_graph

@@ -2,7 +2,7 @@ import gurobipy as gp
 from gurobipy import GRB
 from gcsopt.gurobipy.graph_problems.utils import (create_environment,
     define_variables, enforce_edge_programs, constraint_homogenization,
-    get_solution, SubtourEliminationCallback, subtour_elimination_constraints)
+    set_solution, SubtourEliminationCallback, subtour_elimination_constraints)
 
 def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
 
@@ -55,14 +55,10 @@ def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_
         subtour_elimination_constraints(model, conic_graph, ye)
         model.optimize()
 
-    # Set value of vertex binaries.
-    if model.status == 2:
-        get_solution(conic_graph, zv, ye, ze, tol)
-
-    return model
+    # Set solution.
+    set_solution(model, conic_graph, ye, ze, zv, tol)
 
 def traveling_salesman(convex_graph, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
         conic_graph = convex_graph.to_conic()
-        model = traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
-        convex_graph._set_variable_values(conic_graph)
-        return model
+        traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
+        convex_graph._set_solution(conic_graph)
