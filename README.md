@@ -31,7 +31,7 @@ Here is a minimal example of how to use gcsopt:
 
 ```python
 import cvxpy as cp
-import gcsopt as gcs
+from gcsopt import GraphOfConvexSets
 
 # Initialize empty directed graph.
 G = GraphOfConvexSets(directed=True)
