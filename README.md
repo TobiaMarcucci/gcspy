@@ -39,13 +39,13 @@ G = GraphOfConvexSets(directed=True)
 # Add source vertex with circular set.
 s = G.add_vertex("s")
 xs = s.add_variable(2)
-cs = [-1, 0] # Center of the source circle.
+cs = [-2, 0] # Center of the source circle.
 s.add_constraint(cp.norm2(xs - cs) <= 1)
 
 # Add target vertex with circular set.
 t = G.add_vertex("t")
 xt = t.add_variable(2)
-ct = [1, 0] # Center of the target circle.
+ct = [2, 0] # Center of the target circle.
 t.add_constraint(cp.norm2(xt - ct) <= 1)
 
 # Add edge from source to target.
