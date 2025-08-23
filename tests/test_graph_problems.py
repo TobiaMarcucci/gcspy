@@ -130,6 +130,35 @@ class TestGraphProblems(unittest.TestCase):
         for ye in graph.edge_binaries():
             self.assertAlmostEqual(ye.value, 1, places=4)
 
+    def test_solve_infeasible_shortest_path(self):
+
+        # Initialize empty directed graph.
+        graph = GraphOfConvexSets(directed=True)
+
+        # Add source vertex with circular set.
+        s = graph.add_vertex("s")
+        xs = s.add_variable(2)
+        cs = [-2, 0] # Center of the source circle.
+        s.add_constraint(cp.norm2(xs - cs) <= 1)
+
+        # Add target vertex with circular set.
+        t = graph.add_vertex("t")
+        xt = t.add_variable(2)
+        ct = [2, 0] # Center of the target circle.
+        t.add_constraint(cp.norm2(xt - ct) <= 1)
+
+        # Add edge from source to target.
+        e = graph.add_edge(s, t)
+        e.add_constraint(xt == xs)
+
+        # Solve shortest path problem from source to target.
+        graph.solve_shortest_path(s, t)
+
+        # Check solution.
+        self.assertTrue(np.isinf(graph.value))
+        self.assertIsNone(xs.value)
+        self.assertIsNone(xt.value)
+
     def test_solve_shortest_path_without_edge_costs(self):
 
         # Initialize graph.
