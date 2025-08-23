@@ -10,7 +10,7 @@ For a detailed description of the algorithms implemented implemented in this lib
 - Provides a simple intefact for assemblying your graphs
 - Interface with state-of-the-art solvers via [CVXPY](https://www.cvxpy.org/)  
 
-## 📦 Installation
+## Installation
 
 You can install the latest release from [PyPI](https://pypi.org/project/gcsopt/):
 
