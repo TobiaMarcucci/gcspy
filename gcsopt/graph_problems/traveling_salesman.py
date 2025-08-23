@@ -3,7 +3,7 @@ import numpy as np
 from gcsopt.graph_problems.utils import (define_variables, enforce_edge_programs,
     get_solution, subtour_elimination_constraints)
 
-def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=None, **kwargs):
+def traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs):
 
     # Define variables.
     yv, zv, ye, ze, ze_tail, ze_head = define_variables(conic_graph, binary)
@@ -45,16 +45,6 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, callback=N
     # Solve problem.
     prob = cp.Problem(cp.Minimize(cost), constraints)
     prob.solve(**kwargs)
-
-    # Run callback if one is provided.
-    if callback is not None:
-        while True:
-            new_constraints = callback(None, ye)
-            if len(new_constraints) == 0:
-                break
-            constraints += new_constraints
-            prob = cp.Problem(cp.Minimize(cost), constraints)
-            prob.solve(**kwargs)
 
     # Set value of vertex binaries.
     if prob.status == "optimal":

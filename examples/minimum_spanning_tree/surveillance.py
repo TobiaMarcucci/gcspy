@@ -1,7 +1,5 @@
 import cvxpy as cp
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from gcsopt import GraphOfConvexSets
 from surveillance_utils import L, U
 
@@ -36,17 +34,19 @@ for i, (li, ui) in enumerate(zip(L, U)):
             e.add_constraint(x_head >= li)
             e.add_constraint(x_head <= ui)
 
-# Solve problem with gurobipy.
+# Solve problem with gurobipy (way too big for deafault MSTP method).
+import importlib.util
+assert importlib.util.find_spec("gurobipy")
+from gcsopt.gurobipy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 root = graph.vertices[main_room]
-prob = graph.solve_minimum_spanning_tree_gurobipy(root)
+params = {"OutputFlag": 1}
+prob = minimum_spanning_tree(graph, root, gurobi_parameters=params)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.ObjVal)
 
-# Show graph using graphviz (requires graphviz).
-dot = graph.graphviz()
-dot.view()
-
-# Plot rooms.
+# Plot rooms and optimal spanning tree.
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 plt.figure()
 plt.axis("equal")
 for l, u in zip(L, U):

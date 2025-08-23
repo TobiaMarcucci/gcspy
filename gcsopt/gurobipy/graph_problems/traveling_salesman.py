@@ -1,16 +1,10 @@
-try:
-    import gurobipy as gp
-    from gurobipy import GRB
-    from gcsopt.graph_problems.utils_gurobipy import (create_environment, define_variables,
-        enforce_edge_programs, constraint_homogenization,
-        get_solution, SubtourEliminationCallback, subtour_elimination_constraints)
-    has_gurobi = True
-except ModuleNotFoundError:
-    has_gurobi = False
+import gurobipy as gp
+from gurobipy import GRB
+from gcsopt.gurobipy.graph_problems.utils import (create_environment,
+    define_variables, enforce_edge_programs, constraint_homogenization,
+    get_solution, SubtourEliminationCallback, subtour_elimination_constraints)
 
-def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
-    if not has_gurobi:
-        raise ImportError("Gurobi is not installed. Install gurobipy to use this method.")
+def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
 
     # Inialize model.
     env = create_environment(gurobi_parameters)
@@ -66,3 +60,9 @@ def traveling_salesman_gurobipy(conic_graph, lazy_constraints, binary, tol, guro
         get_solution(conic_graph, zv, ye, ze, tol)
 
     return model
+
+def traveling_salesman(convex_graph, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+        conic_graph = convex_graph.to_conic()
+        model = traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
+        convex_graph._set_variable_values(conic_graph)
+        return model

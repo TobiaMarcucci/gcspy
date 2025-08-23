@@ -47,7 +47,8 @@ for i, tail in enumerate(graph.vertices):
 # faster). Otherwise use exponential formulation and default cvxpy solver.
 import importlib.util
 if importlib.util.find_spec("gurobipy"):
-    prob = graph.solve_traveling_salesman_gurobipy()
+    from gcsopt.gurobipy.graph_problems.traveling_salesman import traveling_salesman
+    prob = traveling_salesman(graph)
 else:
     prob = graph.solve_traveling_salesman()
 
