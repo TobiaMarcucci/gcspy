@@ -8,7 +8,7 @@ from itertools import combinations
 def create_environment(gurobi_parameters=None):
     env = gp.Env()
     gurobi_parameters = dict(gurobi_parameters or {})
-    gurobi_parameters.setdefault("OutputFlag", 1)
+    gurobi_parameters.setdefault("OutputFlag", 0)
     for key, value in gurobi_parameters.items():
         env.setParam(key, value)
     return env
