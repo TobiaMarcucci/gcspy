@@ -39,12 +39,13 @@ G = GraphOfConvexSets(directed=True)
 # Add source vertex with circular set.
 s = G.add_vertex("s")
 xs = s.add_variable(2)
-cs = [-2, 0] # Center of the set.
+cs = [-1, 0] # Center of the source circle.
 s.add_constraint(cp.norm2(xs - cs) <= 1)
 
 # Add target vertex with circular set.
+t = G.add_vertex("t")
 xt = t.add_variable(2)
-ct = [2, 0]
+ct = [1, 0] # Center of the target circle.
 t.add_constraint(cp.norm2(xt - ct) <= 1)
 
 # Add edge from source to target.
@@ -52,7 +53,7 @@ e = G.add_edge(s, t)
 e.add_cost(cp.sum_squares(xt - xs))
 
 # Solve shortest path problem from source to target.
-prob = graph.solve_shortest_path(s, t)
+prob = G.solve_shortest_path(s, t)
 print("Problem status:", prob.status)
 print("Optimal value:", prob.value)
 ```
