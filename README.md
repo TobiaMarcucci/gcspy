@@ -1,8 +1,7 @@
 # GCSOPT
 
 Python library to solve optimization problems in Graphs of Convex Sets (GCS).
-For a detailed description of the algorithms implemented implemented in this library see the PhD thesis [Graphs of Convex Sets with Applications to Optimal Control and Motion Planning
-](https://dspace.mit.edu/handle/1721.1/156598?show=full).
+For a detailed description of the algorithms implemented implemented in this library see the PhD thesis [Graphs of Convex Sets with Applications to Optimal Control and Motion Planning](https://dspace.mit.edu/handle/1721.1/156598?show=full).
 (Please note that the library recently changed name, and in the thesis it is called `gcspy`.)
 
 ## Main features
