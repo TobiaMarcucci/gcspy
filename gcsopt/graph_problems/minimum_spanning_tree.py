@@ -99,3 +99,12 @@ def directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination,
     if prob.status == "optimal":
         yv.value = np.ones(conic_graph.num_vertices())
     set_solution(conic_graph, prob, ye, ze, yv, zv, tol)
+
+def minimum_spanning_tree(conic_graph, conic_root=None, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
+    """
+    Parameter root is ignored for undirected graphs.
+    """
+    if conic_graph.directed:
+        directed_minimum_spanning_tree(conic_graph, conic_root, subtour_elimination, binary, tol, **kwargs)
+    else:
+        undirected_minimum_spanning_tree(conic_graph, subtour_elimination, binary, tol, **kwargs)

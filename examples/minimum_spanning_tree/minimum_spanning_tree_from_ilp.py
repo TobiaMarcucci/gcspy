@@ -1,6 +1,9 @@
 from itertools import combinations
 from minimum_spanning_tree import graph, root
 
+# Ensure that graph is directed.
+assert graph.directed
+
 # Solve problem using built-in method.
 graph.solve_minimum_spanning_tree(root)
 print("Problem status:", graph.status)

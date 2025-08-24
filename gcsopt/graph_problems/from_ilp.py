@@ -67,8 +67,8 @@ def from_ilp(conic_graph, ilp_constraints, binary, tol, **kwargs):
 
                 # Assemble implied constraint.
                 i = conic_graph.vertex_index(vertex)
-                inc = conic_graph.incoming_edge_indices(vertex)
-                out = conic_graph.outgoing_edge_indices(vertex)
+                inc = conic_graph._incoming_edge_indices(vertex)
+                out = conic_graph._outgoing_edge_indices(vertex)
                 lhs = (bj + av[i]) * yv[i] + ae @ ye
                 vector_lhs = (bj + av[i]) * zv[i]
                 vector_lhs += sum(ae[inc] * ze_head[inc])

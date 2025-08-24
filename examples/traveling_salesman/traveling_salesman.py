@@ -3,7 +3,7 @@ import numpy as np
 from gcsopt import GraphOfConvexSets
 
 # Initialize empty graph.
-directed = True # Both directed and undirected work.
+directed = False # Both directed and undirected work.
 graph = GraphOfConvexSets(directed)
 
 # Vertex 0.

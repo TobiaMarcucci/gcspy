@@ -1,6 +1,9 @@
 from itertools import combinations
 from traveling_salesman import graph
 
+# Ensure that graph is undirected.
+assert not graph.directed
+
 # Solve problem using built-in method.
 graph.solve_traveling_salesman()
 print("Problem status:", graph.status)
@@ -19,15 +22,14 @@ ye = graph.edge_binaries()
 # Vertex constraints.
 ilp_constraints = []
 for i, vertex in enumerate(graph.vertices):
-    inc = graph.incoming_edge_indices(vertex)
-    out = graph.outgoing_edge_indices(vertex)
-    ilp_constraints += [yv[i] == 1, sum(ye[out]) == 1, sum(ye[inc]) == 1]
+    incident = graph.incident_edge_indices(vertex)
+    ilp_constraints += [yv[i] == 1, sum(ye[incident]) == 2]
 
 # Subtour elimnation constraints.
-for subtour_size in range(2, graph.num_vertices() - 1):
+for subtour_size in range(3, graph.num_vertices() - 1):
     for vertices in combinations(graph.vertices, subtour_size):
-        out = graph.outgoing_edge_indices(vertices)
-        ilp_constraints.append(sum(ye[out]) >= 1)
+        ind = graph.induced_edge_indices(vertices)
+        ilp_constraints.append(sum(ye[ind]) <= graph.num_vertices() - 1)
 
 # Solve probelm from ILP constraints. Check that optimal value is equal to the
 # one above.

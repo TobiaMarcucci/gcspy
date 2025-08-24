@@ -1,6 +1,5 @@
 import cvxpy as cp
 import numpy as np
-from itertools import product
 from gcsopt import GraphOfConvexSets
 
 # Initialize empty graph.

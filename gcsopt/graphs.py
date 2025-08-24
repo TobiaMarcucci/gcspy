@@ -6,7 +6,7 @@ from gcsopt.edges import ConicEdge, ConvexEdge
 from gcsopt.graph_problems.shortest_path import shortest_path
 from gcsopt.graph_problems.traveling_salesman import traveling_salesman
 from gcsopt.graph_problems.facility_location import facility_location
-from gcsopt.graph_problems.minimum_spanning_tree import directed_minimum_spanning_tree, undirected_minimum_spanning_tree
+from gcsopt.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 from gcsopt.graph_problems.from_ilp import from_ilp
 
 class Graph:
@@ -246,23 +246,16 @@ class GraphOfConicSets(Graph):
         if self.directed:
             facility_location(self, binary, tol, **kwargs)
         else:
-            raise NotImplementedError
+            raise ValueError("Graph must be directed for facility location problem.")
     
     def solve_minimum_spanning_tree(self, root=None, subtour_elimination=True, binary=True, tol=1e-4, **kwargs):
         """
         Parameter root is ignored for undirected graphs.
         """
-        if self.directed:
-            directed_minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
-        else:
-            undirected_minimum_spanning_tree(self, subtour_elimination, binary, tol, **kwargs)
+        return minimum_spanning_tree(self, root, subtour_elimination, binary, tol, **kwargs)
     
     def solve_from_ilp(self, ilp_constraints, binary=True, tol=1e-4, **kwargs):
-        if self.directed:
-            from_ilp(self, ilp_constraints, binary, tol, **kwargs)
-        else:
-            # TODO: this one should be straightforward.
-            raise NotImplementedError
+        from_ilp(self, ilp_constraints, binary, tol, **kwargs)
 
 class GraphOfConvexSets(Graph):
 
@@ -345,7 +338,7 @@ class GraphOfConvexSets(Graph):
         Parameter root is ignored for undirected graphs.
         """
         conic_graph = self.to_conic()
-        conic_root = conic_graph.get_vertex(root.name)
+        conic_root = conic_graph.get_vertex(root.name) if root else None
         conic_graph.solve_minimum_spanning_tree(conic_root, subtour_elimination, binary, tol, **kwargs)
         self._set_solution(conic_graph)
     
