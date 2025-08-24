@@ -98,18 +98,28 @@ class Graph:
     def edge_index(self, edge):
         return self.edges.index(edge)
     
+    def _incoming_edge_indices(self, vertices):
+        if not isinstance(vertices, Iterable):
+            vertices = [vertices]
+        def is_incoming(edge, vertices):
+            return edge.tail not in vertices and edge.head in vertices
+        return [k for k, edge in enumerate(self.edges) if is_incoming(edge, vertices)]
+    
     def incoming_edge_indices(self, vertices):
         """
         Return indices of edges that are incoming to `vertices` (i.e., edges
         whose head is in `vertices` but tail is not).
         """
         if not self.directed:
-            raise ValueError("Incoming indices cannot be computed for undirected graphs.")
+            raise ValueError("Incoming edge indices cannot be computed for undirected graphs.")
+        return self._incoming_edge_indices(vertices)
+    
+    def _outgoing_edge_indices(self, vertices):
         if not isinstance(vertices, Iterable):
             vertices = [vertices]
-        def is_incoming(edge, vertices):
-            return edge.tail not in vertices and edge.head in vertices
-        return [k for k, edge in enumerate(self.edges) if is_incoming(edge, vertices)]
+        def is_outgoing(edge, vertices):
+            return edge.tail in vertices and edge.head not in vertices
+        return [k for k, edge in enumerate(self.edges) if is_outgoing(edge, vertices)]
 
     def outgoing_edge_indices(self, vertices):
         """
@@ -117,23 +127,17 @@ class Graph:
         whose tail is in `vertices` but head is not).
         """
         if not self.directed:
-            raise ValueError("Outgoing indices cannot be computed for undirected graphs.")
-        if not isinstance(vertices, Iterable):
-            vertices = [vertices]
-        def is_outgoing(edge, vertices):
-            return edge.tail in vertices and edge.head not in vertices
-        return [k for k, edge in enumerate(self.edges) if is_outgoing(edge, vertices)]
+            raise ValueError("Outgoing edge indices cannot be computed for undirected graphs.")
+        return self._outgoing_edge_indices(vertices)
 
     def incident_edge_indices(self, vertices):
         """
         Return indices of edges that are incident with `vertices` (either
         incoming or outgoing).
         """
-        if not isinstance(vertices, Iterable):
-            vertices = [vertices]
-        def is_incident(edge, vertices):
-            return (edge.tail in vertices) ^ (edge.head in vertices) # xor
-        return [k for k, edge in enumerate(self.edges) if is_incident(edge, vertices)]
+        incoming = self._incoming_edge_indices(vertices)
+        outgoing = self._outgoing_edge_indices(vertices)
+        return incoming + outgoing
     
     def induced_edge_indices(self, vertices):
         """
@@ -142,44 +146,43 @@ class Graph:
         def is_induced(edge, vertices):
             return (edge.tail in vertices) and (edge.head in vertices)
         return [k for k, edge in enumerate(self.edges) if is_induced(edge, vertices)]
+    
+    def _incoming_edges(self, vertices):
+        return [self.edges[k] for k in self._incoming_edge_indices(vertices)]
 
     def incoming_edges(self, vertices):
         """
         Return edges that are incoming to `vertices` (i.e., edges whose head is
         in `vertices` but tail is not).
         """
-        return [self.edges[k] for k in self.incoming_edge_indices(vertices)]
-        
+        if not self.directed:
+            raise ValueError("Incoming edges cannot be computed for undirected graphs.")
+        return self._incoming_edges(vertices)
+
+    def _outgoing_edges(self, vertices):
+        return [self.edges[k] for k in self._outgoing_edge_indices(vertices)]
+    
     def outgoing_edges(self, vertices):
         """
         Return edges that are outgoing from `vertices` (i.e., edges whose tail
         is in `vertices` but head is not).
         """
-        return [self.edges[k] for k in self.outgoing_edge_indices(vertices)]
+        if not self.directed:
+            raise ValueError("Outgoing edges cannot be computed for undirected graphs.")
+        return self._outgoing_edges(vertices)
         
     def incident_edges(self, vertices):
         """
         Return edges that are incident with `vertices` (either incoming or
         outgoing).
         """
-        return [self.edges[k] for k in self.incident_edge_indices(vertices)]
+        return self._incoming_edges(vertices) + self._outgoing_edges(vertices)
     
     def induced_edges(self, vertices):
         """
         Return edges that have both ends in `vertices`.
         """
         return [self.edges[k] for k in self.induced_edge_indices(vertices)]
-    
-    def in_neighbors(self, vertices):
-        return [edge.tail for edge in self.incoming_edges(vertices)]
-    
-    def out_neighbors(self, vertices):
-        return [edge.head for edge in self.outgoing_edges(vertices)]
-
-    def neighbors(self, vertices):
-        if not isinstance(vertices, Iterable):
-            vertices = [vertices]
-        return [edge.head if edge.tail in vertices else edge.tail for edge in self.incident_edges(vertices)]
 
     def num_vertices(self):
         """

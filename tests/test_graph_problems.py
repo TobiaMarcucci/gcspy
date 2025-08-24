@@ -152,7 +152,7 @@ class TestGraphProblems(unittest.TestCase):
         e.add_constraint(xt == xs)
 
         # Solve shortest path problem from source to target.
-        graph.solve_shortest_path(s, t)
+        graph.solve_shortest_path(s, t, binary=self.binary)
 
         # Check solution.
         self.assertTrue(np.isinf(graph.value))

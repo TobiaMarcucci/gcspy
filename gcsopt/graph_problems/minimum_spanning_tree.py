@@ -27,12 +27,11 @@ def undirected_minimum_spanning_tree(conic_graph, subtour_elimination, binary, t
         cost += vertex.cost_homogenization(zv[i], 1)
 
         # Cutset constraints for one vertex only.
-        incident = conic_graph.incident_edge_indices(vertex)
-        inc = [k for k in incident if conic_graph.edges[k].head == vertex]
-        out = [k for k in incident if conic_graph.edges[k].tail == vertex]
+        inc = conic_graph._incoming_edge_indices(vertex)
+        out = conic_graph._outgoing_edge_indices(vertex)
         constraints += vertex.constraint_homogenization(
             sum(ze_head[inc]) + sum(ze_tail[out]) - zv[i],
-            sum(ye[incident]) - 1)
+            sum(ye[inc + out]) - 1)
         
         # Constraints implied by ye <= 1.
         for k in inc:

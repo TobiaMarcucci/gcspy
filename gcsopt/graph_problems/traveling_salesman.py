@@ -27,11 +27,10 @@ def traveling_salesman(conic_graph, subtour_elimination, binary, tol, **kwargs):
             
         # Undirected graphs graphs.
         else:
-            incident = conic_graph.incident_edge_indices(vertex)
-            inc = [k for k in incident if conic_graph.edges[k].head == vertex]
-            out = [k for k in incident if conic_graph.edges[k].tail == vertex]
+            inc = conic_graph._incoming_edge_indices(vertex)
+            out = conic_graph._outgoing_edge_indices(vertex)
             constraints += [
-                sum(ye[incident]) == 2,
+                sum(ye[inc + out]) == 2,
                 sum(ze_head[inc]) + sum(ze_tail[out]) == 2 * zv[i]]
             for k in inc:
                 constraints += vertex.constraint_homogenization(zv[i] - ze_head[k], 1 - ye[k])
