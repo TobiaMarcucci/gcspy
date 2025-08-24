@@ -17,9 +17,8 @@ for i, (l, u) in enumerate(zip(L, U)):
     c = (l + u) / 2
     v.add_constraint(x >= l)
     v.add_constraint(x <= u)
-    # D = np.diag(1 / (u - l))
-    # v.add_cost(cp.norm_inf(D @ (x - c)))
-    v.add_cost(cp.norm2(x - c))
+    D = np.diag(1 / (u - l))
+    v.add_cost(cp.norm_inf(D @ (x - c)))
 
 # Add edges.
 def room_intersect(i, j):
@@ -42,7 +41,7 @@ root = graph.vertices[main_room]
 params = {"OutputFlag": 1}
 minimum_spanning_tree(graph, root, gurobi_parameters=params)
 print("Problem status:", graph.status)
-print("Optimal value:", graph.ObjVal)
+print("Optimal value:", graph.value)
 
 # Plot rooms and optimal spanning tree.
 import matplotlib.pyplot as plt
