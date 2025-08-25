@@ -57,7 +57,7 @@ print("Problem status:", G.status)
 print("Optimal value:", G.value)
 print("Optimal solution:")
 print("xs =", xs.value)
-print("xt =",xt.value)
+print("xt =", xt.value)
 ```
 
 The otput of this script is:
