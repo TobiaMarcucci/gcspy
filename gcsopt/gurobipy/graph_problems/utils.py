@@ -81,7 +81,7 @@ def enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head):
 
     return cost
 
-def set_solution(model, conic_graph, ye, ze, zv, tol):
+def set_solution(model, conic_graph, ye, ze, zv, tol, callback=None):
 
     # Set problem value and stats.
     conic_graph.value = model.ObjVal
@@ -98,6 +98,17 @@ def set_solution(model, conic_graph, ye, ze, zv, tol):
     conic_graph.solver_stats = cp.problems.problem.SolverStats(
         solver_name = 'GUROBI',
         solve_time = model.Runtime)
+    
+    # Set bounds from callback.
+    if callback is not None:
+        callback.callback_times.append(model.Runtime)
+        callback.lower_bounds.append(model.ObjVal)
+        callback.upper_bounds.append(model.ObjVal)
+        callback.upper_bounds = [v if v != 1e100 else np.nan for v in callback.upper_bounds]
+        conic_graph.solver_stats.callback_bounds = np.vstack([
+            callback.callback_times,
+            callback.lower_bounds,
+            callback.upper_bounds])
 
     # Set vertex variable values.
     for vertex, z in zip(conic_graph.vertices, zv):
@@ -127,15 +138,27 @@ class Callback:
     Usable for the TSP and the MSTP.
     """
 
-    def __init__(self, conic_graph, ye):
+    def __init__(self, conic_graph, ye, save_bounds=False):
         self.conic_graph = conic_graph
         self.ye = ye
+        self.save_bounds = save_bounds
+        if self.save_bounds:
+            self.callback_times = []
+            self.lower_bounds = []
+            self.upper_bounds = []
 
     def __call__(self, model, where):
+        if self.save_bounds and where == GRB.Callback.MIP:
+            self.callback_times.append(model.cbGet(GRB.Callback.RUNTIME))
+            self.lower_bounds.append(model.cbGet(GRB.Callback.MIP_OBJBND))
+            self.upper_bounds.append(model.cbGet(GRB.Callback.MIP_OBJBST))
         if where == GRB.Callback.MIPSOL:
             ye = model.cbGetSolution(self.ye)
             edges = [self.conic_graph.edges[k] for k, y in enumerate(ye) if y > 0.5]
             tour = self.shortest_subtour(edges)
+            # for t in tour:
+            #     if len(t) < self.conic_graph.num_vertices():
+            #         self.cut(model, t)
             if tour and len(tour) < self.conic_graph.num_vertices():
                 self.cut(model, tour)
 
@@ -148,8 +171,11 @@ class Callback:
         if self.conic_graph.directed:
             tours = list(nx.simple_cycles(G))
             tours.sort(key=len)
+            # girth = min([len(t) for t in tours], default=0)
+            # tours = [t for t in tours if len(t) == girth]
         else:
             tours = list(nx.simple_cycles(G, nx.girth(G)))
+        # return tours
         if tours:
             return tours[0]
             

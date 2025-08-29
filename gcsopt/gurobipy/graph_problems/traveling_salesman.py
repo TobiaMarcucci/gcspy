@@ -4,7 +4,7 @@ from gcsopt.gurobipy.graph_problems.utils import (create_environment,
     define_variables, enforce_edge_programs, constraint_homogenization,
     set_solution, SubtourEliminationCallback, subtour_elimination_constraints)
 
-def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None):
+def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters=None, save_bounds=False):
 
     # Inialize model.
     env = create_environment(gurobi_parameters)
@@ -47,18 +47,17 @@ def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_
     # Solve with lazy constraints.
     if lazy_constraints:
         model.Params.LazyConstraints = 1
-        callback = SubtourEliminationCallback(conic_graph, ye)
+        callback = SubtourEliminationCallback(conic_graph, ye, save_bounds)
         model.optimize(callback)
+        set_solution(model, conic_graph, ye, ze, zv, tol, callback)
 
     # Exponentially many subtour elimination constraints.
     else:
         subtour_elimination_constraints(model, conic_graph, ye)
         model.optimize()
+        set_solution(model, conic_graph, ye, ze, zv, tol)
 
-    # Set solution.
-    set_solution(model, conic_graph, ye, ze, zv, tol)
-
-def traveling_salesman(convex_graph, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None):
+def traveling_salesman(convex_graph, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None, save_bounds=False):
         conic_graph = convex_graph.to_conic()
-        traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters)
+        traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_parameters, save_bounds)
         convex_graph._set_solution(conic_graph)

@@ -1,11 +1,29 @@
 import cvxpy as cp
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from gcsopt import GraphOfConvexSets
-from surveillance_utils import L, U
+
+# Generate random rooms.
+np.random.seed(0)
+sides = np.array([60, 15])
+L = np.zeros((*sides, 2))
+U = np.zeros((*sides, 2))
+for i in range(sides[0]):
+    for j in range(sides[1]):
+        c = (i, j)
+        if (i + j) % 2 == 0:
+            box_sides = [2, 1]
+        else:
+            box_sides = [1, 2]
+        diag = np.multiply(np.random.uniform(2/3, 1, 2), box_sides) / 2
+        L[i, j] = c - diag
+        U[i, j] = c + diag
+L = np.vstack(L)
+U = np.vstack(U)
 
 # Rooms.
 main_room = 0
-n_rooms = len(L)
 
 # Initialize empty graph.
 graph = GraphOfConvexSets() # Directed by default.
@@ -24,7 +42,7 @@ for i, (l, u) in enumerate(zip(L, U)):
 def room_intersect(i, j):
     return np.all(L[i] <= U[j]) and np.all(L[j] <= U[i])
 for i, (li, ui) in enumerate(zip(L, U)):
-    for j in range(n_rooms):
+    for j in range(len(L)):
         if i != j and j != main_room and room_intersect(i, j):
             tail = graph.get_vertex(i)
             head = graph.get_vertex(j)
@@ -38,20 +56,41 @@ import importlib.util
 assert importlib.util.find_spec("gurobipy")
 from gcsopt.gurobipy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 root = graph.vertices[main_room]
-params = {"OutputFlag": 1}
-minimum_spanning_tree(graph, root, gurobi_parameters=params)
+params = {"OutputFlag": 0}
+plot_bounds = True
+minimum_spanning_tree(graph, root, gurobi_parameters=params, save_bounds=plot_bounds)
 print("Problem status:", graph.status)
 print("Optimal value:", graph.value)
 
+# Plot upper and lower bounds from gurobi.
+if plot_bounds:
+    bounds = graph.solver_stats.callback_bounds
+    bounds[1] = np.where(bounds[1] >= 0, bounds[1], np.nan)
+    plt.figure(figsize=(8, 3))
+    plt.plot(bounds[0], bounds[2], lw=2, ls='-', label="best upper bound")
+    plt.plot(
+        [bounds[0, 0], bounds[0, -1]],
+        [bounds[2, -1], bounds[2, -1]],
+        lw=2, ls='--', label="optimal value")
+    plt.plot(bounds[0], bounds[1], lw=2, ls=':', label="best lower bound")
+    plt.xlim([bounds[0, 0], bounds[0, -1]])
+    plt.xlabel("solver time (s)")
+    plt.ylabel("objective value")
+    plt.grid()
+    plt.legend()
+    plt.xlim(xmin=0)
+    plt.savefig("surveillance_bounds.pdf", bbox_inches="tight")
+    plt.show()
+
 # Plot rooms and optimal spanning tree.
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-plt.figure()
-plt.axis("equal")
+plt.figure(figsize=sides/2)
+plt.axis("off")
 for l, u in zip(L, U):
     rect = patches.Rectangle(l, *(u - l),
-        edgecolor="k", facecolor="lavender", alpha=.5)
-    plt.scatter(*(l + u) / 2, marker="x", color="red")
+        edgecolor="k", facecolor="mintcream", alpha=.5)
     plt.gca().add_patch(rect)
 graph.plot_2d_solution()
+plt.xlim([-1, sides[0]])
+plt.ylim([-1, sides[1]])
+plt.savefig("surveillance.pdf", bbox_inches="tight")
 plt.show()
