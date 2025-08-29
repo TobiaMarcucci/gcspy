@@ -2,6 +2,7 @@ import cvxpy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 from gcsopt import GraphOfConvexSets
+from gcsopt.gurobipy.plot_utils import plot_optimal_value_bounds
 
 # Problem data.
 np.random.seed(0)
@@ -59,21 +60,7 @@ else:
 if plot_bounds and has_gurobi:
     bounds = graph.solver_stats.callback_bounds
     bounds[1] = np.where(bounds[1] >= 0, bounds[1], np.nan)
-    plt.figure(figsize=(8, 3))
-    plt.plot(bounds[0], bounds[2], lw=2, ls='-', label="best upper bound")
-    plt.plot(
-        [bounds[0, 0], bounds[0, -1]],
-        [bounds[2, -1], bounds[2, -1]],
-        lw=2, ls='--', label="optimal value")
-    plt.plot(bounds[0], bounds[1], lw=2, ls=':', label="best lower bound")
-    plt.xlim([bounds[0, 0], bounds[0, -1]])
-    plt.xlabel("solver time (s)")
-    plt.ylabel("objective value")
-    plt.grid()
-    plt.legend()
-    plt.xlim(xmin=0)
-    plt.savefig("bus_bounds.pdf", bbox_inches="tight")
-    plt.show()
+    plot_optimal_value_bounds(graph, "bus_bounds")
 
 # Helper function that draws an L1 path between two points.
 def l1_path(tail, head, color, ls):

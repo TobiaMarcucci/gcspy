@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from gcsopt import GraphOfConvexSets
+from gcsopt.gurobipy.plot_utils import plot_optimal_value_bounds
 
 # Generate random rooms.
 np.random.seed(0)
@@ -64,23 +65,7 @@ print("Optimal value:", graph.value)
 
 # Plot upper and lower bounds from gurobi.
 if plot_bounds:
-    bounds = graph.solver_stats.callback_bounds
-    bounds[1] = np.where(bounds[1] >= 0, bounds[1], np.nan)
-    plt.figure(figsize=(8, 3))
-    plt.plot(bounds[0], bounds[2], lw=2, ls='-', label="best upper bound")
-    plt.plot(
-        [bounds[0, 0], bounds[0, -1]],
-        [bounds[2, -1], bounds[2, -1]],
-        lw=2, ls='--', label="optimal value")
-    plt.plot(bounds[0], bounds[1], lw=2, ls=':', label="best lower bound")
-    plt.xlim([bounds[0, 0], bounds[0, -1]])
-    plt.xlabel("solver time (s)")
-    plt.ylabel("objective value")
-    plt.grid()
-    plt.legend()
-    plt.xlim(xmin=0)
-    plt.savefig("surveillance_bounds.pdf", bbox_inches="tight")
-    plt.show()
+    plot_optimal_value_bounds(graph, "surveillance_bounds")
 
 # Plot rooms and optimal spanning tree.
 plt.figure(figsize=sides/2)
