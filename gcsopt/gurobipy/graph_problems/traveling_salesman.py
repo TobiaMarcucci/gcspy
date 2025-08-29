@@ -11,7 +11,7 @@ def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_
     model = gp.Model(env=env)
 
     # Define variables.
-    zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
+    yv, zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
 
     # Edge costs and constraints.
     cost = enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head)
@@ -49,13 +49,13 @@ def traveling_salesman_conic(conic_graph, lazy_constraints, binary, tol, gurobi_
         model.Params.LazyConstraints = 1
         callback = SubtourEliminationCallback(conic_graph, ye, save_bounds)
         model.optimize(callback)
-        set_solution(model, conic_graph, ye, ze, zv, tol, callback)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol, callback)
 
     # Exponentially many subtour elimination constraints.
     else:
         subtour_elimination_constraints(model, conic_graph, ye)
         model.optimize()
-        set_solution(model, conic_graph, ye, ze, zv, tol)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol)
 
 def traveling_salesman(convex_graph, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None, save_bounds=False):
         conic_graph = convex_graph.to_conic()

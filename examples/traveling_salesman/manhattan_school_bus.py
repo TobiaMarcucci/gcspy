@@ -60,7 +60,7 @@ else:
 if plot_bounds and has_gurobi:
     bounds = graph.solver_stats.callback_bounds
     bounds[1] = np.where(bounds[1] >= 0, bounds[1], np.nan)
-    plot_optimal_value_bounds(graph, "bus_bounds")
+    plot_optimal_value_bounds(bounds, "bus_bounds")
 
 # Helper function that draws an L1 path between two points.
 def l1_path(tail, head, color, ls):

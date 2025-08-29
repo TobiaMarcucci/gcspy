@@ -13,7 +13,7 @@ def _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol
     model = gp.Model(env=env)
 
     # Define variables.
-    zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
+    yv, zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
 
     # Edge costs and constraints.
     cost = enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head)
@@ -47,13 +47,13 @@ def _undirected_minimum_spanning_tree(conic_graph, lazy_constraints, binary, tol
         model.Params.LazyConstraints = 1
         callback = SubtourEliminationCallback(conic_graph, ye, save_bounds)
         model.optimize(callback)
-        set_solution(model, conic_graph, ye, ze, zv, tol, callback)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol, callback)
 
     # Exponentially many subtour elimination constraints.
     else:
         subtour_elimination_constraints(model, conic_graph, ye)
         model.optimize()
-        set_solution(model, conic_graph, ye, ze, zv, tol)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol)
 
 def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, binary, tol, gurobi_parameters=None, save_bounds=False):
 
@@ -66,7 +66,7 @@ def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, b
     model = gp.Model(env=env)
 
     # Define variables.
-    zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
+    yv, zv, ye, ze, ze_tail, ze_head = define_variables(model, conic_graph, binary)
 
     # Edge costs and constraints.
     cost = enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head)
@@ -97,7 +97,7 @@ def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, b
         model.Params.LazyConstraints = 1
         callback = CutsetCallback(conic_graph, ye, save_bounds)
         model.optimize(callback)
-        set_solution(model, conic_graph, ye, ze, zv, tol, callback)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol, callback)
 
     # Exponentially many cutset constraints.
     else:
@@ -108,7 +108,7 @@ def _directed_minimum_spanning_tree(conic_graph, conic_root, lazy_constraints, b
                 inc = conic_graph.incoming_edge_indices(vertices)
                 model.addConstr(sum(ye[inc]) >= 1)
         model.optimize()
-        set_solution(model, conic_graph, ye, ze, zv, tol)
+        set_solution(model, conic_graph, yv, zv, ye, ze, tol)
 
 def minimum_spanning_tree_conic(conic_graph, root=None, lazy_constraints=True, binary=True, tol=1e-4, gurobi_parameters=None, save_bounds=False):
     """

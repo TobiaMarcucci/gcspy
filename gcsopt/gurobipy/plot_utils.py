@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_optimal_value_bounds(graph, fig_name=None):
-    bounds = graph.solver_stats.callback_bounds
+def plot_optimal_value_bounds(bounds, fig_name=None):
     bounds[1] = np.where(bounds[1] >= 0, bounds[1], np.nan)
     plt.figure(figsize=(8, 3))
     plt.plot(bounds[0], bounds[2], lw=2, ls='-', label="best upper bound")

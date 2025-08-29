@@ -52,7 +52,7 @@ def edge_constraint_homogenization(model, edge, xv, xw, xe, y):
     x = gp.concatenate((xv, xw, xe))
     constraint_homogenization(model, edge, x, y)
 
-def define_variables(model, conic_graph, binary):
+def define_variables(model, conic_graph, binary, add_yv=False):
 
     # Binary variables.
     vtype = GRB.BINARY if binary else GRB.CONTINUOUS
@@ -67,7 +67,11 @@ def define_variables(model, conic_graph, binary):
     ze_tail = np.array([add_var(edge.tail.size) for edge in conic_graph.edges])
     ze_head = np.array([add_var(edge.head.size) for edge in conic_graph.edges])
 
-    return zv, ye, ze, ze_tail, ze_head
+    if add_yv:
+        yv = model.addMVar(conic_graph.num_vertices(), vtype=vtype)
+    else:
+        yv = None
+    return yv, zv, ye, ze, ze_tail, ze_head
 
 def enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head):
 
@@ -81,7 +85,13 @@ def enforce_edge_programs(model, conic_graph, ye, ze, ze_tail, ze_head):
 
     return cost
 
-def set_solution(model, conic_graph, ye, ze, zv, tol, callback=None):
+def set_solution(model, conic_graph, yv, zv, ye, ze, tol, callback=None):
+
+    # Set vertex binaries.
+    if yv is None:
+        yv_value = np.ones(conic_graph.num_vertices())
+    else:
+        yv_value = yv.X
 
     # Set problem value and stats.
     conic_graph.value = model.ObjVal
@@ -111,32 +121,46 @@ def set_solution(model, conic_graph, ye, ze, zv, tol, callback=None):
             callback.upper_bounds])
 
     # Set vertex variable values.
-    for vertex, z in zip(conic_graph.vertices, zv):
-        if model.status == 2:
-            vertex.binary_variable.value = 1
-            vertex.x.value = z.X
+    print('status', model.status)
+    for vertex, y, z in zip(conic_graph.vertices, yv_value, zv):
+        if model.status in [2, 12, 13]: # Optimal, numeric error, suboptimal.
+            vertex.binary_variable.value = y
+            if y > tol:
+                vertex.x.value = z.X / y
+            else:
+                vertex.x.value = None
         else:
             vertex.binary_variable.value = None
             vertex.x.value = None
 
     # Set edge variable values.
     for edge, y, z in zip(conic_graph.edges, ye, ze):
-        if model.status == 2:
+        if model.status in [2, 12, 13]: # Optimal, numeric error, suboptimal.
             edge.binary_variable.value = y.X
             z_value = z.X if z.size > 0 else np.array([])
-            if y.X is not None and y.X > tol:
+            if y.X > tol:
+            # if y.X is not None and y.X > tol:
                 edge.x.value = np.concatenate((
                     edge.tail.x.value,
                     edge.head.x.value,
                     z_value / y.X))
+            else:
+                edge.x.value = None
         else:
             edge.binary_variable.value = None
             edge.x.value = None
+
+def subtour_elimination_constraints(model, conic_graph, ye):
+    """
+    Subtour elimination constraints for all subsets of vertices.
+    """
+    start = 2 if conic_graph.directed else 3
+    for n_vertices in range(start, conic_graph.num_vertices() - 1):
+        for vertices in combinations(conic_graph.vertices, n_vertices):
+            ind = conic_graph.induced_edge_indices(vertices)
+            model.addConstr(sum(ye[ind]) <= n_vertices - 1)
             
-class Callback:
-    """
-    Usable for the TSP and the MSTP.
-    """
+class BaseCallback:
 
     def __init__(self, conic_graph, ye, save_bounds=False):
         self.conic_graph = conic_graph
@@ -152,15 +176,21 @@ class Callback:
             self.callback_times.append(model.cbGet(GRB.Callback.RUNTIME))
             self.lower_bounds.append(model.cbGet(GRB.Callback.MIP_OBJBND))
             self.upper_bounds.append(model.cbGet(GRB.Callback.MIP_OBJBST))
+
+class SubtourEliminationCallback(BaseCallback):
+
+    def __call__(self, model, where):
+        super().__call__(model, where)
         if where == GRB.Callback.MIPSOL:
             ye = model.cbGetSolution(self.ye)
             edges = [self.conic_graph.edges[k] for k, y in enumerate(ye) if y > 0.5]
             tour = self.shortest_subtour(edges)
-            # for t in tour:
-            #     if len(t) < self.conic_graph.num_vertices():
-            #         self.cut(model, t)
             if tour and len(tour) < self.conic_graph.num_vertices():
                 self.cut(model, tour)
+
+    def cut(self, model, tour):
+        ind = self.conic_graph.induced_edge_indices(tour)
+        model.cbLazy(sum(self.ye[ind]) <= len(tour) - 1)
 
     def shortest_subtour(self, edges):
         if self.conic_graph.directed:
@@ -171,14 +201,12 @@ class Callback:
         if self.conic_graph.directed:
             tours = list(nx.simple_cycles(G))
             tours.sort(key=len)
-            # girth = min([len(t) for t in tours], default=0)
-            # tours = [t for t in tours if len(t) == girth]
         else:
             tours = list(nx.simple_cycles(G, nx.girth(G)))
-        # return tours
         if tours:
             return tours[0]
-            
+        
+
     # def shortest_subtour(self, edges):
     #     """
     #     The edges here are only the ones that have binary equal to one. It is
@@ -212,24 +240,33 @@ class Callback:
 
     #     return shortest
 
-def subtour_elimination_constraints(model, conic_graph, ye):
-    """
-    Subtour elimination constraints for all subsets of vertices.
-    """
-    start = 2 if conic_graph.directed else 3
-    for n_vertices in range(start, conic_graph.num_vertices() - 1):
-        for vertices in combinations(conic_graph.vertices, n_vertices):
-            ind = conic_graph.induced_edge_indices(vertices)
-            model.addConstr(sum(ye[ind]) <= n_vertices - 1)
+class CutsetCallback(BaseCallback):
 
-class SubtourEliminationCallback(Callback):
-
-    def cut(self, model, tour):
-        ind = self.conic_graph.induced_edge_indices(tour)
-        model.cbLazy(sum(self.ye[ind]) <= len(tour) - 1)
-
-class CutsetCallback(Callback):
+    def __call__(self, model, where):
+        super().__call__(model, where)
+        if where == GRB.Callback.MIPSOL:
+            ye = model.cbGetSolution(self.ye)
+            edges = [self.conic_graph.edges[k] for k, y in enumerate(ye) if y > 0.5]
+            tours = self.shortest_subtours(edges)
+            for tour in tours:
+                if len(tour) < self.conic_graph.num_vertices():
+                    self.cut(model, tour)
 
     def cut(self, model, tour):
         inc = self.conic_graph.incoming_edge_indices(tour)
         model.cbLazy(sum(self.ye[inc]) >= 1)
+
+    def shortest_subtours(self, edges):
+        if self.conic_graph.directed:
+            G = nx.DiGraph()
+        else:
+            G = nx.Graph()
+        G.add_edges_from([(e.tail, e.head) for e in edges])
+        if self.conic_graph.directed:
+            tours = list(nx.simple_cycles(G))
+            tours.sort(key=len)
+            girth = min([len(t) for t in tours], default=0)
+            tours = [t for t in tours if len(t) == girth]
+        else:
+            tours = list(nx.simple_cycles(G, nx.girth(G)))
+        return tours

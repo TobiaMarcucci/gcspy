@@ -3,6 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from gcsopt import GraphOfConvexSets
+
+# This file runs only with gurobipy installed. The deafault MSTP cannot solve this.
+import importlib.util
+assert importlib.util.find_spec("gurobipy")
+from gcsopt.gurobipy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 from gcsopt.gurobipy.plot_utils import plot_optimal_value_bounds
 
 # Generate random rooms.
@@ -53,9 +58,6 @@ for i, (li, ui) in enumerate(zip(L, U)):
             e.add_constraint(x_head <= ui)
 
 # Solve problem with gurobipy (way too big for deafault MSTP method).
-import importlib.util
-assert importlib.util.find_spec("gurobipy")
-from gcsopt.gurobipy.graph_problems.minimum_spanning_tree import minimum_spanning_tree
 root = graph.vertices[main_room]
 params = {"OutputFlag": 0}
 plot_bounds = True
@@ -65,7 +67,7 @@ print("Optimal value:", graph.value)
 
 # Plot upper and lower bounds from gurobi.
 if plot_bounds:
-    plot_optimal_value_bounds(graph, "surveillance_bounds")
+    plot_optimal_value_bounds(graph.solver_stats.callback_bounds, "surveillance_bounds")
 
 # Plot rooms and optimal spanning tree.
 plt.figure(figsize=sides/2)

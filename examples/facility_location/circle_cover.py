@@ -35,8 +35,23 @@ graph = GraphOfConvexSets()
 l = np.min(np.vstack(mesh), axis=0)
 u = np.max(np.vstack(mesh), axis=0)
 
-# Upper bound for circle radius.
-max_radius = np.linalg.norm(u - l) / 2
+# Compute minimum radius.
+min_radius = np.inf
+r = cp.Variable()
+c = cp.Variable(2)
+for points in mesh:
+    constraints = [cp.norm2(p - c) <= r for p in points]
+    prob = cp.Problem(cp.Minimize(r), constraints)
+    prob.solve()
+    min_radius = min(min_radius, r.value)
+
+# Compute maximum radius.
+constraints = []
+for points in mesh:
+    constraints += [cp.norm2(p - c) <= r for p in points]
+    prob = cp.Problem(cp.Minimize(r), constraints)
+    prob.solve()
+    max_radius = r.value
 
 # Add all circles (facilities).
 circles = []
@@ -45,7 +60,7 @@ for i in range(num_circles):
     center = circle.add_variable(2)
     radius = circle.add_variable(1)
     circle.add_constraints([center >= l, center <= u])
-    circle.add_constraints([radius >= 0, radius <= max_radius])
+    circle.add_constraints([radius >= min_radius, radius <= max_radius])
     circle.add_cost(circle_cost + np.pi * radius ** 2)
     circles.append(circle)
 
@@ -66,16 +81,34 @@ for circle in circles:
             edge.add_constraint(cp.norm2(point - center) <= radius)
 
 # Solve problem.
-graph.solve_facility_location(verbose=True)
+plot_bounds = False
+if plot_bounds:
+    import importlib.util
+    assert importlib.util.find_spec("gurobipy")
+    from gcsopt.gurobipy.graph_problems.facility_location import facility_location
+    from gcsopt.gurobipy.plot_utils import plot_optimal_value_bounds
+    params = {"OutputFlag": 1, "QCPDual": 1}
+    plot_bounds = True
+    facility_location(graph, gurobi_parameters=params, save_bounds=plot_bounds)
+else:
+    graph.solve_facility_location(verbose=True, solver="GUROBI")
 print('Problem status:', graph.status)
 print('Optimal value:', graph.value)
 
+# Plot upper and lower bounds from gurobi.
+if plot_bounds:
+    plot_optimal_value_bounds(graph.solver_stats.callback_bounds, "cover_bounds")
+
 # Plot solution.
 plt.figure()
+plt.grid()
+plt.gca().set_axisbelow(True) 
 plt.axis("square")
 limits = np.array([l - 1, u + 1])
-plt.xlim(limits[:, 0])
-plt.ylim(limits[:, 1])
+plt.xlim([l[0] - 1, u[0] + 1])
+plt.ylim([l[1] - 1, u[1] + 1])
+plt.xticks(range(l[0] - 1, u[0] + 2))
+plt.yticks(range(l[1] - 1, u[1] + 2))
 
 # Plot mesh.
 for triangle in mesh:
@@ -88,4 +121,5 @@ for circle in circles:
         center, radius = circle.variables
         patch = plt.Circle(center.value, radius.value, fc="None", ec="b")
         plt.gca().add_patch(patch)
+plt.savefig("cover.pdf", bbox_inches="tight")
 plt.show()
